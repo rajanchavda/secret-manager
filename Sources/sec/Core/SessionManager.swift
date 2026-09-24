@@ -4,7 +4,15 @@ import Darwin
 public final class SessionManager {
     public static let shared = SessionManager()
     
-    private let sessionDurationSeconds: Double = 15 * 60 // 15 minutes
+    /// Zero-cache by default: Every execution requires explicit biometric authentication
+    /// to prevent background AI agents from piggybacking on an active session.
+    private var sessionDurationSeconds: Double {
+        if let envVal = ProcessInfo.processInfo.environment["SEC_SESSION_TTL_MINUTES"],
+           let mins = Double(envVal), mins > 0 {
+            return mins * 60
+        }
+        return 0 // Strict Zero-Cache (Single-Use)
+    }
     
     private var secDirectory: URL {
         let home = FileManager.default.homeDirectoryForCurrentUser
@@ -23,7 +31,10 @@ public final class SessionManager {
     }
     
     private init() {
-        ensureSecDirectory()
+        // Clear any legacy session file upon initialization to enforce zero-cache
+        if sessionDurationSeconds == 0 {
+            clearSession()
+        }
     }
     
     private func ensureSecDirectory() {
@@ -47,6 +58,10 @@ public final class SessionManager {
     
     /// Checks whether an active unexpired session exists
     public func isSessionActive() -> Bool {
+        guard sessionDurationSeconds > 0 else {
+            return false // Strict Single-Use
+        }
+        
         guard let data = try? Data(contentsOf: sessionFileURL),
               let session = try? JSONDecoder().decode(SessionData.self, from: data) else {
             return false
@@ -55,7 +70,6 @@ public final class SessionManager {
         let now = Date().timeIntervalSince1970
         let currentBootTime = getSystemBootTime()
         
-        // Ensure not expired and boot time matches
         if now < session.expiresAt && session.bootTime == currentBootTime {
             return true
         } else {
@@ -64,8 +78,13 @@ public final class SessionManager {
         }
     }
     
-    /// Starts or refreshes an active 15-minute session
+    /// Starts or refreshes an active session if TTL > 0
     public func startSession() {
+        guard sessionDurationSeconds > 0 else {
+            clearSession()
+            return
+        }
+        
         ensureSecDirectory()
         let now = Date().timeIntervalSince1970
         let session = SessionData(
@@ -77,7 +96,6 @@ public final class SessionManager {
         
         if let encoded = try? JSONEncoder().encode(session) {
             try? encoded.write(to: sessionFileURL, options: .atomic)
-            // Set 0600 permissions
             try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: sessionFileURL.path)
         }
     }
@@ -89,6 +107,10 @@ public final class SessionManager {
     
     /// Returns human-readable remaining time if session is active
     public func remainingTimeDescription() -> String? {
+        guard sessionDurationSeconds > 0 else {
+            return nil
+        }
+        
         guard let data = try? Data(contentsOf: sessionFileURL),
               let session = try? JSONDecoder().decode(SessionData.self, from: data) else {
             return nil
@@ -101,5 +123,9 @@ public final class SessionManager {
         let mins = Int(diff) / 60
         let secs = Int(diff) % 60
         return "\(mins)m \(secs)s"
+    }
+    
+    public var isZeroCacheMode: Bool {
+        return sessionDurationSeconds == 0
     }
 }

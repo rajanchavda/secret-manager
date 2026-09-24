@@ -184,8 +184,10 @@ public struct SecCLI {
         let hasKey = KeychainManager.shared.hasMasterKey()
         print("🔑 Keychain Master Key: \(hasKey ? "✅ Configured (Secure Enclave / Keychain)" : "⏳ Not yet created (will initialize on first lock)")")
         
-        let sessionActive = SessionManager.shared.isSessionActive()
-        if sessionActive, let remaining = SessionManager.shared.remainingTimeDescription() {
+        if SessionManager.shared.isZeroCacheMode {
+            print("🛡️  Access Policy:       🔒 Strict Zero-Cache (Single-Use)")
+            print("                       (Every command requires Touch ID; no lingering cache for AI agents)")
+        } else if SessionManager.shared.isSessionActive(), let remaining = SessionManager.shared.remainingTimeDescription() {
             print("⏱️  Session Cache:       ✅ Active (\(remaining) remaining)")
         } else {
             print("⏱️  Session Cache:       🔒 Locked (Touch ID required)")
@@ -201,6 +203,13 @@ public struct SecCLI {
     }
     
     private static func handleSession(subcommand: String) {
+        if SessionManager.shared.isZeroCacheMode {
+            print("🛡️  Zero-Cache Mode is ACTIVE (Default).")
+            print("   Every command requires a fresh Touch ID tap to prevent AI agents from accessing secrets.")
+            print("   No session tokens or decrypted keys are cached on disk.")
+            return
+        }
+        
         switch subcommand {
         case "clear", "kill", "rm":
             SessionManager.shared.clearSession()
@@ -233,15 +242,16 @@ public struct SecCLI {
         let help = """
         sec - Touch ID Secret Vault for macOS
         Shields .env secrets from AI agents with in-memory injection & Finder right-click
+        Enforces Strict Zero-Cache: Physical Touch ID hardware gate on every command!
 
         USAGE:
-            sec <command...>            Run command with secrets injected into memory
+            sec <command...>            Run command with secrets injected into memory (Single-Use)
             sec lock [file]             Lock & encrypt file (default: .env), replace with dummy
             sec edit [file]             Safely edit secrets in temporary buffer and re-encrypt
             sec view [file]             Print decrypted secrets to terminal (prompts Touch ID)
             sec unlock [file]           Restore plaintext to disk and remove vault
-            sec status                  Show keychain, session, and project vault status
-            sec session [status|clear]  Inspect or clear the 15-minute Touch ID cache
+            sec status                  Show keychain, zero-cache policy, and project vault status
+            sec session                 Inspect access policy (Zero-Cache by default)
             sec install-finder          Install macOS Finder right-click Quick Actions
             sec help                    Show this help message
 
