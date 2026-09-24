@@ -24,13 +24,22 @@ public final class FinderInstaller {
             name: "Lock Secrets with Touch ID (sec)",
             script: """
             export PATH="/usr/local/bin:/opt/homebrew/bin:$HOME/.local/bin:$PATH"
-            for f in "$@"; do
-                if command -v sec >/dev/null 2>&1; then
-                    sec lock "$f"
-                elif [ -f "$HOME/.local/bin/sec" ]; then
-                    "$HOME/.local/bin/sec" lock "$f"
+            SEC_BIN="sec"
+            if ! command -v sec >/dev/null 2>&1; then
+                if [ -f "$HOME/.local/bin/sec" ]; then
+                    SEC_BIN="$HOME/.local/bin/sec"
                 elif [ -f "/usr/local/bin/sec" ]; then
-                    "/usr/local/bin/sec" lock "$f"
+                    SEC_BIN="/usr/local/bin/sec"
+                fi
+            fi
+
+            for f in "$@"; do
+                output=$("$SEC_BIN" lock "$f" 2>&1)
+                status=$?
+                if [ $status -ne 0 ]; then
+                    escaped_output=$(echo "$output" | sed 's/"/\\"/g')
+                    osascript -e "display alert \\"sec Lock Failed\\" message \\"$escaped_output\\" as critical"
+                    exit $status
                 fi
             done
             """,
