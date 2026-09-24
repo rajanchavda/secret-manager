@@ -11,8 +11,16 @@ public struct SecCLI {
         
         switch firstArg {
         case "lock":
-            let target = arguments.count > 1 ? arguments[1] : ".env"
-            await handleLock(target: target)
+            var target = ".env"
+            var force = false
+            for arg in arguments.dropFirst() {
+                if arg == "--force" || arg == "-f" {
+                    force = true
+                } else if !arg.hasPrefix("-") {
+                    target = arg
+                }
+            }
+            await handleLock(target: target, force: force)
             
         case "run":
             let cmd = Array(arguments.dropFirst())
@@ -70,13 +78,37 @@ public struct SecCLI {
         }
     }
     
-    private static func handleLock(target: String) async {
+    private static func handleLock(target: String, force: Bool) async {
         let fileURL = resolveURL(for: target)
         let fileName = fileURL.lastPathComponent
         
+        // If not forcing, check if file is already locked beforehand to avoid redundant Touch ID prompts
+        if !force {
+            let vault = VaultEngine.shared.vaultURL(for: fileURL)
+            let isVault = fileURL.pathExtension == "vault"
+            let vaultExists = FileManager.default.fileExists(atPath: vault.path)
+            let isDummy = (try? String(contentsOf: fileURL, encoding: .utf8)).map { VaultEngine.shared.isDummyContent($0) } ?? false
+            
+            if isVault || vaultExists || isDummy {
+                let actualVaultName = isVault ? fileName : vault.lastPathComponent
+                let plainName = isVault ? VaultEngine.shared.plainFileURL(for: fileURL).lastPathComponent : fileName
+                print("ℹ️ '\(fileName)' is already locked and protected by sec.")
+                print("   📁 Vault: \(actualVaultName)")
+                print("   💡 Edit secrets:   sec edit \(plainName)")
+                print("   💡 Unlock to disk: sec unlock \(plainName)")
+                print("   (To force re-lock with current file contents, run: sec lock --force \(fileName))")
+                
+                Notifier.shared.notify(
+                    title: "sec: Already Locked",
+                    message: "'\(fileName)' is already protected. Use 'Edit Secrets' to make changes."
+                )
+                return
+            }
+        }
+        
         do {
             print("🔒 Locking '\(fileName)' with Touch ID...")
-            let keys = try await VaultEngine.shared.lock(fileURL: fileURL)
+            let keys = try await VaultEngine.shared.lock(fileURL: fileURL, force: force)
             print("✅ Successfully locked '\(fileName)'!")
             print("   📁 Encrypted vault: \(fileName).vault (AES-256-GCM)")
             print("   🎭 Masked placeholder: \(fileName) (dummy values for AI agents)")
@@ -87,6 +119,10 @@ public struct SecCLI {
                 print("   🛡️  Shielded \(keys.count) key\(keys.count == 1 ? "" : "s"): \(keys.joined(separator: ", "))")
                 Notifier.shared.notify(title: "sec: File Locked", message: "Shielded \(keys.count) secrets in '\(fileName)' from AI agents.")
             }
+        } catch VaultError.alreadyLocked(let name) {
+            print("ℹ️ '\(name)' is already locked and protected by sec.")
+            print("   (To force re-lock with current file contents, run: sec lock --force \(name))")
+            Notifier.shared.notify(title: "sec: Already Locked", message: "'\(name)' is already protected.")
         } catch {
             print("❌ Error locking file: \(error.localizedDescription)")
             Notifier.shared.notify(title: "sec: Lock Failed", message: error.localizedDescription)
@@ -270,7 +306,7 @@ public struct SecCLI {
 
         USAGE:
             sec <command...>            Run command with secrets injected into memory (Single-Use)
-            sec lock [file]             Lock & encrypt file (default: .env), replace with dummy
+            sec lock [--force] [file]   Lock file & replace with dummy (skips if already locked)
             sec edit [file]             Safely edit secrets in temporary buffer and re-encrypt
             sec view [file]             Print decrypted secrets to terminal (prompts Touch ID)
             sec unlock [file]           Restore plaintext to disk and remove vault

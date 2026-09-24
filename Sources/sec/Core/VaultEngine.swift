@@ -38,13 +38,49 @@ public final class VaultEngine {
         return vaultURL.deletingPathExtension()
     }
     
-    /// Locks a secret file (e.g. .env) by encrypting it to .env.vault and replacing .env with a dummy file
-    public func lock(fileURL: URL) async throws -> [String] {
+    /// Checks if a file's content matches sec's dummy masked placeholder
+    public func isDummyContent(_ content: String) -> Bool {
+        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.contains("PROTECTED BY sec") ||
+               trimmed.contains("locked_by_sec") ||
+               trimmed.contains("_sec_locked")
+    }
+    
+    /// Checks if a file is already locked or is itself a vault file
+    public func isAlreadyLocked(fileURL: URL) -> Bool {
+        if fileURL.pathExtension == "vault" {
+            return true
+        }
+        let vault = vaultURL(for: fileURL)
+        if FileManager.default.fileExists(atPath: vault.path) {
+            return true
+        }
+        if let content = try? String(contentsOf: fileURL, encoding: .utf8), isDummyContent(content) {
+            return true
+        }
+        return false
+    }
+
+    /// Locks a secret file (e.g. .env) by encrypting it to .env.vault and replacing .env with a dummy file.
+    /// If force is false and the file is already locked, it aborts to prevent overwriting secrets with dummy values.
+    public func lock(fileURL: URL, force: Bool = false) async throws -> [String] {
         guard FileManager.default.fileExists(atPath: fileURL.path) else {
             throw VaultError.targetFileNotFound(fileURL.path)
         }
         
+        // 1. Prevent locking a .vault file onto itself
+        if fileURL.pathExtension == "vault" {
+            throw VaultError.alreadyLocked(fileURL.lastPathComponent)
+        }
+        
         let vault = vaultURL(for: fileURL)
+        
+        // 2. Prevent re-locking if vault already exists or content is a dummy placeholder
+        if !force {
+            if isAlreadyLocked(fileURL: fileURL) {
+                throw VaultError.alreadyLocked(fileURL.lastPathComponent)
+            }
+        }
         
         let plaintextData: Data
         do {

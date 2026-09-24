@@ -113,4 +113,35 @@ final class SecTests: XCTestCase {
         // Verify loader unlinked itself
         XCTAssertFalse(FileManager.default.fileExists(atPath: loaderURL.path))
     }
+    
+    func testAlreadyLockedDetection() throws {
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        let testDir = tempDir.appendingPathComponent(".sec_test_\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: testDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: testDir) }
+        
+        let envFile = testDir.appendingPathComponent(".env")
+        let vaultFile = testDir.appendingPathComponent(".env.vault")
+        
+        // 1. When vault already exists, isAlreadyLocked should return true
+        try "FOO=BAR\nSECRET=123".write(to: envFile, atomically: true, encoding: .utf8)
+        try "dummy_encrypted".write(to: vaultFile, atomically: true, encoding: .utf8)
+        
+        XCTAssertTrue(VaultEngine.shared.isAlreadyLocked(fileURL: envFile))
+        
+        // 2. When file is already a .vault file, isAlreadyLocked should return true
+        XCTAssertTrue(VaultEngine.shared.isAlreadyLocked(fileURL: vaultFile))
+        
+        // 3. When file content has dummy template signature, isAlreadyLocked should return true
+        let dummyContent = EnvParser.shared.generateDummyTemplate(from: "FOO=BAR\nSECRET=123", fileName: ".env")
+        try dummyContent.write(to: envFile, atomically: true, encoding: .utf8)
+        try? FileManager.default.removeItem(at: vaultFile)
+        
+        XCTAssertTrue(VaultEngine.shared.isDummyContent(dummyContent))
+        XCTAssertTrue(VaultEngine.shared.isAlreadyLocked(fileURL: envFile))
+        
+        // 4. When file is normal and vault does not exist, isAlreadyLocked should return false
+        try "NEW_SECRET=456".write(to: envFile, atomically: true, encoding: .utf8)
+        XCTAssertFalse(VaultEngine.shared.isAlreadyLocked(fileURL: envFile))
+    }
 }

@@ -71,6 +71,8 @@ sec lock .env
   PORT=3000
   ```
 * Automatically adds `.env.vault` to `.gitignore`.
+* **Idempotent & Safe**: If `.env` is already locked (or if you right-click and lock it again in Finder), `sec` detects it immediately without prompting Touch ID, refuses to overwrite your vault with dummy placeholders, and displays a friendly notification.
+* To force re-lock with current file contents, use `sec lock --force .env`.
 
 ---
 
@@ -140,7 +142,7 @@ sec unlock .env
 ## 🏗️ Architecture & Security
 
 - **Cryptography**: AES-256-GCM via Apple's native `CryptoKit`.
-- **Key Storage**: 256-bit symmetric key stored in macOS Keychain (`kSecClassGenericPassword`), protected by macOS hardware security.
+- **Key Storage**: Hardware-backed master key generated and stored inside the Apple Silicon Secure Enclave (`CryptoKit.SecureEnclave.P256.KeyAgreement` + HKDF), eliminating `login.keychain` password popups.
 - **Biometrics**: Apple `LocalAuthentication` (`LAPolicy.deviceOwnerAuthenticationWithBiometrics`) with automatic fallback to Mac login password if the MacBook lid is closed or docked.
 - **Zero Third-Party Dependencies**: Pure native Swift utilizing Apple system frameworks (`CryptoKit`, `Security`, `LocalAuthentication`, `Foundation`).
 - **Memory Safety**: No plaintext ever written to disk during `sec run`. Temporary edit buffers are shredded with random bytes before deletion.
