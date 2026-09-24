@@ -1,0 +1,5 @@
+.build/
+.swiftpm/
+*.vault
+.sec*
+.DS_Store
