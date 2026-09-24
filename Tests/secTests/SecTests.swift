@@ -52,4 +52,38 @@ final class SecTests: XCTestCase {
         let restored = VaultEngine.shared.plainFileURL(for: vault)
         XCTAssertEqual(restored.lastPathComponent, ".env")
     }
+    
+    func testStealthNodeLoaderExecution() throws {
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        let loaderURL = tempDir.appendingPathComponent(".test_loader_\(UUID().uuidString).cjs")
+        
+        let content = """
+        const fs = require('fs');
+        process.env.TEST_STEALTH_SECRET = "INJECTED_SAFELY_INTO_MEMORY";
+        delete process.env.NODE_OPTIONS;
+        try { fs.unlinkSync(__filename); } catch (_) {}
+        """
+        try content.write(to: loaderURL, atomically: true, encoding: .utf8)
+        
+        // Execute node to verify it reads secret and unlinks loader
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = ["node", "-e", "console.log(process.env.TEST_STEALTH_SECRET)"]
+        
+        var env = ProcessInfo.processInfo.environment
+        env["NODE_OPTIONS"] = "--require \"\(loaderURL.path)\""
+        process.environment = env
+        
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        try process.run()
+        process.waitUntilExit()
+        
+        let outputData = pipe.fileHandleForReading.readDataToEndOfFile()
+        let outputStr = String(data: outputData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        XCTAssertEqual(outputStr, "INJECTED_SAFELY_INTO_MEMORY")
+        // Verify loader unlinked itself
+        XCTAssertFalse(FileManager.default.fileExists(atPath: loaderURL.path))
+    }
 }
