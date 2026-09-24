@@ -18,7 +18,7 @@ If a utility decrypts `.env` to plaintext on disk while your dev server runs (`n
 1. **Plaintext never touches the disk during development**: Real secrets are encrypted in `.env.vault` (AES-256-GCM with hardware-backed macOS Keychain key).
 2. **Sanitized Placeholder**: The `.env` file on disk is replaced with masked dummy values (e.g. `API_KEY=locked_by_sec`) so project linters, syntax highlighters, and static tools never break.
 3. **In-Memory Injection**: When you run `sec npm run dev`, Touch ID prompts once, decrypts secrets directly into RAM (`process.env`), and passes them to the child process. AI agents reading the filesystem only ever see dummy placeholders.
-4. **15-Minute Session Cache**: Touch ID authenticates once and stays valid for 15 minutes across terminal commands, clearing automatically on screen lock or sleep.
+4. **Strict Zero-Cache (Single-Use)**: Every command execution requires a physical Touch ID tap. Decrypted secrets live exclusively in the child process memory and are destroyed when the command exits. No session tokens linger on disk for AI agents to piggyback on.
 5. **Finder Right-Click Quick Actions**: Right-click any secret file in Finder to lock or edit it with Touch ID.
 
 ---
@@ -116,15 +116,14 @@ Outputs:
 ```text
 === sec Status ===
 🔑 Keychain Master Key: ✅ Configured (Secure Enclave / Keychain)
-⏱️  Session Cache:       ✅ Active (12m 45s remaining)
+🛡️  Access Policy:       🔒 Strict Zero-Cache (Single-Use)
+                       (Every command requires Touch ID; no lingering cache for AI agents)
 📁 Current Vault:       Found '.env.vault' at /Users/you/project
 ```
 
-To revoke the session cache early:
+Inspect access policy:
 ```bash
-sec session clear
-# or
-sec logout
+sec session
 ```
 
 ---
