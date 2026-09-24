@@ -206,7 +206,7 @@ public struct SecCLI {
     private static func handleStatus() {
         print("=== sec Status ===")
         let hasKey = KeychainManager.shared.hasMasterKey()
-        print("🔑 Keychain Master Key: \(hasKey ? "✅ Configured (Secure Enclave / Keychain)" : "⏳ Not yet created (will initialize on first lock)")")
+        print("🔑 Hardware Master Key: \(hasKey ? "✅ Configured (Apple Silicon Secure Enclave)" : "⏳ Not yet created (will initialize on first lock)")")
         
         if SessionManager.shared.isZeroCacheMode {
             print("🛡️  Access Policy:       🔒 Strict Zero-Cache (Single-Use)")
