@@ -51,44 +51,87 @@ public final class EnvParser {
         return result
     }
     
-    /// Generates a sanitized dummy .env file keeping keys and structure, but replacing values with dummy placeholders
-    public func generateDummyTemplate(from originalContent: String) -> String {
-        var outputLines: [String] = []
-        
-        outputLines.append("# ====================================================================")
-        outputLines.append("# 🔒 PROTECTED BY sec (Touch ID Secret Vault)")
-        outputLines.append("# Real secrets are encrypted in .env.vault")
-        outputLines.append("# Run commands: sec npm run dev   |   Edit secrets: sec edit")
-        outputLines.append("# ====================================================================")
-        outputLines.append("")
-        
-        let lines = originalContent.components(separatedBy: .newlines)
-        
-        for rawLine in lines {
-            let trimmed = rawLine.trimmingCharacters(in: .whitespaces)
-            
-            // Keep empty lines and comments intact
-            if trimmed.isEmpty || trimmed.hasPrefix("#") {
-                outputLines.append(rawLine)
-                continue
+    /// Recursively masks all scalar values in a parsed JSON structure
+    private func maskJSONValue(_ value: Any) -> Any {
+        if let dict = value as? [String: Any] {
+            var maskedDict: [String: Any] = [:]
+            for (k, v) in dict {
+                maskedDict[k] = maskJSONValue(v)
             }
-            
-            var linePrefix = ""
-            var cleanLine = trimmed
-            if cleanLine.hasPrefix("export ") {
-                linePrefix = "export "
-                cleanLine = String(cleanLine.dropFirst(7)).trimmingCharacters(in: .whitespaces)
-            }
-            
-            if let equalIndex = cleanLine.firstIndex(of: "=") {
-                let key = String(cleanLine[..<equalIndex]).trimmingCharacters(in: .whitespaces)
-                let dummyVal = "locked_by_sec"
-                outputLines.append("\(linePrefix)\(key)=\(dummyVal)")
-            } else {
-                outputLines.append(rawLine)
+            return maskedDict
+        } else if let arr = value as? [Any] {
+            return arr.map { maskJSONValue($0) }
+        } else if value is NSNull {
+            return NSNull()
+        } else if value is Bool {
+            return false
+        } else {
+            return "locked_by_sec"
+        }
+    }
+    
+    /// Generates a sanitized dummy placeholder file keeping structure, but replacing all secrets.
+    /// Supports .env files, JSON files, and arbitrary secret files (keys, certs, raw text).
+    public func generateDummyTemplate(from originalContent: String, fileName: String = ".env") -> String {
+        let trimmed = originalContent.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // 1. JSON Support (.json files or JSON payloads)
+        if (trimmed.hasPrefix("{") && trimmed.hasSuffix("}")) ||
+           (trimmed.hasPrefix("[") && trimmed.hasSuffix("]")),
+           let data = trimmed.data(using: .utf8),
+           let jsonObj = try? JSONSerialization.jsonObject(with: data, options: []) {
+            let masked = maskJSONValue(jsonObj)
+            if let maskedData = try? JSONSerialization.data(withJSONObject: masked, options: [.prettyPrinted, .sortedKeys]),
+               let maskedStr = String(data: maskedData, encoding: .utf8) {
+                return maskedStr
             }
         }
         
-        return outputLines.joined(separator: "\n")
+        // 2. .env / KEY=VALUE Support
+        let parsed = parse(originalContent)
+        if !parsed.isEmpty {
+            var outputLines: [String] = []
+            outputLines.append("# ====================================================================")
+            outputLines.append("# 🔒 PROTECTED BY sec (Touch ID Secret Vault)")
+            outputLines.append("# Real secrets are encrypted in \(fileName).vault")
+            outputLines.append("# Run commands: sec npm run dev   |   Edit secrets: sec edit \(fileName)")
+            outputLines.append("# ====================================================================")
+            outputLines.append("")
+            
+            let lines = originalContent.components(separatedBy: .newlines)
+            for rawLine in lines {
+                let trimmedLine = rawLine.trimmingCharacters(in: .whitespaces)
+                if trimmedLine.isEmpty || trimmedLine.hasPrefix("#") {
+                    outputLines.append(rawLine)
+                    continue
+                }
+                
+                var linePrefix = ""
+                var cleanLine = trimmedLine
+                if cleanLine.hasPrefix("export ") {
+                    linePrefix = "export "
+                    cleanLine = String(cleanLine.dropFirst(7)).trimmingCharacters(in: .whitespaces)
+                }
+                
+                if let equalIndex = cleanLine.firstIndex(of: "=") {
+                    let key = String(cleanLine[..<equalIndex]).trimmingCharacters(in: .whitespaces)
+                    outputLines.append("\(linePrefix)\(key)=locked_by_sec")
+                } else {
+                    outputLines.append("# [secret content locked by sec]")
+                }
+            }
+            return outputLines.joined(separator: "\n")
+        }
+        
+        // 3. Arbitrary File Support (e.g. certificates, private keys, SSH keys, raw tokens, etc.)
+        return """
+        # ====================================================================
+        # 🔒 PROTECTED BY sec (Touch ID Secret Vault)
+        # Plaintext content is shielded from AI agents and background tools.
+        # Real secrets are encrypted in \(fileName).vault
+        # View or edit: sec edit \(fileName)
+        # Unlock to disk: sec unlock \(fileName)
+        # ====================================================================
+        """
     }
 }

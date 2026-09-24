@@ -37,11 +37,38 @@ final class SecTests: XCTestCase {
         XCTAssertEqual(parsed["API_SECRET"], "super-secret-value")
         XCTAssertEqual(parsed["JWT_TOKEN"], "ey12345")
         
-        let dummy = EnvParser.shared.generateDummyTemplate(from: envContent)
+        let dummy = EnvParser.shared.generateDummyTemplate(from: envContent, fileName: ".env")
         XCTAssertTrue(dummy.contains("API_SECRET=locked_by_sec"))
         XCTAssertTrue(dummy.contains("JWT_TOKEN=locked_by_sec"))
         XCTAssertFalse(dummy.contains("super-secret-value"))
         XCTAssertFalse(dummy.contains("ey12345"))
+    }
+    
+    func testArbitraryFileMasking() {
+        // Test arbitrary file without KEY=VALUE (e.g. private key / raw token)
+        let rawContent = "-----BEGIN RSA PRIVATE KEY-----\nMIIEowIBAAKCAQEA0...\n-----END RSA PRIVATE KEY-----"
+        let dummy = EnvParser.shared.generateDummyTemplate(from: rawContent, fileName: "id_rsa")
+        XCTAssertTrue(dummy.contains("PROTECTED BY sec"))
+        XCTAssertTrue(dummy.contains("id_rsa.vault"))
+        XCTAssertFalse(dummy.contains("MIIEowIBAAKCAQEA0"))
+    }
+    
+    func testJSONMasking() {
+        // Test JSON file masking
+        let jsonContent = """
+        {
+            "client_secret": "xyz123_secret_token",
+            "project_id": "my-firebase-app",
+            "nested": {
+                "private_key": "secret_key_abc"
+            }
+        }
+        """
+        let dummy = EnvParser.shared.generateDummyTemplate(from: jsonContent, fileName: "credentials.json")
+        XCTAssertTrue(dummy.contains("\"client_secret\" : \"locked_by_sec\""))
+        XCTAssertTrue(dummy.contains("\"private_key\" : \"locked_by_sec\""))
+        XCTAssertFalse(dummy.contains("xyz123_secret_token"))
+        XCTAssertFalse(dummy.contains("secret_key_abc"))
     }
     
     func testVaultURLDerivation() {
