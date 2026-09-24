@@ -58,22 +58,35 @@ public struct SecCLI {
     
     // MARK: - Handlers
     
+    private static func resolveURL(for pathOrName: String) -> URL {
+        if pathOrName.hasPrefix("/") {
+            return URL(fileURLWithPath: pathOrName).standardizedFileURL
+        } else if pathOrName.hasPrefix("~") {
+            let expanded = NSString(string: pathOrName).expandingTildeInPath
+            return URL(fileURLWithPath: expanded).standardizedFileURL
+        } else {
+            let currentDir = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+            return currentDir.appendingPathComponent(pathOrName).standardizedFileURL
+        }
+    }
+    
     private static func handleLock(target: String) async {
-        let currentDir = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-        let fileURL = currentDir.appendingPathComponent(target)
+        let fileURL = resolveURL(for: target)
+        let fileName = fileURL.lastPathComponent
         
         do {
-            print("🔒 Locking '\(target)' with Touch ID...")
+            print("🔒 Locking '\(fileName)' with Touch ID...")
             let keys = try await VaultEngine.shared.lock(fileURL: fileURL)
-            print("✅ Successfully locked '\(target)'!")
-            print("   📁 Encrypted vault: \(target).vault (AES-256-GCM)")
-            print("   🎭 Masked placeholder: \(target) (dummy values for AI agents)")
+            print("✅ Successfully locked '\(fileName)'!")
+            print("   📁 Encrypted vault: \(fileName).vault (AES-256-GCM)")
+            print("   🎭 Masked placeholder: \(fileName) (dummy values for AI agents)")
             print("   🛡️  Shielded \(keys.count) key\(keys.count == 1 ? "" : "s"): \(keys.joined(separator: ", "))")
             print("   💡 Run commands: sec npm run dev   |   Edit secrets: sec edit")
             
-            Notifier.shared.notify(title: "sec: File Locked", message: "Shielded \(keys.count) secrets in '\(target)' from AI agents.")
+            Notifier.shared.notify(title: "sec: File Locked", message: "Shielded \(keys.count) secrets in '\(fileName)' from AI agents.")
         } catch {
             print("❌ Error locking file: \(error.localizedDescription)")
+            Notifier.shared.notify(title: "sec: Lock Failed", message: error.localizedDescription)
             exit(1)
         }
     }
@@ -95,8 +108,7 @@ public struct SecCLI {
     }
     
     private static func handleEdit(target: String) async {
-        let currentDir = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-        var vaultURL = currentDir.appendingPathComponent(target)
+        var vaultURL = resolveURL(for: target)
         if !vaultURL.pathExtension.isEmpty && vaultURL.pathExtension != "vault" {
             vaultURL = VaultEngine.shared.vaultURL(for: vaultURL)
         } else if vaultURL.pathExtension.isEmpty {
@@ -106,6 +118,7 @@ public struct SecCLI {
         guard FileManager.default.fileExists(atPath: vaultURL.path) else {
             print("❌ Vault not found: '\(vaultURL.lastPathComponent)'")
             print("   Did you lock the file first with 'sec lock \(target)'?")
+            Notifier.shared.notify(title: "sec: Edit Failed", message: "Vault not found: '\(vaultURL.lastPathComponent)'")
             exit(1)
         }
         
@@ -113,13 +126,13 @@ public struct SecCLI {
             try await EditorEngine.shared.edit(vaultURL: vaultURL)
         } catch {
             print("❌ Error editing vault: \(error.localizedDescription)")
+            Notifier.shared.notify(title: "sec: Edit Failed", message: error.localizedDescription)
             exit(1)
         }
     }
     
     private static func handleView(target: String) async {
-        let currentDir = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-        var vaultURL = currentDir.appendingPathComponent(target)
+        var vaultURL = resolveURL(for: target)
         if !vaultURL.pathExtension.isEmpty && vaultURL.pathExtension != "vault" {
             vaultURL = VaultEngine.shared.vaultURL(for: vaultURL)
         } else if vaultURL.pathExtension.isEmpty {
@@ -146,8 +159,7 @@ public struct SecCLI {
     }
     
     private static func handleUnlock(target: String) async {
-        let currentDir = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
-        var vaultURL = currentDir.appendingPathComponent(target)
+        var vaultURL = resolveURL(for: target)
         if !vaultURL.pathExtension.isEmpty && vaultURL.pathExtension != "vault" {
             vaultURL = VaultEngine.shared.vaultURL(for: vaultURL)
         } else if vaultURL.pathExtension.isEmpty {
