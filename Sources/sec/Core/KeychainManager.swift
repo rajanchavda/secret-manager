@@ -60,7 +60,7 @@ public final class KeychainManager {
         return keyData
     }
     
-    /// Retrieves existing master key from Keychain
+    /// Retrieves existing master key from Keychain without redundant password prompts
     public func getMasterKey() throws -> Data {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -84,18 +84,28 @@ public final class KeychainManager {
             throw KeychainError.invalidKeyData
         }
         
+        // Ensure open ACL is applied so macOS Keychain never prompts for password
+        ensureOpenACL()
+        
         return data
     }
     
-    /// Stores master key in Keychain
+    /// Stores master key in Keychain with open ACL to prevent the secondary keychain password prompt
     private func storeMasterKey(_ keyData: Data) throws {
-        let query: [String: Any] = [
+        var access: SecAccess?
+        SecAccessCreate("sec master key" as CFString, nil, &access)
+        
+        var query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
             kSecValueData as String: keyData,
             kSecAttrAccessible as String: kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         ]
+        
+        if let access = access {
+            query[kSecAttrAccess as String] = access
+        }
         
         let status = SecItemAdd(query as CFDictionary, nil)
         if status == errSecDuplicateItem {
@@ -105,9 +115,12 @@ public final class KeychainManager {
                 kSecAttrService as String: service,
                 kSecAttrAccount as String: account
             ]
-            let attributes: [String: Any] = [
+            var attributes: [String: Any] = [
                 kSecValueData as String: keyData
             ]
+            if let access = access {
+                attributes[kSecAttrAccess as String] = access
+            }
             let updateStatus = SecItemUpdate(updateQuery as CFDictionary, attributes as CFDictionary)
             guard updateStatus == errSecSuccess else {
                 throw KeychainError.unhandledError(status: updateStatus)
@@ -115,6 +128,23 @@ public final class KeychainManager {
         } else if status != errSecSuccess {
             throw KeychainError.unhandledError(status: status)
         }
+    }
+    
+    /// Upgrades keychain item ACL to allow current user access without secondary password prompts
+    private func ensureOpenACL() {
+        var access: SecAccess?
+        SecAccessCreate("sec master key" as CFString, nil, &access)
+        guard let access = access else { return }
+        
+        let updateQuery: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: account
+        ]
+        let attributes: [String: Any] = [
+            kSecAttrAccess as String: access
+        ]
+        _ = SecItemUpdate(updateQuery as CFDictionary, attributes as CFDictionary)
     }
     
     /// Deletes the master key from Keychain (used for reset)

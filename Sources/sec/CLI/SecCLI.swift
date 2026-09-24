@@ -148,11 +148,20 @@ public struct SecCLI {
         }
         
         do {
-            let secrets = try await VaultEngine.shared.readDecryptedSecrets(vaultURL: vaultURL)
-            print("🔓 Decrypted secrets in '\(vaultURL.lastPathComponent)':")
+            let plaintextData = try await VaultEngine.shared.readDecryptedData(vaultURL: vaultURL, promptReason: "sec requires Touch ID to view '\(vaultURL.lastPathComponent)'")
+            guard let plaintextString = String(data: plaintextData, encoding: .utf8) else {
+                throw VaultError.invalidFileEncoding
+            }
+            
+            let parsed = EnvParser.shared.parse(plaintextString)
+            print("🔓 Decrypted content of '\(vaultURL.lastPathComponent)':")
             print("--------------------------------------------------")
-            for (key, val) in secrets.sorted(by: { $0.key < $1.key }) {
-                print("\(key)=\(val)")
+            if !parsed.isEmpty {
+                for (key, val) in parsed.sorted(by: { $0.key < $1.key }) {
+                    print("\(key)=\(val)")
+                }
+            } else {
+                print(plaintextString)
             }
             print("--------------------------------------------------")
         } catch {
