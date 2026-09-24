@@ -20,12 +20,36 @@ public final class FinderInstaller {
         }
         
         // 1. Install "Lock Secrets with Touch ID"
-        try installLockWorkflow(in: servicesDir)
+        try installWorkflow(
+            name: "Lock Secrets with Touch ID (sec)",
+            script: """
+            export PATH="/usr/local/bin:/opt/homebrew/bin:$HOME/.local/bin:$PATH"
+            for f in "$@"; do
+                if command -v sec >/dev/null 2>&1; then
+                    sec lock "$f"
+                elif [ -f "$HOME/.local/bin/sec" ]; then
+                    "$HOME/.local/bin/sec" lock "$f"
+                elif [ -f "/usr/local/bin/sec" ]; then
+                    "/usr/local/bin/sec" lock "$f"
+                fi
+            done
+            """,
+            in: servicesDir
+        )
         
         // 2. Install "Edit Secrets with Touch ID"
-        try installEditWorkflow(in: servicesDir)
+        try installWorkflow(
+            name: "Edit Secrets with Touch ID (sec)",
+            script: """
+            export PATH="/usr/local/bin:/opt/homebrew/bin:$HOME/.local/bin:$PATH"
+            for f in "$@"; do
+                osascript -e "tell application \\"Terminal\\" to do script \\"sec edit '$f'\\""
+            done
+            """,
+            in: servicesDir
+        )
         
-        // Refresh macOS Services cache
+        // Flush macOS Services cache
         let refreshProcess = Process()
         refreshProcess.executableURL = URL(fileURLWithPath: "/System/Library/CoreServices/pbs")
         refreshProcess.arguments = ["-flush"]
@@ -33,27 +57,49 @@ public final class FinderInstaller {
         refreshProcess.waitUntilExit()
     }
     
-    private func installLockWorkflow(in servicesDir: URL) throws {
-        let workflowURL = servicesDir.appendingPathComponent("Lock Secrets with Touch ID (sec).workflow")
+    private func installWorkflow(name: String, script: String, in servicesDir: URL) throws {
+        let fm = FileManager.default
+        let workflowURL = servicesDir.appendingPathComponent("\(name).workflow")
         let contentsURL = workflowURL.appendingPathComponent("Contents")
-        try FileManager.default.createDirectory(at: contentsURL, withIntermediateDirectories: true)
+        let resourcesURL = contentsURL.appendingPathComponent("Resources")
         
+        try fm.createDirectory(at: contentsURL, withIntermediateDirectories: true)
+        try fm.createDirectory(at: resourcesURL, withIntermediateDirectories: true)
+        
+        // 1. Info.plist with full Finder contextual declaration
         let infoPlist = """
         <?xml version="1.0" encoding="UTF-8"?>
         <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
         <plist version="1.0">
         <dict>
+            <key>CFBundleName</key>
+            <string>\(name)</string>
+            <key>CFBundleIdentifier</key>
+            <string>com.sec.service.\(name.replacingOccurrences(of: " ", with: ""))</string>
+            <key>CFBundleDevelopmentRegion</key>
+            <string>en_US</string>
+            <key>CFBundleShortVersionString</key>
+            <string>1.0</string>
             <key>NSServices</key>
             <array>
                 <dict>
                     <key>NSMenuItem</key>
                     <dict>
                         <key>default</key>
-                        <string>Lock Secrets with Touch ID (sec)</string>
+                        <string>\(name)</string>
                     </dict>
                     <key>NSMessage</key>
                     <string>runWorkflowAsService</string>
+                    <key>NSRequiredContext</key>
+                    <dict>
+                        <key>NSApplicationIdentifier</key>
+                        <string>com.apple.finder</string>
+                    </dict>
                     <key>NSSendFileTypes</key>
+                    <array>
+                        <string>public.item</string>
+                    </array>
+                    <key>NSSendTypes</key>
                     <array>
                         <string>public.item</string>
                     </array>
@@ -64,66 +110,22 @@ public final class FinderInstaller {
         """
         try infoPlist.write(to: contentsURL.appendingPathComponent("Info.plist"), atomically: true, encoding: .utf8)
         
-        let script = """
-        export PATH="/usr/local/bin:/opt/homebrew/bin:$HOME/.local/bin:$PATH"
-        for f in "$@"; do
-            sec lock "$f"
-        done
-        """
-        
-        let documentWflow = makeDocumentWflow(script: script, title: "Lock Secrets with Touch ID (sec)")
+        // 2. document.wflow with full Automator metadata
+        let documentWflow = makeDocumentWflow(script: script)
         try documentWflow.write(to: contentsURL.appendingPathComponent("document.wflow"), atomically: true, encoding: .utf8)
+        try documentWflow.write(to: resourcesURL.appendingPathComponent("document.wflow"), atomically: true, encoding: .utf8)
     }
     
-    private func installEditWorkflow(in servicesDir: URL) throws {
-        let workflowURL = servicesDir.appendingPathComponent("Edit Secrets with Touch ID (sec).workflow")
-        let contentsURL = workflowURL.appendingPathComponent("Contents")
-        try FileManager.default.createDirectory(at: contentsURL, withIntermediateDirectories: true)
-        
-        let infoPlist = """
-        <?xml version="1.0" encoding="UTF-8"?>
-        <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-        <plist version="1.0">
-        <dict>
-            <key>NSServices</key>
-            <array>
-                <dict>
-                    <key>NSMenuItem</key>
-                    <dict>
-                        <key>default</key>
-                        <string>Edit Secrets with Touch ID (sec)</string>
-                    </dict>
-                    <key>NSMessage</key>
-                    <string>runWorkflowAsService</string>
-                    <key>NSSendFileTypes</key>
-                    <array>
-                        <string>public.item</string>
-                    </array>
-                </dict>
-            </array>
-        </dict>
-        </plist>
-        """
-        try infoPlist.write(to: contentsURL.appendingPathComponent("Info.plist"), atomically: true, encoding: .utf8)
-        
-        // When triggered from Finder, launch in terminal or preferred editor
-        let script = """
-        export PATH="/usr/local/bin:/opt/homebrew/bin:$HOME/.local/bin:$PATH"
-        for f in "$@"; do
-            osascript -e "tell application \\"Terminal\\" to do script \\"sec edit '$f'\\""
-        done
-        """
-        
-        let documentWflow = makeDocumentWflow(script: script, title: "Edit Secrets with Touch ID (sec)")
-        try documentWflow.write(to: contentsURL.appendingPathComponent("document.wflow"), atomically: true, encoding: .utf8)
-    }
-    
-    private func makeDocumentWflow(script: String, title: String) -> String {
+    private func makeDocumentWflow(script: String) -> String {
         let escapedScript = script
             .replacingOccurrences(of: "&", with: "&amp;")
             .replacingOccurrences(of: "<", with: "&lt;")
             .replacingOccurrences(of: ">", with: "&gt;")
             .replacingOccurrences(of: "\"", with: "&quot;")
+        
+        let actionUUID = UUID().uuidString
+        let inputUUID = UUID().uuidString
+        let outputUUID = UUID().uuidString
         
         return """
         <?xml version="1.0" encoding="UTF-8"?>
@@ -145,6 +147,8 @@ public final class FinderInstaller {
                         <dict>
                             <key>Container</key>
                             <string>List</string>
+                            <key>Optional</key>
+                            <true/>
                             <key>Types</key>
                             <array>
                                 <string>com.apple.cocoa.path</string>
@@ -156,7 +160,13 @@ public final class FinderInstaller {
                         <dict>
                             <key>COMMAND_STRING</key>
                             <dict/>
+                            <key>CheckedForUserDefaultShell</key>
+                            <dict/>
                             <key>inputMethod</key>
+                            <dict/>
+                            <key>shell</key>
+                            <dict/>
+                            <key>source</key>
                             <dict/>
                         </dict>
                         <key>AMProvides</key>
@@ -189,11 +199,37 @@ public final class FinderInstaller {
                         <string>com.apple.RunShellScript</string>
                         <key>CFBundleVersion</key>
                         <string>2.0.3</string>
+                        <key>CanShowSelectedItemsWhenRun</key>
+                        <false/>
+                        <key>CanShowWhenRun</key>
+                        <true/>
+                        <key>Category</key>
+                        <array>
+                            <string>AMCategoryUtilities</string>
+                        </array>
+                        <key>Class Name</key>
+                        <string>RunShellScriptAction</string>
+                        <key>InputUUID</key>
+                        <string>\(inputUUID)</string>
+                        <key>OutputUUID</key>
+                        <string>\(outputUUID)</string>
+                        <key>UUID</key>
+                        <string>\(actionUUID)</string>
                     </dict>
                 </dict>
             </array>
             <key>workflowMetaData</key>
             <dict>
+                <key>serviceApplicationBundleID</key>
+                <string>com.apple.finder</string>
+                <key>serviceApplicationPath</key>
+                <string>/System/Library/CoreServices/Finder.app</string>
+                <key>serviceInputTypeIdentifier</key>
+                <string>com.apple.Automator.fileSystemObject</string>
+                <key>serviceOutputTypeIdentifier</key>
+                <string>com.apple.Automator.nothing</string>
+                <key>serviceProcessesInput</key>
+                <integer>0</integer>
                 <key>workflowTypeIdentifier</key>
                 <string>com.apple.Automator.servicesMenu</string>
             </dict>
