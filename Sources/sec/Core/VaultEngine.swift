@@ -74,20 +74,23 @@ public final class VaultEngine {
             throw VaultError.writeFailed("Could not write encrypted vault: \(error.localizedDescription)")
         }
         
-        // Generate dummy masked file for .env
-        let dummyContent = EnvParser.shared.generateDummyTemplate(from: plaintextString)
+        // Generate dummy masked file for .env, JSON, or arbitrary secret files
+        let dummyContent = EnvParser.shared.generateDummyTemplate(from: plaintextString, fileName: fileURL.lastPathComponent)
         do {
             try dummyContent.write(to: fileURL, atomically: true, encoding: .utf8)
         } catch {
             throw VaultError.writeFailed("Could not write masked dummy file: \(error.localizedDescription)")
         }
         
-        // Ensure .env.vault is ignored in git
+        // Ensure vault is ignored in git
         let parentDir = fileURL.deletingLastPathComponent()
         GitIgnoreManager.shared.ensureIgnored(in: parentDir, vaultFileName: vault.lastPathComponent)
         
-        // Return list of discovered keys
+        // Return list of discovered keys or the filename if arbitrary content
         let parsed = EnvParser.shared.parse(plaintextString)
+        if parsed.isEmpty {
+            return [fileURL.lastPathComponent]
+        }
         return Array(parsed.keys).sorted()
     }
     
@@ -140,7 +143,7 @@ public final class VaultEngine {
         // Also refresh dummy file if valid utf-8 string
         if let plaintextString = String(data: plaintextData, encoding: .utf8) {
             let plainFile = plainFileURL(for: vaultURL)
-            let dummyContent = EnvParser.shared.generateDummyTemplate(from: plaintextString)
+            let dummyContent = EnvParser.shared.generateDummyTemplate(from: plaintextString, fileName: plainFile.lastPathComponent)
             try? dummyContent.write(to: plainFile, atomically: true, encoding: .utf8)
         }
     }

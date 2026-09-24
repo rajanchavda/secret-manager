@@ -34,12 +34,10 @@ public final class FinderInstaller {
             fi
 
             for f in "$@"; do
-                output=$("$SEC_BIN" lock "$f" 2>&1)
-                status=$?
-                if [ $status -ne 0 ]; then
+                if ! output=$("$SEC_BIN" lock "$f" 2>&1); then
                     escaped_output=$(echo "$output" | sed 's/"/\\"/g')
                     osascript -e "display alert \\"sec Lock Failed\\" message \\"$escaped_output\\" as critical"
-                    exit $status
+                    exit 1
                 fi
             done
             """,

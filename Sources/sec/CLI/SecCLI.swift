@@ -80,10 +80,13 @@ public struct SecCLI {
             print("✅ Successfully locked '\(fileName)'!")
             print("   📁 Encrypted vault: \(fileName).vault (AES-256-GCM)")
             print("   🎭 Masked placeholder: \(fileName) (dummy values for AI agents)")
-            print("   🛡️  Shielded \(keys.count) key\(keys.count == 1 ? "" : "s"): \(keys.joined(separator: ", "))")
-            print("   💡 Run commands: sec npm run dev   |   Edit secrets: sec edit")
-            
-            Notifier.shared.notify(title: "sec: File Locked", message: "Shielded \(keys.count) secrets in '\(fileName)' from AI agents.")
+            if keys.count == 1 && keys.first == fileName {
+                print("   🛡️  Shielded all secret content in '\(fileName)' from AI agents")
+                Notifier.shared.notify(title: "sec: File Locked", message: "Shielded '\(fileName)' from AI agents.")
+            } else {
+                print("   🛡️  Shielded \(keys.count) key\(keys.count == 1 ? "" : "s"): \(keys.joined(separator: ", "))")
+                Notifier.shared.notify(title: "sec: File Locked", message: "Shielded \(keys.count) secrets in '\(fileName)' from AI agents.")
+            }
         } catch {
             print("❌ Error locking file: \(error.localizedDescription)")
             Notifier.shared.notify(title: "sec: Lock Failed", message: error.localizedDescription)
