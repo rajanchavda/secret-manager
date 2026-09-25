@@ -144,4 +144,39 @@ final class SecTests: XCTestCase {
         try "NEW_SECRET=456".write(to: envFile, atomically: true, encoding: .utf8)
         XCTAssertFalse(VaultEngine.shared.isAlreadyLocked(fileURL: envFile))
     }
+    
+    func testJSONParsingForEnvironmentInjection() {
+        let jsonContent = """
+        {
+            "DATABASE_URL": "postgres://user:pass@localhost:5432/mydb",
+            "PORT": 8080,
+            "DEBUG_ENABLED": true,
+            "SERVICE_CONFIG": {
+                "projectId": "my-cloud-project",
+                "privateKeyId": "key123"
+            }
+        }
+        """
+        let parsed = EnvParser.shared.parse(jsonContent)
+        XCTAssertEqual(parsed["DATABASE_URL"], "postgres://user:pass@localhost:5432/mydb")
+        XCTAssertEqual(parsed["PORT"], "8080")
+        XCTAssertEqual(parsed["DEBUG_ENABLED"], "true")
+        XCTAssertNotNil(parsed["SERVICE_CONFIG"])
+        XCTAssertTrue(parsed["SERVICE_CONFIG"]!.contains("my-cloud-project"))
+    }
+    
+    func testVaultVariantsDiscovery() throws {
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        let testDir = tempDir.appendingPathComponent(".sec_test_\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: testDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: testDir) }
+        
+        let localVault = testDir.appendingPathComponent(".env.local.vault")
+        try "mock_vault_content".write(to: localVault, atomically: true, encoding: .utf8)
+        
+        let found = VaultEngine.shared.findNearestVault(startingAt: testDir)
+        XCTAssertNotNil(found)
+        XCTAssertEqual(found?.lastPathComponent, ".env.local.vault")
+    }
 }
+

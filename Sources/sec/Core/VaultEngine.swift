@@ -184,7 +184,7 @@ public final class VaultEngine {
         }
     }
     
-    /// Locates .env.vault in current directory or searches upwards in parent directories
+    /// Locates .env.vault or other .vault files in current directory or searches upwards in parent directories
     public func findNearestVault(startingAt startDir: URL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath), targetName: String = ".env.vault") -> URL? {
         var current = startDir.standardizedFileURL
         
@@ -192,6 +192,25 @@ public final class VaultEngine {
             let candidate = current.appendingPathComponent(targetName)
             if FileManager.default.fileExists(atPath: candidate.path) {
                 return candidate
+            }
+            
+            // If targetName is default (.env.vault), also check for standard variants in current directory
+            if targetName == ".env.vault" {
+                let variants = [".env.local.vault", ".env.development.vault", ".env.dev.vault", ".env.prod.vault", ".env.production.vault"]
+                for v in variants {
+                    let varCandidate = current.appendingPathComponent(v)
+                    if FileManager.default.fileExists(atPath: varCandidate.path) {
+                        return varCandidate
+                    }
+                }
+                
+                // If there is only one .vault file in the directory, use it automatically
+                if let files = try? FileManager.default.contentsOfDirectory(atPath: current.path) {
+                    let vaults = files.filter { $0.hasSuffix(".vault") }
+                    if vaults.count == 1, let onlyVault = vaults.first {
+                        return current.appendingPathComponent(onlyVault)
+                    }
+                }
             }
             
             let parent = current.deletingLastPathComponent()

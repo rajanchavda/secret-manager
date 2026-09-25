@@ -131,14 +131,31 @@ public struct SecCLI {
     }
     
     private static func handleRun(command: [String]) async {
-        guard !command.isEmpty else {
+        var remainingArgs = command
+        var targetVault: URL? = nil
+        
+        // Check for -f <file>, --file <file>, or --vault <file> flags
+        if remainingArgs.count >= 2 && (remainingArgs[0] == "-f" || remainingArgs[0] == "--file" || remainingArgs[0] == "--vault") {
+            let targetFile = remainingArgs[1]
+            remainingArgs = Array(remainingArgs.dropFirst(2))
+            
+            var resolved = resolveURL(for: targetFile)
+            if !resolved.pathExtension.isEmpty && resolved.pathExtension != "vault" {
+                resolved = VaultEngine.shared.vaultURL(for: resolved)
+            } else if resolved.pathExtension.isEmpty {
+                resolved = resolved.appendingPathExtension("vault")
+            }
+            targetVault = resolved
+        }
+        
+        guard !remainingArgs.isEmpty else {
             print("Error: No command specified to run.")
-            print("Usage: sec <command...> (e.g. sec npm run dev)")
+            print("Usage: sec [-f <file>] <command...> (e.g. sec npm run dev, sec -f .env.local npm start)")
             exit(1)
         }
         
         do {
-            let exitCode = try await ProcessRunner.shared.run(command: command, vaultURL: nil)
+            let exitCode = try await ProcessRunner.shared.run(command: remainingArgs, vaultURL: targetVault)
             exit(exitCode)
         } catch {
             print("❌ Error: \(error.localizedDescription)")
@@ -305,7 +322,7 @@ public struct SecCLI {
         Enforces Strict Zero-Cache: Physical Touch ID hardware gate on every command!
 
         USAGE:
-            sec <command...>            Run command with secrets injected into memory (Single-Use)
+            sec [-f <file>] <cmd...>    Run command with secrets injected into memory (Single-Use)
             sec lock [--force] [file]   Lock file & replace with dummy (skips if already locked)
             sec edit [file]             Safely edit secrets in temporary buffer and re-encrypt
             sec view [file]             Print decrypted secrets to terminal (prompts Touch ID)
@@ -316,14 +333,15 @@ public struct SecCLI {
             sec help                    Show this help message
 
         EXAMPLES:
-            # 1. Lock your .env file
+            # 1. Lock your .env, JSON, or secret file
             sec lock .env
+            sec lock credentials.json
 
             # 2. Run your app with secrets injected in memory (never written to disk)
             sec npm run dev
-            sec pnpm dev
+            sec -f .env.local npm run dev
+            sec -f credentials.json python app.py
             sec cargo run
-            sec python app.py
 
             # 3. Edit secrets safely
             sec edit .env
