@@ -61,6 +61,14 @@ public final class EditorEngine {
             return
         }
         
+        // Zero-Data-Loss Guard: Prevent accidental wipe if editor closed with empty buffer
+        if editedData.isEmpty && !plainData.isEmpty {
+            print("⚠️  WARNING: The edited buffer is completely empty, but the original vault had secrets.")
+            print("   Aborting update to prevent accidental data loss. Your vault was NOT modified.")
+            print("   (To remove secrets intentionally, delete individual keys or write a comment).")
+            return
+        }
+        
         // Re-encrypt to vault and refresh dummy .env
         try await VaultEngine.shared.updateVault(vaultURL: vaultURL, plaintextData: editedData)
         print("🔒 Successfully re-encrypted '\(vaultURL.lastPathComponent)' and refreshed placeholder.")
