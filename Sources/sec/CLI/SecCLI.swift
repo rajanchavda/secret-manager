@@ -206,15 +206,22 @@ public struct SecCLI {
                 throw VaultError.invalidFileEncoding
             }
             
-            let parsed = EnvParser.shared.parse(plaintextString)
+            let plainFile = VaultEngine.shared.plainFileURL(for: vaultURL)
+            let trimmed = plaintextString.trimmingCharacters(in: .whitespacesAndNewlines)
+            let isJSON = plainFile.pathExtension.lowercased() == "json" ||
+                         ((trimmed.hasPrefix("{") && trimmed.hasSuffix("}")) ||
+                          (trimmed.hasPrefix("[") && trimmed.hasSuffix("]")))
+            
             print("🔓 Decrypted content of '\(vaultURL.lastPathComponent)':")
             print("--------------------------------------------------")
-            if !parsed.isEmpty {
-                for (key, val) in parsed.sorted(by: { $0.key < $1.key }) {
-                    print("\(key)=\(val)")
-                }
+            if isJSON,
+               let data = trimmed.data(using: .utf8),
+               let jsonObj = try? JSONSerialization.jsonObject(with: data, options: []),
+               let prettyData = try? JSONSerialization.data(withJSONObject: jsonObj, options: [.prettyPrinted, .sortedKeys]),
+               let prettyString = String(data: prettyData, encoding: .utf8) {
+                print(prettyString)
             } else {
-                print(plaintextString)
+                print(trimmed)
             }
             print("--------------------------------------------------")
         } catch {
