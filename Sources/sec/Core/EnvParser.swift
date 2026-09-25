@@ -10,8 +10,35 @@ public final class EnvParser {
     
     private init() {}
     
-    /// Parses a .env format string into a dictionary of key-value pairs
+    /// Parses a .env format string or JSON payload into a dictionary of key-value pairs
     public func parse(_ content: String) -> [String: String] {
+        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // 1. JSON Support: extract top-level keys for environment injection
+        if (trimmed.hasPrefix("{") && trimmed.hasSuffix("}")),
+           let data = trimmed.data(using: .utf8),
+           let json = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
+            var jsonResult: [String: String] = [:]
+            for (key, val) in json {
+                if let str = val as? String {
+                    jsonResult[key] = str
+                } else if let num = val as? NSNumber {
+                    if CFGetTypeID(num as CFTypeRef) == CFBooleanGetTypeID() {
+                        jsonResult[key] = num.boolValue ? "true" : "false"
+                    } else {
+                        jsonResult[key] = num.stringValue
+                    }
+                } else if let subData = try? JSONSerialization.data(withJSONObject: val, options: []),
+                          let subStr = String(data: subData, encoding: .utf8) {
+                    jsonResult[key] = subStr
+                }
+            }
+            if !jsonResult.isEmpty {
+                return jsonResult
+            }
+        }
+        
+        // 2. Standard .env KEY=VALUE parsing
         var result: [String: String] = [:]
         let lines = content.components(separatedBy: .newlines)
         
