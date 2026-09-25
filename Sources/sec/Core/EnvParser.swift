@@ -10,9 +10,10 @@ public final class EnvParser {
     
     private init() {}
     
-    /// Parses a .env format string or JSON payload into a dictionary of key-value pairs
+    /// Parses a .env format string, JSON payload, or YAML into a dictionary of key-value pairs
     public func parse(_ content: String) -> [String: String] {
-        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanContent = content.replacingOccurrences(of: "\u{FEFF}", with: "")
+        let trimmed = cleanContent.trimmingCharacters(in: .whitespacesAndNewlines)
         
         // 1. JSON Support: extract top-level keys for environment injection
         if (trimmed.hasPrefix("{") && trimmed.hasSuffix("}")),
@@ -38,41 +39,91 @@ public final class EnvParser {
             }
         }
         
-        // 2. Standard .env KEY=VALUE parsing
+        // 2. Multiline .env and KEY=VALUE / YAML parsing
         var result: [String: String] = [:]
-        let lines = content.components(separatedBy: .newlines)
+        let rawLines = cleanContent.components(separatedBy: .newlines)
         
-        for rawLine in lines {
-            let line = rawLine.trimmingCharacters(in: .whitespaces)
-            if line.isEmpty || line.hasPrefix("#") {
+        var currentKey: String? = nil
+        var currentValue: String = ""
+        var inQuotes: Character? = nil
+        
+        for rawLine in rawLines {
+            let line = rawLine
+            
+            // Check if we are continuing a multiline quoted value
+            if let quoteChar = inQuotes {
+                currentValue.append("\n")
+                if let endQuoteIdx = line.firstIndex(of: quoteChar) {
+                    currentValue.append(String(line[..<endQuoteIdx]))
+                    if let k = currentKey {
+                        result[k] = currentValue
+                    }
+                    currentKey = nil
+                    currentValue = ""
+                    inQuotes = nil
+                } else {
+                    currentValue.append(line)
+                }
                 continue
             }
             
-            // Handle optional "export " prefix
-            var cleanLine = line
+            let trimmedLine = line.trimmingCharacters(in: .whitespaces)
+            if trimmedLine.isEmpty || trimmedLine.hasPrefix("#") {
+                continue
+            }
+            
+            var cleanLine = trimmedLine
             if cleanLine.hasPrefix("export ") {
                 cleanLine = String(cleanLine.dropFirst(7)).trimmingCharacters(in: .whitespaces)
             }
             
-            guard let equalIndex = cleanLine.firstIndex(of: "=") else {
+            // Find delimiter: = (.env) or : (YAML)
+            var splitIndex: String.Index? = cleanLine.firstIndex(of: "=")
+            if splitIndex == nil, let colonIdx = cleanLine.firstIndex(of: ":") {
+                let afterColon = cleanLine.index(after: colonIdx)
+                if afterColon == cleanLine.endIndex || cleanLine[afterColon] == " " {
+                    splitIndex = colonIdx
+                }
+            }
+            
+            guard let delimiterIdx = splitIndex else {
                 continue
             }
             
-            let key = String(cleanLine[..<equalIndex]).trimmingCharacters(in: .whitespaces)
-            var value = String(cleanLine[cleanLine.index(after: equalIndex)...]).trimmingCharacters(in: .whitespaces)
+            let key = String(cleanLine[..<delimiterIdx]).trimmingCharacters(in: .whitespaces)
+            var rawVal = String(cleanLine[cleanLine.index(after: delimiterIdx)...]).trimmingCharacters(in: .whitespaces)
             
-            // Remove enclosing quotes if present
-            if (value.hasPrefix("\"") && value.hasSuffix("\"") && value.count >= 2) ||
-               (value.hasPrefix("'") && value.hasSuffix("'") && value.count >= 2) {
-                value = String(value.dropFirst().dropLast())
+            guard !key.isEmpty else { continue }
+            
+            // Handle quotes and inline comments
+            if let firstChar = rawVal.first, (firstChar == "\"" || firstChar == "'") {
+                let quoteChar = firstChar
+                let afterFirst = rawVal.index(after: rawVal.startIndex)
+                let remainder = rawVal[afterFirst...]
+                if let closingIdx = remainder.lastIndex(of: quoteChar) {
+                    // Closed on same line
+                    var unquoted = String(remainder[..<closingIdx])
+                    if quoteChar == "\"" {
+                        unquoted = unquoted.replacingOccurrences(of: "\\n", with: "\n")
+                    }
+                    result[key] = unquoted
+                } else {
+                    // Multiline quote started
+                    currentKey = key
+                    currentValue = String(remainder)
+                    inQuotes = quoteChar
+                }
+            } else {
+                // Unquoted value: strip inline comments (e.g. `PORT=3000 # web port`)
+                if let commentIdx = rawVal.range(of: " #")?.lowerBound ?? rawVal.range(of: "\t#")?.lowerBound {
+                    rawVal = String(rawVal[..<commentIdx]).trimmingCharacters(in: .whitespaces)
+                }
+                result[key] = rawVal
             }
-            
-            // Handle escaped newlines
-            value = value.replacingOccurrences(of: "\\n", with: "\n")
-            
-            if !key.isEmpty {
-                result[key] = value
-            }
+        }
+        
+        if let k = currentKey {
+            result[k] = currentValue
         }
         
         return result
@@ -98,9 +149,10 @@ public final class EnvParser {
     }
     
     /// Generates a sanitized dummy placeholder file keeping structure, but replacing all secrets.
-    /// Supports .env files, JSON files, and arbitrary secret files (keys, certs, raw text).
+    /// Supports .env files, JSON files, YAML files, and arbitrary secret files (keys, certs, raw text).
     public func generateDummyTemplate(from originalContent: String, fileName: String = ".env") -> String {
-        let trimmed = originalContent.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanContent = originalContent.replacingOccurrences(of: "\u{FEFF}", with: "")
+        let trimmed = cleanContent.trimmingCharacters(in: .whitespacesAndNewlines)
         
         // 1. JSON Support (.json files or JSON payloads)
         if (trimmed.hasPrefix("{") && trimmed.hasSuffix("}")) ||
@@ -114,7 +166,43 @@ public final class EnvParser {
             }
         }
         
-        // 2. .env / KEY=VALUE Support
+        // 2. YAML Support (.yaml or .yml files)
+        let ext = URL(fileURLWithPath: fileName).pathExtension.lowercased()
+        if ext == "yaml" || ext == "yml" {
+            var outputLines: [String] = []
+            outputLines.append("# ====================================================================")
+            outputLines.append("# 🔒 PROTECTED BY sec (Touch ID Secret Vault)")
+            outputLines.append("# Real secrets are encrypted in \(fileName).vault")
+            outputLines.append("# Edit secrets: sec edit \(fileName)")
+            outputLines.append("# ====================================================================")
+            
+            let lines = cleanContent.components(separatedBy: .newlines)
+            for rawLine in lines {
+                let trimmedLine = rawLine.trimmingCharacters(in: .whitespaces)
+                if trimmedLine.isEmpty || trimmedLine.hasPrefix("#") {
+                    outputLines.append(rawLine)
+                    continue
+                }
+                if let colonIdx = rawLine.firstIndex(of: ":") {
+                    let key = String(rawLine[..<colonIdx])
+                    let remainder = String(rawLine[rawLine.index(after: colonIdx)...]).trimmingCharacters(in: .whitespaces)
+                    if remainder.isEmpty {
+                        // Grouping / object key
+                        outputLines.append(rawLine)
+                    } else {
+                        // Scalar value
+                        let leadingSpaces = rawLine.prefix(while: { $0 == " " || $0 == "\t" })
+                        let cleanKey = key.trimmingCharacters(in: .whitespaces)
+                        outputLines.append("\(leadingSpaces)\(cleanKey): \"locked_by_sec\"")
+                    }
+                } else {
+                    outputLines.append(rawLine)
+                }
+            }
+            return outputLines.joined(separator: "\n")
+        }
+        
+        // 3. .env / KEY=VALUE Support
         let parsed = parse(originalContent)
         if !parsed.isEmpty {
             var outputLines: [String] = []
@@ -125,9 +213,17 @@ public final class EnvParser {
             outputLines.append("# ====================================================================")
             outputLines.append("")
             
-            let lines = originalContent.components(separatedBy: .newlines)
+            let lines = cleanContent.components(separatedBy: .newlines)
+            var skippingMultiline = false
             for rawLine in lines {
                 let trimmedLine = rawLine.trimmingCharacters(in: .whitespaces)
+                if skippingMultiline {
+                    if trimmedLine.hasSuffix("\"") || trimmedLine.hasSuffix("'") {
+                        skippingMultiline = false
+                    }
+                    continue
+                }
+                
                 if trimmedLine.isEmpty || trimmedLine.hasPrefix("#") {
                     outputLines.append(rawLine)
                     continue
@@ -142,6 +238,12 @@ public final class EnvParser {
                 
                 if let equalIndex = cleanLine.firstIndex(of: "=") {
                     let key = String(cleanLine[..<equalIndex]).trimmingCharacters(in: .whitespaces)
+                    let val = String(cleanLine[cleanLine.index(after: equalIndex)...]).trimmingCharacters(in: .whitespaces)
+                    
+                    if (val.hasPrefix("\"") && !val.dropFirst().contains("\"")) ||
+                       (val.hasPrefix("'") && !val.dropFirst().contains("'")) {
+                        skippingMultiline = true
+                    }
                     outputLines.append("\(linePrefix)\(key)=locked_by_sec")
                 } else {
                     outputLines.append("# [secret content locked by sec]")
@@ -150,7 +252,7 @@ public final class EnvParser {
             return outputLines.joined(separator: "\n")
         }
         
-        // 3. Arbitrary File Support (e.g. certificates, private keys, SSH keys, raw tokens, etc.)
+        // 4. Arbitrary File Support (e.g. certificates, private keys, SSH keys, raw tokens, etc.)
         return """
         # ====================================================================
         # 🔒 PROTECTED BY sec (Touch ID Secret Vault)

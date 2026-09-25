@@ -178,5 +178,46 @@ final class SecTests: XCTestCase {
         XCTAssertNotNil(found)
         XCTAssertEqual(found?.lastPathComponent, ".env.local.vault")
     }
+    
+    func testMultilineEnvParsing() {
+        let multilineEnv = """
+        SERVER_PORT=8000
+        RSA_PRIVATE_KEY="-----BEGIN RSA PRIVATE KEY-----
+        MIIEowIBAAKCAQEA0ABC123XYZ
+        -----END RSA PRIVATE KEY-----"
+        API_TOKEN=secret_xyz
+        """
+        let parsed = EnvParser.shared.parse(multilineEnv)
+        XCTAssertEqual(parsed["SERVER_PORT"], "8000")
+        XCTAssertEqual(parsed["API_TOKEN"], "secret_xyz")
+        XCTAssertNotNil(parsed["RSA_PRIVATE_KEY"])
+        XCTAssertTrue(parsed["RSA_PRIVATE_KEY"]!.contains("MIIEowIBAAKCAQEA0ABC123XYZ"))
+        XCTAssertTrue(parsed["RSA_PRIVATE_KEY"]!.contains("\n"))
+    }
+    
+    func testInlineCommentsAndBOM() {
+        let envWithBOM = "\u{FEFF}PORT=3000 # Default listening port\nDB_PASS=\"password#with#hash\" # Inline comment"
+        let parsed = EnvParser.shared.parse(envWithBOM)
+        XCTAssertEqual(parsed["PORT"], "3000")
+        XCTAssertEqual(parsed["DB_PASS"], "password#with#hash")
+    }
+    
+    func testYAMLSupport() {
+        let yamlContent = """
+        database_url: "postgres://localhost:5432/app"
+        api_key: "sk_live_123"
+        services:
+          port: 4000
+        """
+        let parsed = EnvParser.shared.parse(yamlContent)
+        XCTAssertEqual(parsed["database_url"], "postgres://localhost:5432/app")
+        XCTAssertEqual(parsed["api_key"], "sk_live_123")
+        
+        let dummy = EnvParser.shared.generateDummyTemplate(from: yamlContent, fileName: "config.yaml")
+        XCTAssertTrue(dummy.contains("database_url: \"locked_by_sec\""))
+        XCTAssertTrue(dummy.contains("api_key: \"locked_by_sec\""))
+        XCTAssertFalse(dummy.contains("sk_live_123"))
+    }
 }
+
 

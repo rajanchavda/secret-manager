@@ -89,9 +89,10 @@ public final class VaultEngine {
             throw VaultError.targetFileNotFound(fileURL.path)
         }
         
-        guard let plaintextString = String(data: plaintextData, encoding: .utf8) else {
-            throw VaultError.invalidFileEncoding
-        }
+        let originalAttrs = try? FileManager.default.attributesOfItem(atPath: fileURL.path)
+        let originalPerms = originalAttrs?[.posixPermissions] as? NSNumber
+        
+        let plaintextString = String(data: plaintextData, encoding: .utf8)
         
         // Touch ID / Passcode authentication (if session not already active)
         if !SessionManager.shared.isSessionActive() {
@@ -110,10 +111,26 @@ public final class VaultEngine {
             throw VaultError.writeFailed("Could not write encrypted vault: \(error.localizedDescription)")
         }
         
-        // Generate dummy masked file for .env, JSON, or arbitrary secret files
-        let dummyContent = EnvParser.shared.generateDummyTemplate(from: plaintextString, fileName: fileURL.lastPathComponent)
+        // Generate dummy masked file for .env, JSON, YAML, or arbitrary/binary secret files
+        let dummyContent: String
+        if let text = plaintextString {
+            dummyContent = EnvParser.shared.generateDummyTemplate(from: text, fileName: fileURL.lastPathComponent)
+        } else {
+            dummyContent = """
+            # ====================================================================
+            # 🔒 PROTECTED BY sec (Touch ID Secret Vault)
+            # Binary secret file (\(fileURL.lastPathComponent)) is shielded from AI agents.
+            # Real secrets are encrypted in \(vault.lastPathComponent)
+            # Unlock to disk: sec unlock \(fileURL.lastPathComponent)
+            # ====================================================================
+            """
+        }
+        
         do {
             try dummyContent.write(to: fileURL, atomically: true, encoding: .utf8)
+            if let perms = originalPerms {
+                try? FileManager.default.setAttributes([.posixPermissions: perms], ofItemAtPath: fileURL.path)
+            }
         } catch {
             throw VaultError.writeFailed("Could not write masked dummy file: \(error.localizedDescription)")
         }
@@ -122,19 +139,24 @@ public final class VaultEngine {
         let parentDir = fileURL.deletingLastPathComponent()
         GitIgnoreManager.shared.ensureIgnored(in: parentDir, vaultFileName: vault.lastPathComponent)
         
-        // Return list of discovered keys or the filename if arbitrary content
-        let parsed = EnvParser.shared.parse(plaintextString)
-        if parsed.isEmpty {
+        // Return list of discovered keys or the filename if arbitrary/binary content
+        if let text = plaintextString {
+            let parsed = EnvParser.shared.parse(text)
+            if parsed.isEmpty {
+                return [fileURL.lastPathComponent]
+            }
+            return Array(parsed.keys).sorted()
+        } else {
             return [fileURL.lastPathComponent]
         }
-        return Array(parsed.keys).sorted()
     }
     
     /// Decrypts vault file and returns dictionary of environment variables in memory
     public func readDecryptedSecrets(vaultURL: URL) async throws -> [String: String] {
         let plaintextData = try await readDecryptedData(vaultURL: vaultURL, promptReason: "sec requires Touch ID to decrypt secrets for command execution")
         guard let plaintextString = String(data: plaintextData, encoding: .utf8) else {
-            throw VaultError.invalidFileEncoding
+            // Binary files have no text environment variables
+            return [:]
         }
         return EnvParser.shared.parse(plaintextString)
     }
@@ -162,6 +184,10 @@ public final class VaultEngine {
         
         do {
             try plaintextData.write(to: plainFile, options: .atomic)
+            let name = plainFile.lastPathComponent.lowercased()
+            if name.contains("rsa") || name.hasSuffix(".pem") || name.hasSuffix(".key") || name.contains("id_ed25519") || name.contains("id_ecdsa") {
+                try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: plainFile.path)
+            }
             try? FileManager.default.removeItem(at: vaultURL)
         } catch {
             throw VaultError.writeFailed("Failed to restore plaintext file: \(error.localizedDescription)")
