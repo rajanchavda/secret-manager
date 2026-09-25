@@ -101,23 +101,34 @@ public final class ProcessRunner {
         
         process.arguments = ["-c", joinedCommand]
         
-        // Trap SIGINT and forward to child process
+        // Trap SIGINT and SIGTERM and forward to child process
         let sigintSource = DispatchSource.makeSignalSource(signal: SIGINT, queue: .main)
         sigintSource.setEventHandler {
             if process.isRunning {
                 kill(process.processIdentifier, SIGINT)
             }
         }
-        signal(SIGINT, SIG_IGN) // Ignore in parent so handler controls forwarding
+        signal(SIGINT, SIG_IGN)
         sigintSource.resume()
+        
+        let sigtermSource = DispatchSource.makeSignalSource(signal: SIGTERM, queue: .main)
+        sigtermSource.setEventHandler {
+            if process.isRunning {
+                kill(process.processIdentifier, SIGTERM)
+            }
+        }
+        signal(SIGTERM, SIG_IGN)
+        sigtermSource.resume()
         
         do {
             try process.run()
             process.waitUntilExit()
             sigintSource.cancel()
+            sigtermSource.cancel()
             return process.terminationStatus
         } catch {
             sigintSource.cancel()
+            sigtermSource.cancel()
             fputs("Error executing command: \(error.localizedDescription)\n", stderr)
             return 1
         }
