@@ -22,6 +22,62 @@ If a utility decrypts `.env` to plaintext on disk while your dev server runs (`n
 5. **Stealth In-Memory Loaders (Defeats `ps -E` Process Inspection)**: For Node.js/Python development (`npm run dev`, `pnpm`, `bun`, `yarn`, `python`), secrets are injected via ephemeral, self-destructing preload hooks rather than passing plaintext through `execve` `envp`. AI agents running `ps -E` or querying Darwin's `KERN_PROCARGS2` see zero secrets.
 6. **Finder Right-Click Quick Actions**: Right-click any secret file in Finder to lock or edit it with Touch ID.
 
+## 💡 How It Works (In Plain English)
+
+Imagine you have a wallet full of cash sitting on your office desk. If someone walks into your room to help you with your work (like an AI assistant), they can easily see and copy everything inside your wallet.
+
+**`sec` works like a high-tech biometric safe with a decoy wallet:**
+
+1. **The Decoy File**: `sec` replaces your real `.env` file on your desk with a fake "decoy" file where all sensitive passwords look like `API_KEY=locked_by_sec`. If an AI agent looks around your folders, it only sees the fake decoy data.
+2. **The Hardware Biometric Safe**: Your real secrets are encrypted inside a digital safe (`.env.vault`) that can only be opened with your fingerprint (Touch ID) and Apple Silicon's hardware chip.
+3. **The Invisible Hand-off**: When you start your app (`sec npm run dev`), you tap Touch ID. `sec` briefly opens the safe, hands the real keys directly into your app's memory (RAM) behind closed doors, and immediately locks the safe. **The real passwords never touch your hard drive in plaintext.**
+
+### 🗺️ Visual Architecture Diagram
+
+```mermaid
+flowchart TD
+    subgraph ComputerDisk ["📁 Your Hard Drive (Files on Disk)"]
+        DummyEnv["📄 .env (DECOY FILE)<br/><code>STRIPE_KEY=locked_by_sec</code><br/><code>DB_PASS=locked_by_sec</code>"]
+        VaultFile["🔐 .env.vault (HARDWARE SAFE)<br/><i>Encrypted with AES-256-GCM</i>"]
+    end
+
+    subgraph AIAgentZone ["🤖 AI Coding Agents (Cursor, Copilot, Claude)"]
+        AI["Agent reading project files<br/>(cat, ripgrep, context window)"]
+    end
+
+    subgraph HardwareZone ["🛡️ Mac Hardware Security (Secure Enclave)"]
+        TouchID["👆 Your Fingerprint<br/>(Physical Touch ID Tap)"]
+        MasterKey["🔑 Hardware Key"]
+    end
+
+    subgraph MemoryZone ["⚡ Computer Memory (RAM)"]
+        App["🚀 Your Running Application<br/>(npm run dev, python app.py)<br/><code>process.env.STRIPE_KEY = 'real_secret_123'</code>"]
+    end
+
+    %% Interactions
+    AI -->|"1. Tries to read secrets"| DummyEnv
+    DummyEnv -.->|"Agent only sees fake dummy data!"| AI
+
+    TouchID -->|"2. You authenticate"| MasterKey
+    MasterKey -->|"3. Unlocks vault"| VaultFile
+    VaultFile -->|"4. Injected directly into memory"| App
+
+    style DummyEnv fill:#fef3c7,stroke:#f59e0b,stroke-width:2px;
+    style VaultFile fill:#dbeafe,stroke:#3b82f6,stroke-width:2px;
+    style AI fill:#fee2e2,stroke:#ef4444,stroke-width:2px;
+    style TouchID fill:#dcfce7,stroke:#22c55e,stroke-width:2px;
+    style App fill:#f3e8ff,stroke:#a855f7,stroke-width:2px;
+```
+
+### ⚖️ Before vs. After `sec`
+
+| Situation | Without `sec` ❌ | With `sec` ✅ |
+|---|---|---|
+| **What lives on your hard drive** | Plaintext credentials (`API_KEY=sk_live_12345`) | Masked decoy (`API_KEY=locked_by_sec`) + encrypted `.vault` |
+| **What AI agents can read** | Live passwords, database links, and secret tokens | Only the decoy labels (`locked_by_sec`) |
+| **What your dev server gets** | Reads plaintext file from disk | Receives real secrets directly into RAM on Touch ID tap |
+| **If someone steals your project folder** | All secrets are completely exposed | Secrets are uncrackable AES-256-GCM without your biometric fingerprint |
+
 ---
 
 ## 🚀 Installation
