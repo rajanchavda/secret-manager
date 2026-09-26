@@ -101,12 +101,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const title = touchModal.querySelector('.touchid-text h4');
             const desc = touchModal.querySelector('.touchid-text p');
             
+            const pill = touchModal.querySelector('.touchid-tap-pill');
+            
             if (icon && title) {
                 icon.style.background = 'rgba(16, 185, 129, 0.2)';
                 icon.style.borderColor = '#10b981';
                 icon.style.color = '#10b981';
                 title.textContent = 'Authenticated via Touch ID ✓';
                 desc.textContent = 'Secrets loaded into RAM (0.003s)';
+                if (pill) {
+                    pill.textContent = 'Verified ✓';
+                    pill.style.background = 'rgba(16, 185, 129, 0.2)';
+                    pill.style.borderColor = '#10b981';
+                    pill.style.color = '#34d399';
+                }
 
                 setTimeout(() => {
                     icon.style.background = '';
@@ -114,6 +122,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     icon.style.color = '';
                     title.textContent = 'Touch ID or Apple Watch';
                     desc.textContent = 'Tap sensor to inject secrets into RAM';
+                    if (pill) {
+                        pill.textContent = 'Tap Sensor';
+                        pill.style.background = '';
+                        pill.style.borderColor = '';
+                        pill.style.color = '';
+                    }
                 }, 3000);
             }
         });
@@ -133,4 +147,38 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+    // 6. Mobile Drawer Navigation Toggle
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    const mobileDrawer = document.getElementById('mobileDrawer');
+
+    if (mobileMenuBtn && mobileDrawer) {
+        const toggleDrawer = () => {
+            const isOpen = mobileDrawer.classList.contains('open');
+            if (isOpen) {
+                mobileDrawer.classList.remove('open');
+                mobileMenuBtn.classList.remove('active');
+                mobileMenuBtn.setAttribute('aria-expanded', 'false');
+                mobileMenuBtn.setAttribute('aria-label', 'Open navigation menu');
+            } else {
+                mobileDrawer.classList.add('open');
+                mobileMenuBtn.classList.add('active');
+                mobileMenuBtn.setAttribute('aria-expanded', 'true');
+                mobileMenuBtn.setAttribute('aria-label', 'Close navigation menu');
+            }
+        };
+
+        mobileMenuBtn.addEventListener('click', toggleDrawer);
+
+        // Close when any link inside drawer is clicked
+        const drawerLinks = mobileDrawer.querySelectorAll('a');
+        drawerLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                mobileDrawer.classList.remove('open');
+                mobileMenuBtn.classList.remove('active');
+                mobileMenuBtn.setAttribute('aria-expanded', 'false');
+                mobileMenuBtn.setAttribute('aria-label', 'Open navigation menu');
+            });
+        });
+    }
 });

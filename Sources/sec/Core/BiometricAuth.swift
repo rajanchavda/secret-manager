@@ -30,15 +30,17 @@ public final class BiometricAuth {
     public func authenticate(reason: String) async throws {
         let context = LAContext()
         context.localizedCancelTitle = "Cancel"
+        context.localizedFallbackTitle = "Use Password"
         
         var authError: NSError?
         
-        // Prefer biometrics, but fallback to device owner password if biometrics aren't configured or lid is closed
+        // Prefer .deviceOwnerAuthentication which presents Touch ID first while providing
+        // a "Use Password..." option so the user can enter their Mac password manually.
         let policy: LAPolicy
-        if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &authError) {
-            policy = .deviceOwnerAuthenticationWithBiometrics
-        } else if context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &authError) {
+        if context.canEvaluatePolicy(.deviceOwnerAuthentication, error: &authError) {
             policy = .deviceOwnerAuthentication
+        } else if context.canEvaluatePolicy(.deviceOwnerAuthenticationWithBiometrics, error: &authError) {
+            policy = .deviceOwnerAuthenticationWithBiometrics
         } else {
             let errorMsg = authError?.localizedDescription ?? "No authentication policy available"
             throw AuthError.biometricsNotAvailable(errorMsg)
@@ -51,6 +53,22 @@ public final class BiometricAuth {
                 } else if let error = error as? LAError {
                     if error.code == .userCancel || error.code == .appCancel {
                         continuation.resume(throwing: AuthError.userCancelled)
+                    } else if error.code == .userFallback {
+                        // User explicitly clicked "Use Password" when biometrics policy required fallback
+                        Task {
+                            let fallbackContext = LAContext()
+                            fallbackContext.localizedCancelTitle = "Cancel"
+                            fallbackContext.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { fbSuccess, fbError in
+                                if fbSuccess {
+                                    continuation.resume()
+                                } else if let fbError = fbError as? LAError, fbError.code == .userCancel || fbError.code == .appCancel {
+                                    continuation.resume(throwing: AuthError.userCancelled)
+                                } else {
+                                    let desc = fbError?.localizedDescription ?? "Authentication failed"
+                                    continuation.resume(throwing: AuthError.authenticationFailed(desc))
+                                }
+                            }
+                        }
                     } else {
                         continuation.resume(throwing: AuthError.authenticationFailed(error.localizedDescription))
                     }
