@@ -1,0 +1,269 @@
+/* ─────────────────────────────────────────────────────────────
+   sec — macOS Terminal & Interactive Window Styles
+   ───────────────────────────────────────────────────────────── */
+
+.mac-window {
+    background: #0d1117;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 28px 70px -15px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.2);
+    overflow: hidden;
+    position: relative;
+    text-align: left;
+}
+
+.mac-header {
+    background: #161b22;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    position: relative;
+    user-select: none;
+}
+
+.traffic-lights {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    z-index: 2;
+}
+
+.traffic-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.traffic-dot.red { background: #ff5f56; border: 1px solid #e0443e; }
+.traffic-dot.yellow { background: #ffbd2e; border: 1px solid #dea123; }
+.traffic-dot.green { background: #27c93f; border: 1px solid #1aab29; }
+
+.window-title {
+    position: absolute;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 13px;
+    font-weight: 500;
+    color: #8b949e;
+    letter-spacing: -0.01em;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+/* Terminal Tab Switcher */
+.term-tabs {
+    display: flex;
+    background: rgba(22, 27, 34, 0.9);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.term-tabs::-webkit-scrollbar { display: none; }
+
+.term-tab {
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #8b949e;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+    white-space: nowrap;
+    transition: all 0.2s ease;
+}
+
+.term-tab:hover {
+    color: #e6edf3;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.term-tab.active {
+    color: #ffffff;
+    background: #0d1117;
+    border-bottom: 2px solid #38bdf8;
+}
+
+.tab-badge {
+    font-size: 10.5px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+.badge-warning { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+.badge-success { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+.badge-info { background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
+
+/* Terminal Body Content */
+.term-body {
+    padding: 22px 24px;
+    font-family: "SF Mono", "Fira Code", Menlo, Monaco, Consolas, monospace;
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: #c9d1d9;
+    min-height: 330px;
+    overflow-x: auto;
+}
+
+.term-pane { display: none; }
+.term-pane.active { display: block; animation: termFade 0.3s ease; }
+
+@keyframes termFade {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.t-prompt { color: #7ee787; font-weight: 600; margin-right: 8px; user-select: none; }
+.t-dir { color: #79c0ff; font-weight: 500; }
+.t-cmd { color: #f0f6fc; font-weight: 600; }
+.t-comment { color: #6e7681; font-style: italic; }
+.t-key { color: #79c0ff; }
+.t-decoy { color: #ffa657; font-weight: 600; }
+.t-val { color: #a5d6ff; }
+.t-sec-badge {
+    display: inline-block;
+    background: rgba(56, 189, 248, 0.15);
+    color: #38bdf8;
+    padding: 1px 8px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.t-success { color: #3fb950; font-weight: 500; }
+.t-warn { color: #d29922; }
+
+/* Interactive Touch ID Biometric Modal Simulation */
+.touchid-modal {
+    background: rgba(22, 27, 34, 0.95);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    border-radius: 16px;
+    padding: 20px 24px;
+    max-width: 380px;
+    margin: 18px 0;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5), 0 0 20px rgba(56, 189, 248, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    position: relative;
+    overflow: hidden;
+}
+
+.touchid-modal::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, #38bdf8, #10b981);
+}
+
+.touchid-icon-pulse {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1.5px solid rgba(56, 189, 248, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #38bdf8;
+    flex-shrink: 0;
+    animation: touchPulse 2s infinite ease-in-out;
+}
+
+@keyframes touchPulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.4); }
+    50% { transform: scale(1.05); box-shadow: 0 0 0 8px rgba(56, 189, 248, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
+}
+
+.touchid-text h4 {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #f0f6fc;
+    margin-bottom: 3px;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+}
+.touchid-text p {
+    font-size: 12px;
+    color: #8b949e;
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+}
+
+/* Finder Context Menu Mockup */
+.finder-mockup {
+    background: #1e2430;
+    border-radius: 12px;
+    padding: 16px;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    color: #e6edf3;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.finder-file-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.finder-file-icon {
+    width: 32px;
+    height: 38px;
+    background: #0d1117;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: #38bdf8;
+}
+
+.finder-context-menu {
+    background: rgba(30, 36, 48, 0.95);
+    backdrop-filter: blur(25px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 10px;
+    padding: 6px;
+    width: 270px;
+    box-shadow: 0 16px 40px rgba(0,0,0,0.5);
+    margin-left: 24px;
+}
+
+.context-item {
+    padding: 6px 12px;
+    font-size: 13px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #c9d1d9;
+}
+.context-item.highlight {
+    background: #0071e3;
+    color: #ffffff;
+    font-weight: 500;
+}
+.context-item i, .context-item svg { width: 14px; height: 14px; }
+.context-sep {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.08);
+    margin: 4px 6px;
+}

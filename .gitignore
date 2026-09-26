@@ -3,3 +3,4 @@
 *.vault
 .sec*
 .DS_Store
+.agents

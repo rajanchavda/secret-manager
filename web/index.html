@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>sec — Touch ID Secret Vault for macOS</title>
+    <meta name="description" content="Shield your .env and secret files from AI agents & background tools. Hardware-encrypted on Apple Silicon with Touch ID, injected directly into process memory during development.">
+    <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+    <link rel="apple-touch-icon" href="assets/icon.svg">
+    
+    <!-- Open Graph -->
+    <meta property="og:title" content="sec — Touch ID Secret Vault for macOS">
+    <meta property="og:description" content="Shield your .env from AI coding agents. Decoy on disk, real secrets hardware-encrypted in Apple Silicon Secure Enclave and injected into RAM on Touch ID tap.">
+    <meta property="og:image" content="assets/icon.svg">
+    <meta property="og:type" content="website">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/terminal.css">
+
+    <!-- Theme Initializer (Default: Light Mode) -->
+    <script>
+        (function() {
+            var savedTheme = localStorage.getItem('sec-theme');
+            if (savedTheme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            } else {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+    </script>
+</head>
+<body>
+
+    <!-- ── Sticky Navigation ────────────────────────────────── -->
+    <nav>
+        <div class="nav-inner">
+            <a class="nav-brand" href="#top">
+                <img src="assets/icon.svg" alt="sec icon">
+                <span>sec</span>
+                <span class="nav-version">v1.0</span>
+            </a>
+
+            <div class="nav-links">
+                <a href="#threat">Threat Model</a>
+                <a href="#how-it-works">How It Works</a>
+                <a href="#features">Features</a>
+                <a href="#finder">Finder Actions</a>
+                <a href="#cli">CLI</a>
+                <a href="#faq">FAQ</a>
+            </div>
+
+            <div class="nav-actions">
+                <button class="theme-toggle-btn" id="themeToggle" aria-label="Toggle dark / light theme" title="Toggle dark / light theme">
+                    <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+                <a class="btn-github" href="https://github.com/rajanchavda/file-sec" target="_blank" rel="noopener">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+                    <span>GitHub</span>
+                </a>
+                <a class="btn-nav-install" href="#install">Install sec</a>
+            </div>
+        </div>
+    </nav>
+
+    <main id="top">
+        <!-- ── Hero Section ─────────────────────────────────── -->
+        <header class="hero">
+            <div class="container">
+                <div class="hero-pill reveal">
+                    <span class="pulse-dot"></span>
+                    <span>Biometric Secret Vault · Built for Apple Silicon &amp; macOS Sequoia</span>
+                </div>
+
+                <div class="hero-icon-wrap reveal">
+                    <img class="hero-icon" src="assets/icon.svg" alt="sec app icon">
+                </div>
+
+                <h1 class="reveal">AI coding agents are reading your .env.<br>Stop them with Touch ID.</h1>
+
+                <p class="sub reveal">
+                    Shield live API keys and database credentials from Cursor, Claude, Copilot, and background tools. Real secrets stay encrypted in Apple's Secure Enclave — only injected directly into process memory on a physical Touch ID tap.
+                </p>
+
+                <!-- 1-Click Install Command Pill -->
+                <div class="hero-cta-group reveal">
+                    <div class="install-pill" data-copy="./install.sh">
+                        <code>
+                            <span class="prefix">$</span> ./install.sh
+                        </code>
+                        <button class="copy-btn" aria-label="Copy install command">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            Copy
+                        </button>
+                    </div>
+
+                    <div class="hero-meta">
+                        <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> macOS 14 Sonoma or later</span>
+                        <span>•</span>
+                        <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg> Native Swift (~340 KB)</span>
+                        <span>•</span>
+                        <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Zero Plaintext on Disk</span>
+                        <span>•</span>
+                        <span>MIT Open Source</span>
+                    </div>
+                </div>
+
+                <!-- ── Interactive Hero Showcase (Terminal Simulator) ────────────────── -->
+                <div class="hero-showcase reveal">
+                    <div class="mac-window">
+                        <div class="mac-header">
+                            <div class="traffic-lights">
+                                <span class="traffic-dot red"></span>
+                                <span class="traffic-dot yellow"></span>
+                                <span class="traffic-dot green"></span>
+                            </div>
+                            <div class="window-title">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                sec — Terminal &amp; Finder Simulation
+                            </div>
+                        </div>
+
+                        <!-- Tab Switcher -->
+                        <div class="term-tabs">
+                            <button class="term-tab active" data-target="pane-decoy">
+                                <span>🤖 What AI Agents See</span>
+                                <span class="tab-badge badge-warning">Decoy on Disk</span>
+                            </button>
+                            <button class="term-tab" data-target="pane-ram">
+                                <span>⚡ What Your Dev Server Gets</span>
+                                <span class="tab-badge badge-success">Touch ID RAM</span>
+                            </button>
+                            <button class="term-tab" data-target="pane-finder">
+                                <span>🖱️ Finder Quick Actions</span>
+                                <span class="tab-badge badge-info">macOS Native</span>
+                            </button>
+                        </div>
+
+                        <!-- Terminal Body -->
+                        <div class="term-body">
+                            <!-- Pane 1: Decoy View -->
+                            <div class="term-pane active" id="pane-decoy">
+                                <p><span class="t-comment"># An AI coding agent (Cursor, Claude, Copilot) runs cat or ripgrep in your project:</span></p>
+                                <p><span class="t-prompt">agent@mac</span><span class="t-dir">~/Developer/my-saas</span> <span class="t-cmd">cat .env</span></p>
+                                <br>
+                                <p><span class="t-comment"># 🔒 PROTECTED BY sec (Touch ID Secret Vault)</span></p>
+                                <p><span class="t-comment"># Real secrets are hardware-encrypted in .env.vault</span></p>
+                                <p><span class="t-comment"># Run commands: sec npm run dev   |   Edit secrets: sec edit</span></p>
+                                <br>
+                                <p><span class="t-key">DATABASE_URL</span>=<span class="t-decoy">locked_by_sec</span></p>
+                                <p><span class="t-key">STRIPE_SECRET_KEY</span>=<span class="t-decoy">locked_by_sec</span></p>
+                                <p><span class="t-key">OPENAI_API_KEY</span>=<span class="t-decoy">locked_by_sec</span></p>
+                                <p><span class="t-key">PORT</span>=<span class="t-val">3000</span></p>
+                                <br>
+                                <p><span class="t-success">✔ AI agent context only ingests masked dummy placeholders. Your live credentials remain 100% secret.</span></p>
+                            </div>
+
+                            <!-- Pane 2: RAM Injection View -->
+                            <div class="term-pane" id="pane-ram">
+                                <p><span class="t-comment"># Developer starts development with `sec` prefix:</span></p>
+                                <p><span class="t-prompt">you@mac</span><span class="t-dir">~/Developer/my-saas</span> <span class="t-cmd">sec npm run dev</span></p>
+                                
+                                <!-- Interactive Touch ID Modal Simulation -->
+                                <div class="touchid-modal" id="touchModal" title="Click to test biometric authentication">
+                                    <div class="touchid-icon-pulse">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.026.99-4.18.99-6.402a17.92 17.92 0 00-1.89-7.986M6.48 4.707A17.923 17.923 0 004 11c0 2.222.345 4.376.99 6.402"/></svg>
+                                    </div>
+                                    <div class="touchid-text">
+                                        <h4>Touch ID or Apple Watch</h4>
+                                        <p>Tap sensor to inject secrets into RAM</p>
+                                    </div>
+                                </div>
+
+                                <p><span class="t-sec-badge">[sec]</span> <span class="t-success">Unlocked via Apple Secure Enclave in 0.003s</span></p>
+                                <p><span class="t-sec-badge">[sec]</span> Injected real keys directly into process memory (<code style="color:#79c0ff">process.env</code>)</p>
+                                <p><span class="t-comment">[sec] Real secrets NEVER written to hard drive. Destroyed on command exit.</span></p>
+                                <br>
+                                <p><span class="t-prompt">&gt;</span> <span class="t-val">next dev --port 3000</span></p>
+                                <p><span class="t-success">ready</span> - started server on 0.0.0.0:3000, url: http://localhost:3000</p>
+                                <p><span class="t-comment">[App] Connected to PostgreSQL with valid credentials from RAM.</span></p>
+                            </div>
+
+                            <!-- Pane 3: Finder Quick Actions View -->
+                            <div class="term-pane" id="pane-finder">
+                                <div class="finder-mockup">
+                                    <div class="finder-file-row">
+                                        <div class="finder-file-icon">.env</div>
+                                        <div>
+                                            <strong>.env</strong> — Configuration Decoy File (Protected)
+                                        </div>
+                                    </div>
+
+                                    <div class="finder-context-menu">
+                                        <div class="context-item">Open With</div>
+                                        <div class="context-sep"></div>
+                                        <div class="context-item highlight">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                            Lock Secrets with Touch ID (sec)
+                                        </div>
+                                        <div class="context-item">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                            View Secrets with Touch ID (sec)
+                                        </div>
+                                        <div class="context-item">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                                            Edit Secrets with Touch ID (sec)
+                                        </div>
+                                        <div class="context-sep"></div>
+                                        <div class="context-item">Quick Look .env</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- ── Section: Threat Model ────────────────────────── -->
+        <section id="threat" class="tinted">
+            <div class="container text-center">
+                <p class="eyebrow reveal">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    The Threat Model
+                </p>
+                <h2 class="reveal">Why traditional .env files fail with AI agents</h2>
+                <p class="section-sub reveal">
+                    AI coding assistants inspect your project files, run terminal commands, and ingest directory trees. Here is why existing secret managers leave you exposed.
+                </p>
+
+                <div class="threat-grid">
+                    <div class="threat-card reveal">
+                        <div class="card-icon red">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                        </div>
+                        <h3>AI Context Ingestion</h3>
+                        <p>
+                            Tools like Cursor, Claude Desktop, and Copilot automatically parse workspace files. When an agent runs <code>cat .env</code> or <code>ripgrep</code> to debug an error, production Stripe keys and database connection strings get copied straight into model prompt transcripts.
+                        </p>
+                    </div>
+
+                    <div class="threat-card reveal">
+                        <div class="card-icon amber">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                        </div>
+                        <h3>The Disk Decryption Trap</h3>
+                        <p>
+                            If a secret utility decrypts your credentials into plaintext on your disk while your dev server runs (e.g. <code>npm run dev</code>), the AI agent can read those secrets at any millisecond while you program. A secret on disk is never safe from a background tool.
+                        </p>
+                    </div>
+
+                    <div class="threat-card reveal">
+                        <div class="card-icon green">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                        </div>
+                        <h3>The Decoy + Hardware Vault</h3>
+                        <p>
+                            <code>sec</code> keeps your real credentials inside Apple Silicon's hardware Secure Enclave. The file on disk is replaced by a safe decoy file (<code>API_KEY=locked_by_sec</code>), while real secrets are injected strictly into process RAM upon a physical Touch ID tap.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── Section: How It Works ────────────────────────── -->
+        <section id="how-it-works">
+            <div class="container text-center">
+                <p class="eyebrow reveal">Architecture</p>
+                <h2 class="reveal">Three steps. Zero plaintext on disk.</h2>
+                <p class="section-sub reveal">
+                    Keep linters, syntax highlighters, and static tools happy with decoy placeholders, while handing real keys directly to your dev server behind closed doors.
+                </p>
+
+                <div class="steps-grid">
+                    <div class="step-card reveal">
+                        <span class="step-number">Step 01</span>
+                        <h3>Lock with Touch ID</h3>
+                        <p>
+                            Run <code>sec lock .env</code> or right-click in Finder. Encrypts real secrets into <code>.env.vault</code> with AES-256-GCM. Replaces disk <code>.env</code> with sanitized dummy placeholders.
+                        </p>
+                        <div class="step-snippet">
+                            <code>$ sec lock .env</code>
+                        </div>
+                    </div>
+
+                    <div class="step-card reveal">
+                        <span class="step-number">Step 02</span>
+                        <h3>Run with Biometrics</h3>
+                        <p>
+                            Prefix any development command with <code>sec</code> (e.g. <code>sec npm run dev</code>, <code>sec cargo run</code>). Touch ID prompts once for your physical fingerprint tap.
+                        </p>
+                        <div class="step-snippet">
+                            <code>$ sec npm run dev</code>
+                        </div>
+                    </div>
+
+                    <div class="step-card reveal">
+                        <span class="step-number">Step 03</span>
+                        <h3>Pure In-Memory Injection</h3>
+                        <p>
+                            Secrets are injected directly into child process RAM (<code>process.env</code>). Plaintext never touches your storage drive, and secrets self-destruct as soon as the process exits.
+                        </p>
+                        <div class="step-snippet">
+                            <code>RAM Only · Zero-Cache</code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── Section: Before vs. After Matrix ─────────────── -->
+        <section class="tinted">
+            <div class="container text-center">
+                <p class="eyebrow reveal">The Difference</p>
+                <h2 class="reveal">Without sec vs. With sec</h2>
+                <p class="section-sub reveal">
+                    See how your security posture transforms the moment you lock your environment files.
+                </p>
+
+                <div class="comparison-wrap reveal">
+                    <table class="comparison-table">
+                        <thead>
+                            <tr>
+                                <th>Situation</th>
+                                <th>Without sec ❌</th>
+                                <th>With sec ✅</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="col-threat">What lives on your hard drive</td>
+                                <td class="col-without">Plaintext credentials (<code>API_KEY=sk_live_...</code>)</td>
+                                <td class="col-with">Masked decoy (<code>API_KEY=locked_by_sec</code>) + AES-256 vault</td>
+                            </tr>
+                            <tr>
+                                <td class="col-threat">What AI coding agents can read</td>
+                                <td class="col-without">Live database URLs, Stripe keys, and LLM tokens</td>
+                                <td class="col-with">Only harmless dummy labels (<code>locked_by_sec</code>)</td>
+                            </tr>
+                            <tr>
+                                <td class="col-threat">What your dev server gets</td>
+                                <td class="col-without">Reads plaintext file from hard drive</td>
+                                <td class="col-with">Receives real secrets directly into RAM on Touch ID tap</td>
+                            </tr>
+                            <tr>
+                                <td class="col-threat">Process inspection (<code>ps -E</code>)</td>
+                                <td class="col-without">Plaintext arguments visible in process table</td>
+                                <td class="col-with">Hidden via stealth ephemeral preload memory hooks</td>
+                            </tr>
+                            <tr>
+                                <td class="col-threat">If your laptop is stolen or cloned</td>
+                                <td class="col-without">All secrets completely exposed</td>
+                                <td class="col-with">Uncrackable hardware AES-256-GCM without biometrics</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── Section: Core Features ───────────────────────── -->
+        <section id="features">
+            <div class="container text-center">
+                <p class="eyebrow reveal">Capabilities</p>
+                <h2 class="reveal">Small binary. Hardened security.</h2>
+                <p class="section-sub reveal">
+                    Engineered in native Swift specifically for Apple Silicon. Zero runtime dependencies, instant execution.
+                </p>
+
+                <div class="features-grid">
+                    <div class="feature-box reveal">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.026.99-4.18.99-6.402a17.92 17.92 0 00-1.89-7.986M6.48 4.707A17.923 17.923 0 004 11c0 2.222.345 4.376.99 6.402"/></svg>
+                        <h3>Hardware Secure Enclave</h3>
+                        <p>Master encryption keys are generated and stored in Apple Silicon hardware (CryptoKit P-256 + HKDF), eliminating annoying keychain password dialogs.</p>
+                    </div>
+
+                    <div class="feature-box reveal">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        <h3>Strict Zero-Cache</h3>
+                        <p>Single-use execution policy. Every single run requires a physical Touch ID tap. No persistent decrypted sessions linger on disk for background tools to hijack.</p>
+                    </div>
+
+                    <div class="feature-box reveal">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        <h3>Stealth In-Memory Loaders</h3>
+                        <p>Defeats <code>ps -E</code> and Darwin's <code>KERN_PROCARGS2</code> inspection via ephemeral self-destructing preload hooks rather than passing plaintext in <code>execve</code>.</p>
+                    </div>
+
+                    <div class="feature-box reveal">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                        <h3>Safe In-Memory Editor</h3>
+                        <p><code>sec edit .env</code> opens your preferred <code>$EDITOR</code> with a secure temporary buffer (0600) that is automatically overwritten with random bytes before shredding.</p>
+                    </div>
+
+                    <div class="feature-box reveal">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+                        <h3>Monorepo &amp; Subpackage Aware</h3>
+                        <p>Automatically discovers parent directory vaults if you run commands from inside a nested package or subfolder. Zero configuration required.</p>
+                    </div>
+
+                    <div class="feature-box reveal">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                        <h3>Fleet Vault Audit (sec list)</h3>
+                        <p>Run <code>sec list --scan</code> to scan your Mac for all protected vaults, discover unindexed secret files, or prune missing folders.</p>
+                    </div>
+
+                    <div class="feature-box reveal">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                        <h3>Feather-Light Swift Native</h3>
+                        <p>Only ~340 KB standalone compiled binary. Starts in under 3 milliseconds with zero npm, node, or Python runtime dependencies.</p>
+                    </div>
+
+                    <div class="feature-box reveal">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                        <h3>Idempotent &amp; Safe</h3>
+                        <p>Detects if a file is already locked. Never accidentally re-locks an already protected decoy file, preventing accidental data loss.</p>
+                    </div>
+
+                    <div class="feature-box reveal">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg>
+                        <h3>100% Offline &amp; Private</h3>
+                        <p>Zero network requests, zero telemetry, zero analytics, zero external servers. Your cryptographic keys never leave your Apple hardware.</p>
+                    </div>
+                </div>
+
+                <!-- Tech Stacks Strip -->
+                <div style="margin-top: 56px;" class="reveal">
+                    <p class="eyebrow">Works with your entire stack</p>
+                    <div class="stacks-strip">
+                        <span class="stack-chip">Node.js</span>
+                        <span class="stack-chip">Next.js</span>
+                        <span class="stack-chip">Bun</span>
+                        <span class="stack-chip">Vite</span>
+                        <span class="stack-chip">Python / FastAPI</span>
+                        <span class="stack-chip">Rust / Cargo</span>
+                        <span class="stack-chip">Go</span>
+                        <span class="stack-chip">Docker Compose</span>
+                        <span class="stack-chip">Ruby on Rails</span>
+                        <span class="stack-chip">Elixir</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── Section: Finder Right-Click Spotlight ────────── -->
+        <section id="finder" class="tinted">
+            <div class="container">
+                <div class="finder-banner reveal">
+                    <div class="finder-banner-text">
+                        <p class="eyebrow">macOS Integration</p>
+                        <h2>Lock &amp; Edit Secrets directly from Finder</h2>
+                        <p>
+                            Prefer GUI over command line? <code>sec</code> registers native macOS Quick Actions. Right-click any <code>.env</code> file in Finder to encrypt it with Touch ID, or right-click <code>.env.vault</code> to edit it in your code editor.
+                        </p>
+                        <ul class="finder-checklist">
+                            <li>Right-click <code>.env</code> ➔ Lock Secrets with Touch ID</li>
+                            <li>Right-click <code>.env.vault</code> ➔ Edit Secrets with Touch ID</li>
+                            <li>Right-click <code>.env.vault</code> ➔ View Secrets in Terminal</li>
+                            <li>Native macOS notification banner confirms protection status</li>
+                        </ul>
+                        <div class="install-pill" style="max-width: 320px;" data-copy="sec install-finder">
+                            <code>$ sec install-finder</code>
+                            <button class="copy-btn">Copy</button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="mac-window" style="box-shadow: var(--shadow-md);">
+                            <div class="mac-header">
+                                <div class="traffic-lights">
+                                    <span class="traffic-dot red"></span>
+                                    <span class="traffic-dot yellow"></span>
+                                    <span class="traffic-dot green"></span>
+                                </div>
+                                <div class="window-title">Finder — Quick Actions</div>
+                            </div>
+                            <div style="padding: 24px; background: #151921;">
+                                <div class="finder-file-row" style="margin-bottom: 14px;">
+                                    <div class="finder-file-icon">.env</div>
+                                    <div style="font-size: 13.5px; color:#e2e8f0;">
+                                        <strong>.env</strong> <span style="color:#8b949e;">(348 bytes)</span>
+                                    </div>
+                                </div>
+                                <div class="finder-context-menu" style="margin-left: 0; width: 100%;">
+                                    <div class="context-item highlight">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                        Lock Secrets with Touch ID (sec)
+                                    </div>
+                                    <div class="context-item">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                                        View Secrets with Touch ID (sec)
+                                    </div>
+                                    <div class="context-item">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                                        Edit Secrets with Touch ID (sec)
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── Section: Interactive CLI Cheatsheet ──────────── -->
+        <section id="cli">
+            <div class="container text-center">
+                <p class="eyebrow reveal">Developer Experience</p>
+                <h2 class="reveal">Simple, intuitive CLI commands</h2>
+                <p class="section-sub reveal">
+                    No complicated setup. One binary to lock, run, edit, view, and audit vaults across your Mac.
+                </p>
+
+                <div class="cheatsheet-wrap reveal">
+                    <div class="cheat-buttons">
+                        <button class="cheat-btn active" data-target="cmd-lock">sec lock</button>
+                        <button class="cheat-btn" data-target="cmd-run">sec &lt;command&gt;</button>
+                        <button class="cheat-btn" data-target="cmd-edit">sec edit</button>
+                        <button class="cheat-btn" data-target="cmd-view">sec view</button>
+                        <button class="cheat-btn" data-target="cmd-list">sec list</button>
+                        <button class="cheat-btn" data-target="cmd-status">sec status</button>
+                    </div>
+
+                    <div class="cheat-display">
+                        <!-- lock -->
+                        <div class="cheat-panel active" id="cmd-lock">
+                            <p><span class="t-prompt">$</span> <span class="t-cmd">sec lock .env</span></p>
+                            <p><span class="t-comment"># Encrypts .env with Apple Secure Enclave into .env.vault</span></p>
+                            <p><span class="t-comment"># Replaces .env with safe dummy values so linters don't break</span></p>
+                            <p><span class="t-comment"># Adds .env.vault to .gitignore automatically</span></p>
+                            <br>
+                            <p><span class="t-success">✔ Created vault: .env.vault (AES-256-GCM)</span></p>
+                            <p><span class="t-success">✔ Replaced .env with masked placeholder decoy</span></p>
+                            <p><span class="t-success">✔ Added .env.vault to .gitignore</span></p>
+                        </div>
+
+                        <!-- run -->
+                        <div class="cheat-panel" id="cmd-run">
+                            <p><span class="t-prompt">$</span> <span class="t-cmd">sec npm run dev</span></p>
+                            <p><span class="t-prompt">$</span> <span class="t-cmd">sec cargo run</span></p>
+                            <p><span class="t-prompt">$</span> <span class="t-cmd">sec python app.py</span></p>
+                            <p><span class="t-prompt">$</span> <span class="t-cmd">sec docker compose up</span></p>
+                            <br>
+                            <p><span class="t-comment"># Prompts Touch ID once. Injects real secrets directly into process RAM.</span></p>
+                            <p><span class="t-comment"># Zero plaintext written to disk. Interactive TTY and Ctrl+C pass through seamlessly.</span></p>
+                        </div>
+
+                        <!-- edit -->
+                        <div class="cheat-panel" id="cmd-edit">
+                            <p><span class="t-prompt">$</span> <span class="t-cmd">sec edit .env</span></p>
+                            <br>
+                            <p><span class="t-comment"># Prompts Touch ID to authenticate.</span></p>
+                            <p><span class="t-comment"># Decrypts secrets into ephemeral memory buffer (0600 permissions).</span></p>
+                            <p><span class="t-comment"># Opens your $EDITOR (VS Code, Cursor, Nano, or Vim).</span></p>
+                            <p><span class="t-comment"># On save: re-encrypts .env.vault and shreds the temp file with random bytes.</span></p>
+                            <p><span class="t-success">✔ Re-encrypted .env.vault and securely shredded temp buffer</span></p>
+                        </div>
+
+                        <!-- view -->
+                        <div class="cheat-panel" id="cmd-view">
+                            <p><span class="t-prompt">$</span> <span class="t-cmd">sec view .env</span></p>
+                            <br>
+                            <p><span class="t-comment"># Prompts Touch ID and outputs decrypted key-value pairs to terminal stdout</span></p>
+                            <p><span class="t-comment"># Perfect for piping or quick inspection without saving plaintext to disk</span></p>
+                        </div>
+
+                        <!-- list -->
+                        <div class="cheat-panel" id="cmd-list">
+                            <p><span class="t-prompt">$</span> <span class="t-cmd">sec list --scan ~/Developer</span></p>
+                            <br>
+                            <p><span class="t-sec-badge">=== 🔒 Protected Vaults Across Your Mac ===</span></p>
+                            <br>
+                            <p>📁 ~/Developer/my-saas-app</p>
+                            <p>&nbsp;&nbsp;• Target: .env &nbsp;|&nbsp; Vault: .env.vault (348 bytes)</p>
+                            <p>&nbsp;&nbsp;• Status: <span class="t-success">🔒 Protected (Decoy active on disk)</span></p>
+                        </div>
+
+                        <!-- status -->
+                        <div class="cheat-panel" id="cmd-status">
+                            <p><span class="t-prompt">$</span> <span class="t-cmd">sec status</span></p>
+                            <br>
+                            <p><span class="t-sec-badge">=== sec Status ===</span></p>
+                            <p>🔑 Master Key: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="t-success">Configured (Apple Silicon Secure Enclave)</span></p>
+                            <p>🛡️ Access Policy: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Strict Zero-Cache (Single-Use)</p>
+                            <p>📁 Current Vault: &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Found '.env.vault' at current directory</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── Section: FAQ ─────────────────────────────────── -->
+        <section id="faq" class="tinted">
+            <div class="container text-center">
+                <p class="eyebrow reveal">FAQ</p>
+                <h2 class="reveal">Frequently Asked Questions</h2>
+                <p class="section-sub reveal">
+                    Everything you need to know about Apple biometrics, memory safety, and threat boundaries.
+                </p>
+
+                <div class="faq-list reveal">
+                    <details>
+                        <summary>Does it work when my MacBook lid is closed (clamshell mode)?</summary>
+                        <p>
+                            Yes. Apple's LocalAuthentication framework automatically falls back to an Apple Watch biometric tap, Touch ID on an external Apple Magic Keyboard, or your Mac login password if the MacBook display lid is closed.
+                        </p>
+                    </details>
+
+                    <details>
+                        <summary>Can an AI coding agent run `sec view` to read my secrets?</summary>
+                        <p>
+                            No. Every invocation of <code>sec</code> (including <code>sec view</code> and <code>sec run</code>) triggers a physical macOS LocalAuthentication prompt. Without your finger physically touching the Mac's sensor, the vault will not unlock.
+                        </p>
+                    </details>
+
+                    <details>
+                        <summary>How does stealth loading defeat `ps -E` inspection?</summary>
+                        <p>
+                            On Unix and Darwin, running processes can have their environment queried by other processes via <code>ps -E</code> or <code>sysctl KERN_PROCARGS2</code>. For Node.js and Python development, <code>sec</code> uses ephemeral preload loader hooks that inject credentials straight into the language runtime memory, completely bypassing public command-line arguments.
+                        </p>
+                    </details>
+
+                    <details>
+                        <summary>What happens to my IDE and linters when `.env` is locked?</summary>
+                        <p>
+                            When <code>sec lock</code> runs, it inspects your <code>.env</code> keys and replaces their values with <code>locked_by_sec</code>. This keeps the file syntactically valid. ESLint, Prisma schema validators, TypeScript types, and dotenv parsers continue to function without crashing.
+                        </p>
+                    </details>
+
+                    <details>
+                        <summary>Is `.env.vault` committed to Git?</summary>
+                        <p>
+                            No. <code>sec lock</code> automatically adds <code>*.vault</code> and <code>.env.vault</code> to your project's <code>.gitignore</code>. Your secrets remain strictly hardware-encrypted on your local Mac.
+                        </p>
+                    </details>
+
+                    <details>
+                        <summary>Does `sec` support monorepos with nested packages?</summary>
+                        <p>
+                            Yes! If your root repository contains <code>.env.vault</code> and you execute <code>sec npm run dev</code> inside a nested subpackage (e.g. <code>apps/web</code> or <code>packages/api</code>), <code>sec</code> traverses up the folder tree, discovers the root vault, and injects the secrets seamlessly.
+                        </p>
+                    </details>
+
+                    <details>
+                        <summary>Is `sec` free and open source?</summary>
+                        <p>
+                            Yes, 100%. <code>sec</code> is released under the permissive MIT license. There are no subscriptions, no accounts, and no paid tiers.
+                        </p>
+                    </details>
+                </div>
+            </div>
+        </section>
+
+        <!-- ── Section: Download / Install CTA ──────────────── -->
+        <section id="install">
+            <div class="container">
+                <div class="install-callout reveal">
+                    <p class="eyebrow">Ready in 30 seconds</p>
+                    <h2>Start protecting your secrets today</h2>
+                    <p class="section-sub" style="margin-bottom: 32px;">
+                        Compile and install the native Swift binary directly to your Mac. Zero dependencies required.
+                    </p>
+
+                    <div class="install-pill" style="max-width: 520px; margin: 0 auto 20px;" data-copy="./install.sh">
+                        <code>
+                            <span class="prefix">$</span> ./install.sh
+                        </code>
+                        <button class="copy-btn">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            Copy
+                        </button>
+                    </div>
+
+                    <p style="font-size: 13.5px; color: var(--text-faint);">
+                        Or build with make: <code>make install</code> &nbsp;•&nbsp; Run test suite: <code>make test</code>
+                    </p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ── Footer ───────────────────────────────────────────── -->
+    <footer>
+        <div class="container">
+            <p><strong>sec</strong> — Touch ID Secret Vault for macOS.</p>
+            <p>Built with native Swift, Apple CryptoKit &amp; LocalAuthentication. Released under the MIT License.</p>
+            <p style="margin-top: 14px; font-size: 12.5px; color: var(--text-faint);">
+                Shielding developers and teams from accidental AI credential leaks.
+            </p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="js/app.js"></script>
+</body>
+</html>

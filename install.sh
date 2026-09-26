@@ -57,7 +57,7 @@ echo ""
 echo "   3. Edit secrets safely with Touch ID:"
 echo "      $ sec edit .env"
 echo ""
-echo "   4. In Finder: Right-click any file -> Quick Actions -> 'Lock Secrets with Touch ID'"
+echo "   4. In Finder: Right-click any file -> Quick Actions / Services -> 'Lock/Unlock Secrets with Touch ID'"
 echo ""
 
 # Check PATH

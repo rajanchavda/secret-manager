@@ -102,10 +102,13 @@ This will:
 ## 🖱️ Finder Right-Click Usage
 
 Once installed:
-- **Lock a file**: Right-click `.env` (or any secret file) in macOS Finder ➡️ **Quick Actions** ➡️ **Lock Secrets with Touch ID (sec)**.
-- **Edit a vault**: Right-click `.env.vault` in Finder ➡️ **Quick Actions** ➡️ **Edit Secrets with Touch ID (sec)**.
+- **Lock a file**: Right-click `.env` (or any secret file) in macOS Finder ➡️ **Quick Actions / Services** ➡️ **Lock Secrets with Touch ID (sec)**.
+- **Unlock a file**: Right-click `.env.vault` (or an already locked file) ➡️ **Quick Actions / Services** ➡️ **Unlock Secrets with Touch ID (sec)**.  
+  *(Note: If you ever click "Lock" on an already locked file, `sec` automatically detects it and displays the **Unlock Secrets** option immediately instead of re-locking).*
+- **View secrets**: Right-click `.env.vault` (or `.env`) in Finder ➡️ **Quick Actions / Services** ➡️ **View Secrets with Touch ID (sec)**. Prompts Touch ID and prints formatted secrets in Terminal without leaving plaintext on disk.
+- **Edit a vault**: Right-click `.env.vault` in Finder ➡️ **Quick Actions / Services** ➡️ **Edit Secrets with Touch ID (sec)**.
 
-A native macOS notification banner will confirm when your file is protected.
+A native macOS notification banner will confirm when your file is protected or restored.
 
 ---
 
@@ -187,7 +190,44 @@ sec session
 
 ---
 
-### 6. Permanently Unlock (Restore Plaintext to Disk)
+### 6. List & Audit Protected Vaults Across Your Mac
+```bash
+sec list
+```
+Outputs an aggregated overview of all locked vaults across your folders:
+```text
+=== 🔒 Protected Vaults Across Your Mac ===
+
+📁 ~/Developer/my-saas-app
+   • Target:    .env
+   • Vault:     .env.vault (348 bytes)
+   • Status:    🔒 Protected (Decoy active on disk)
+   • Modified:  Sep 25, 2026, 10:48 PM
+
+📁 ~/Projects/backend-api
+   • Target:    config.json
+   • Vault:     config.json.vault (512 bytes)
+   • Status:    🔒 Protected (Decoy active on disk)
+   • Modified:  Sep 24, 2026, 04:15 PM
+```
+
+* **Discover unindexed vaults**:
+  ```bash
+  sec list --scan             # Scans user home directory (skips caches & node_modules)
+  sec list --scan ~/Developer # Scans a specific folder tree
+  ```
+* **Clean up deleted/missing vaults**:
+  ```bash
+  sec list --prune
+  ```
+* **Scripting / JSON output**:
+  ```bash
+  sec list --json
+  ```
+
+---
+
+### 7. Permanently Unlock (Restore Plaintext to Disk)
 ```bash
 sec unlock .env
 ```

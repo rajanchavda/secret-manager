@@ -22,7 +22,7 @@ public final class FinderInstaller {
         // 1. Install "Lock Secrets with Touch ID"
         try installWorkflow(
             name: "Lock Secrets with Touch ID (sec)",
-            script: """
+            script: #"""
             export PATH="/usr/local/bin:/opt/homebrew/bin:$HOME/.local/bin:$PATH"
             SEC_BIN="sec"
             if ! command -v sec >/dev/null 2>&1; then
@@ -34,25 +34,102 @@ public final class FinderInstaller {
             fi
 
             for f in "$@"; do
+                is_locked=0
+                if [[ "$f" == *.vault ]] || [[ -f "${f}.vault" ]]; then
+                    is_locked=1
+                elif [ -f "$f" ] && grep -q "PROTECTED BY sec" "$f" 2>/dev/null; then
+                    is_locked=1
+                fi
+
+                if [ "$is_locked" -eq 1 ]; then
+                    base=$(basename "$f")
+                    res=$(osascript -e 'try' -e 'button returned of (display dialog "'"$base"' is already locked with Touch ID.\n\nWould you like to unlock it and restore plaintext to disk?" with title "sec: Already Locked" buttons {"Cancel", "Unlock Secrets"} default button "Unlock Secrets" with icon caution)' -e 'on error' -e 'return "Cancel"' -e 'end try' 2>&1)
+                    if [ "$res" = "Unlock Secrets" ]; then
+                        if ! output=$("$SEC_BIN" unlock --yes "$f" 2>&1); then
+                            escaped_output=$(echo "$output" | sed 's/"/\\"/g')
+                            osascript -e "display alert \"sec Unlock Failed\" message \"$escaped_output\" as critical"
+                            exit 1
+                        fi
+                    fi
+                    continue
+                fi
+
                 if ! output=$("$SEC_BIN" lock "$f" 2>&1); then
                     escaped_output=$(echo "$output" | sed 's/"/\\"/g')
-                    osascript -e "display alert \\"sec Lock Failed\\" message \\"$escaped_output\\" as critical"
+                    osascript -e "display alert \"sec Lock Failed\" message \"$escaped_output\" as critical"
                     exit 1
                 fi
             done
-            """,
+            """#,
             in: servicesDir
         )
         
-        // 2. Install "Edit Secrets with Touch ID"
+        // 2. Install "Unlock Secrets with Touch ID"
+        try installWorkflow(
+            name: "Unlock Secrets with Touch ID (sec)",
+            script: #"""
+            export PATH="/usr/local/bin:/opt/homebrew/bin:$HOME/.local/bin:$PATH"
+            SEC_BIN="sec"
+            if ! command -v sec >/dev/null 2>&1; then
+                if [ -f "$HOME/.local/bin/sec" ]; then
+                    SEC_BIN="$HOME/.local/bin/sec"
+                elif [ -f "/usr/local/bin/sec" ]; then
+                    SEC_BIN="/usr/local/bin/sec"
+                fi
+            fi
+
+            for f in "$@"; do
+                if ! output=$("$SEC_BIN" unlock --yes "$f" 2>&1); then
+                    escaped_output=$(echo "$output" | sed 's/"/\\"/g')
+                    osascript -e "display alert \"sec Unlock Failed\" message \"$escaped_output\" as critical"
+                    exit 1
+                fi
+            done
+            """#,
+            in: servicesDir
+        )
+        
+        // 3. Install "Edit Secrets with Touch ID"
         try installWorkflow(
             name: "Edit Secrets with Touch ID (sec)",
-            script: """
+            script: #"""
             export PATH="/usr/local/bin:/opt/homebrew/bin:$HOME/.local/bin:$PATH"
+            SEC_BIN="sec"
+            if ! command -v sec >/dev/null 2>&1; then
+                if [ -f "$HOME/.local/bin/sec" ]; then
+                    SEC_BIN="$HOME/.local/bin/sec"
+                elif [ -f "/usr/local/bin/sec" ]; then
+                    SEC_BIN="/usr/local/bin/sec"
+                fi
+            fi
+
             for f in "$@"; do
-                osascript -e "tell application \\"Terminal\\" to do script \\"sec edit '$f'\\""
+                cmd="\"$SEC_BIN\" edit \"$f\""
+                osascript -e 'on run argv' -e 'tell application "Terminal"' -e 'activate' -e 'do script (item 1 of argv)' -e 'end tell' -e 'end run' "$cmd"
             done
-            """,
+            """#,
+            in: servicesDir
+        )
+        
+        // 4. Install "View Secrets with Touch ID"
+        try installWorkflow(
+            name: "View Secrets with Touch ID (sec)",
+            script: #"""
+            export PATH="/usr/local/bin:/opt/homebrew/bin:$HOME/.local/bin:$PATH"
+            SEC_BIN="sec"
+            if ! command -v sec >/dev/null 2>&1; then
+                if [ -f "$HOME/.local/bin/sec" ]; then
+                    SEC_BIN="$HOME/.local/bin/sec"
+                elif [ -f "/usr/local/bin/sec" ]; then
+                    SEC_BIN="/usr/local/bin/sec"
+                fi
+            fi
+
+            for f in "$@"; do
+                cmd="\"$SEC_BIN\" view \"$f\""
+                osascript -e 'on run argv' -e 'tell application "Terminal"' -e 'activate' -e 'do script (item 1 of argv)' -e 'end tell' -e 'end run' "$cmd"
+            done
+            """#,
             in: servicesDir
         )
         
@@ -62,6 +139,20 @@ public final class FinderInstaller {
         refreshProcess.arguments = ["-flush"]
         try? refreshProcess.run()
         refreshProcess.waitUntilExit()
+        
+        // Touch services dir to signal LaunchServices update
+        let touchProcess = Process()
+        touchProcess.executableURL = URL(fileURLWithPath: "/usr/bin/touch")
+        touchProcess.arguments = [servicesDir.path]
+        try? touchProcess.run()
+        touchProcess.waitUntilExit()
+        
+        // Terminate ServicesUIAgent so it reloads workflow scripts from disk immediately
+        let killAgentProcess = Process()
+        killAgentProcess.executableURL = URL(fileURLWithPath: "/usr/bin/killall")
+        killAgentProcess.arguments = ["ServicesUIAgent"]
+        try? killAgentProcess.run()
+        killAgentProcess.waitUntilExit()
     }
     
     private func installWorkflow(name: String, script: String, in servicesDir: URL) throws {
@@ -82,7 +173,7 @@ public final class FinderInstaller {
             <key>CFBundleName</key>
             <string>\(name)</string>
             <key>CFBundleIdentifier</key>
-            <string>com.sec.service.\(name.replacingOccurrences(of: " ", with: ""))</string>
+            <string>com.sec.service.\(name.replacingOccurrences(of: " ", with: "").replacingOccurrences(of: "(", with: "").replacingOccurrences(of: ")", with: ""))</string>
             <key>CFBundleDevelopmentRegion</key>
             <string>en_US</string>
             <key>CFBundleShortVersionString</key>

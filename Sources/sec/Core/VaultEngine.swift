@@ -139,6 +139,9 @@ public final class VaultEngine {
         let parentDir = fileURL.deletingLastPathComponent()
         GitIgnoreManager.shared.ensureIgnored(in: parentDir, vaultFileName: vault.lastPathComponent)
         
+        // Register vault in global registry
+        RegistryManager.shared.register(vaultURL: vault, plainURL: fileURL)
+        
         // Return list of discovered keys or the filename if arbitrary/binary content
         if let text = plaintextString {
             let parsed = EnvParser.shared.parse(text)
@@ -174,7 +177,9 @@ public final class VaultEngine {
         
         let masterKey = try KeychainManager.shared.getMasterKey()
         let vaultData = try Data(contentsOf: vaultURL)
-        return try CryptoEngine.shared.decrypt(vaultData: vaultData, keyData: masterKey)
+        let decrypted = try CryptoEngine.shared.decrypt(vaultData: vaultData, keyData: masterKey)
+        RegistryManager.shared.touch(vaultURL: vaultURL)
+        return decrypted
     }
     
     /// Completely unlocks the file back to plaintext on disk (removes .vault)
@@ -189,6 +194,7 @@ public final class VaultEngine {
                 try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: plainFile.path)
             }
             try? FileManager.default.removeItem(at: vaultURL)
+            RegistryManager.shared.unregister(vaultURL: vaultURL)
         } catch {
             throw VaultError.writeFailed("Failed to restore plaintext file: \(error.localizedDescription)")
         }
