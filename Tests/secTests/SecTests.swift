@@ -218,6 +218,72 @@ final class SecTests: XCTestCase {
         XCTAssertTrue(dummy.contains("api_key: \"locked_by_sec\""))
         XCTAssertFalse(dummy.contains("sk_live_123"))
     }
+    
+    func testRegistryManagerRegistrationAndPrune() {
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("sec-test-reg-\(UUID().uuidString)")
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+        
+        let plainFile = tempDir.appendingPathComponent(".env")
+        let vaultFile = tempDir.appendingPathComponent(".env.vault")
+        
+        try? "API_KEY=locked_by_sec\n# PROTECTED BY sec".write(to: plainFile, atomically: true, encoding: .utf8)
+        try? "encrypted-payload".write(to: vaultFile, atomically: true, encoding: .utf8)
+        
+        RegistryManager.shared.register(vaultURL: vaultFile, plainURL: plainFile)
+        
+        let loaded = RegistryManager.shared.loadRegistry()
+        XCTAssertTrue(loaded.records.contains(where: { $0.vaultPath == vaultFile.standardizedFileURL.path }))
+        
+        let record = loaded.records.first(where: { $0.vaultPath == vaultFile.standardizedFileURL.path })!
+        let status = RegistryManager.shared.inspectVault(record: record)
+        XCTAssertEqual(status.statusCode, "protected")
+        XCTAssertTrue(status.statusDescription.contains("Protected"))
+        
+        // Remove vault file and test prune
+        try? FileManager.default.removeItem(at: vaultFile)
+        let (removed, _) = RegistryManager.shared.prune()
+        XCTAssertGreaterThanOrEqual(removed, 1)
+        
+        let reloaded = RegistryManager.shared.loadRegistry()
+        XCTAssertFalse(reloaded.records.contains(where: { $0.vaultPath == vaultFile.standardizedFileURL.path }))
+    }
+    
+    func testRegistryScannerSkipsCacheFolders() {
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("sec-test-scan-\(UUID().uuidString)")
+        let projA = tempDir.appendingPathComponent("projectA")
+        let projB = tempDir.appendingPathComponent("projectB")
+        let nodeModules = projA.appendingPathComponent("node_modules")
+        let gitDir = projB.appendingPathComponent(".git")
+        
+        try? FileManager.default.createDirectory(at: nodeModules, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: gitDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+        
+        let validVault1 = projA.appendingPathComponent(".env.vault")
+        let validVault2 = projB.appendingPathComponent("secrets.json.vault")
+        let ignoredVault1 = nodeModules.appendingPathComponent("dep.vault")
+        let ignoredVault2 = gitDir.appendingPathComponent("git.vault")
+        
+        try? "v1".write(to: validVault1, atomically: true, encoding: .utf8)
+        try? "v2".write(to: validVault2, atomically: true, encoding: .utf8)
+        try? "i1".write(to: ignoredVault1, atomically: true, encoding: .utf8)
+        try? "i2".write(to: ignoredVault2, atomically: true, encoding: .utf8)
+        
+        let discovered = RegistryManager.shared.scan(directory: tempDir)
+        let discoveredPaths = Set(discovered.map { $0.vaultPath })
+        let expectedPath1 = validVault1.standardizedFileURL.resolvingSymlinksInPath().path
+        let expectedPath2 = validVault2.standardizedFileURL.resolvingSymlinksInPath().path
+        
+        XCTAssertTrue(discoveredPaths.contains(expectedPath1))
+        XCTAssertTrue(discoveredPaths.contains(expectedPath2))
+        XCTAssertFalse(discoveredPaths.contains(ignoredVault1.path))
+        XCTAssertFalse(discoveredPaths.contains(ignoredVault2.path))
+        
+        // Clean up test records
+        RegistryManager.shared.unregister(vaultURL: validVault1)
+        RegistryManager.shared.unregister(vaultURL: validVault2)
+    }
 }
 
 

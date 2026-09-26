@@ -35,11 +35,25 @@ public struct SecCLI {
             await handleView(target: target)
             
         case "unlock":
-            let target = arguments.count > 1 ? arguments[1] : ".env"
-            await handleUnlock(target: target)
+            var target = ".env"
+            var force = false
+            for arg in arguments.dropFirst() {
+                if arg == "--yes" || arg == "-y" || arg == "--force" || arg == "-f" {
+                    force = true
+                } else if !arg.hasPrefix("-") {
+                    target = arg
+                }
+            }
+            await handleUnlock(target: target, force: force)
             
         case "status":
             handleStatus()
+            
+        case "list", "ls":
+            await handleList(arguments: Array(arguments.dropFirst()))
+            
+        case "scan", "find":
+            await handleScan(arguments: Array(arguments.dropFirst()))
             
         case "session":
             let sub = arguments.count > 1 ? arguments[1] : "status"
@@ -230,7 +244,7 @@ public struct SecCLI {
         }
     }
     
-    private static func handleUnlock(target: String) async {
+    private static func handleUnlock(target: String, force: Bool = false) async {
         var vaultURL = resolveURL(for: target)
         if !vaultURL.pathExtension.isEmpty && vaultURL.pathExtension != "vault" {
             vaultURL = VaultEngine.shared.vaultURL(for: vaultURL)
@@ -240,25 +254,33 @@ public struct SecCLI {
         
         guard FileManager.default.fileExists(atPath: vaultURL.path) else {
             print("❌ Vault not found: '\(vaultURL.lastPathComponent)'")
+            Notifier.shared.notify(title: "sec: Unlock Failed", message: "Vault not found: '\(vaultURL.lastPathComponent)'")
             exit(1)
         }
         
         let plainFile = VaultEngine.shared.plainFileURL(for: vaultURL)
-        print("⚠️  WARNING: Unlocking will restore plaintext secrets to disk at '\(plainFile.lastPathComponent)'.")
-        print("   AI agents and background tools will be able to read them.")
-        print("Are you sure? (y/N): ", terminator: "")
-        
-        guard let answer = readLine()?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
-              answer == "y" || answer == "yes" else {
-            print("Cancelled.")
-            return
+        if !force {
+            print("⚠️  WARNING: Unlocking will restore plaintext secrets to disk at '\(plainFile.lastPathComponent)'.")
+            print("   AI agents and background tools will be able to read them.")
+            print("Are you sure? (y/N): ", terminator: "")
+            
+            guard let answer = readLine()?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+                  answer == "y" || answer == "yes" else {
+                print("Cancelled.")
+                return
+            }
         }
         
         do {
             try await VaultEngine.shared.unlockToDisk(vaultURL: vaultURL)
             print("🔓 Plaintext restored to '\(plainFile.lastPathComponent)'. Vault removed.")
+            Notifier.shared.notify(
+                title: "sec: File Unlocked",
+                message: "Plaintext restored to '\(plainFile.lastPathComponent)'. Vault removed."
+            )
         } catch {
             print("❌ Error unlocking file: \(error.localizedDescription)")
+            Notifier.shared.notify(title: "sec: Unlock Failed", message: error.localizedDescription)
             exit(1)
         }
     }
@@ -284,6 +306,125 @@ public struct SecCLI {
         } else {
             print("📁 Current Vault:       None detected in current or parent directories")
         }
+        
+        let registry = RegistryManager.shared.loadRegistry()
+        print("📋 Global Vaults:       \(registry.records.count) registered across Mac (run 'sec list' to view)")
+    }
+    
+    private static func formatBytes(_ bytes: Int64) -> String {
+        let formatter = ByteCountFormatter()
+        formatter.allowedUnits = [.useBytes, .useKB, .useMB, .useGB]
+        formatter.countStyle = .file
+        return formatter.string(fromByteCount: bytes)
+    }
+    
+    private static func handleScan(arguments: [String]) async {
+        var args = arguments
+        args.insert("--scan", at: 0)
+        await handleList(arguments: args)
+    }
+    
+    private static func handleList(arguments: [String]) async {
+        var shouldScan = false
+        var shouldPrune = false
+        var isJSON = false
+        var scanDir: URL? = nil
+        
+        var iter = arguments.makeIterator()
+        while let arg = iter.next() {
+            if arg == "--scan" || arg == "-s" {
+                shouldScan = true
+                if let next = iter.next() {
+                    if !next.hasPrefix("-") {
+                        scanDir = resolveURL(for: next)
+                    }
+                }
+            } else if arg == "--prune" || arg == "-p" {
+                shouldPrune = true
+            } else if arg == "--json" {
+                isJSON = true
+            } else if !arg.hasPrefix("-") && scanDir == nil {
+                scanDir = resolveURL(for: arg)
+                shouldScan = true
+            }
+        }
+        
+        if shouldPrune {
+            let (removed, _) = RegistryManager.shared.prune()
+            if !isJSON && removed > 0 {
+                print("🧹 Pruned \(removed) missing vault\(removed == 1 ? "" : "s") from registry.")
+            }
+        }
+        
+        if shouldScan {
+            let targetDir = scanDir ?? FileManager.default.homeDirectoryForCurrentUser
+            if !isJSON {
+                let displayPath = targetDir.path == FileManager.default.homeDirectoryForCurrentUser.path ? "~" : targetDir.path
+                print("🔍 Scanning for vaults in \(displayPath)...")
+            }
+            let discovered = RegistryManager.shared.scan(directory: targetDir)
+            if !isJSON {
+                print("✨ Discovered \(discovered.count) vault\(discovered.count == 1 ? "" : "s").\n")
+            }
+        }
+        
+        let registry = RegistryManager.shared.loadRegistry()
+        let records = registry.records
+        
+        if isJSON {
+            let statusList = records.map { RegistryManager.shared.inspectVault(record: $0) }
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            if let data = try? encoder.encode(statusList), let str = String(data: data, encoding: .utf8) {
+                print(str)
+            }
+            return
+        }
+        
+        print("=== 🔒 Protected Vaults Across Your Mac ===")
+        if records.isEmpty {
+            print("No vaults currently registered.")
+            print("")
+            print("💡 Tip: To search and index all vaults across your Mac, run:")
+            print("   sec list --scan")
+            return
+        }
+        
+        var byDirectory: [String: [VaultRecord]] = [:]
+        for r in records {
+            let dir = URL(fileURLWithPath: r.vaultPath).deletingLastPathComponent().path
+            byDirectory[dir, default: []].append(r)
+        }
+        
+        let sortedDirs = byDirectory.keys.sorted()
+        for dir in sortedDirs {
+            let shortDir: String
+            let homePath = FileManager.default.homeDirectoryForCurrentUser.path
+            if dir.hasPrefix(homePath) {
+                shortDir = "~" + dir.dropFirst(homePath.count)
+            } else {
+                shortDir = dir
+            }
+            
+            print("\n📁 \(shortDir)")
+            let items = byDirectory[dir]!.sorted(by: { $0.vaultPath < $1.vaultPath })
+            for item in items {
+                let info = RegistryManager.shared.inspectVault(record: item)
+                print("   • Target:    \(info.plainName)")
+                let sizeStr = info.vaultSizeBytes != nil ? " (\(formatBytes(info.vaultSizeBytes!)))" : ""
+                print("   • Vault:     \(info.vaultName)\(sizeStr)")
+                print("   • Status:    \(info.statusDescription)")
+                if let mod = info.lastModified {
+                    print("   • Modified:  \(mod)")
+                }
+            }
+        }
+        
+        print("\n--------------------------------------------------")
+        print("Total: \(records.count) vault\(records.count == 1 ? "" : "s") registered across your Mac.")
+        print("💡 Tips:")
+        print("   • Discover unindexed vaults:  sec list --scan [directory]")
+        print("   • Clean up removed vaults:    sec list --prune")
     }
     
     private static func handleSession(subcommand: String) {
@@ -314,8 +455,11 @@ public struct SecCLI {
         do {
             try FinderInstaller.shared.install()
             print("✅ Finder Quick Actions successfully installed!")
-            print("   Right-click any file in Finder -> Quick Actions -> 'Lock Secrets with Touch ID (sec)'")
-            print("   Right-click any vault file -> Quick Actions -> 'Edit Secrets with Touch ID (sec)'")
+            print("   Right-click any file in Finder -> Quick Actions / Services:")
+            print("     • 'Lock Secrets with Touch ID (sec)'")
+            print("     • 'Unlock Secrets with Touch ID (sec)'")
+            print("     • 'Edit Secrets with Touch ID (sec)'")
+            print("     • 'View Secrets with Touch ID (sec)'")
         } catch {
             print("❌ Failed to install Finder Quick Actions: \(error.localizedDescription)")
             exit(1)
@@ -333,7 +477,9 @@ public struct SecCLI {
             sec lock [--force] [file]   Lock file & replace with dummy (skips if already locked)
             sec edit [file]             Safely edit secrets in temporary buffer and re-encrypt
             sec view [file]             Print decrypted secrets to terminal (prompts Touch ID)
-            sec unlock [file]           Restore plaintext to disk and remove vault
+            sec unlock [--yes] [file]   Restore plaintext to disk and remove vault
+            sec list [--scan] [--prune] List all locked secret vaults across your Mac
+            sec scan [dir]              Discover and register existing vaults across folders
             sec status                  Show keychain, zero-cache policy, and project vault status
             sec session                 Inspect access policy (Zero-Cache by default)
             sec install-finder          Install macOS Finder right-click Quick Actions
@@ -344,16 +490,21 @@ public struct SecCLI {
             sec lock .env
             sec lock credentials.json
 
-            # 2. Run your app with secrets injected in memory (never written to disk)
+            # 2. View all locked vaults across your Mac
+            sec list
+            sec list --scan ~/Developer
+            sec list --prune
+
+            # 3. Run your app with secrets injected in memory (never written to disk)
             sec npm run dev
             sec -f .env.local npm run dev
             sec -f credentials.json python app.py
             sec cargo run
 
-            # 3. Edit secrets safely
+            # 4. Edit secrets safely
             sec edit .env
 
-            # 4. Right-click integration in Finder
+            # 5. Right-click integration in Finder
             sec install-finder
         """
         print(help)
