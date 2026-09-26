@@ -18,6 +18,7 @@
     padding: 12px 16px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     position: relative;
     user-select: none;
 }
@@ -54,6 +55,31 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
+}
+
+.window-title .title-full { display: inline; }
+.window-title .title-mobile { display: none; }
+
+.window-status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #34d399;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    padding: 2px 8px;
+    border-radius: 999px;
+    z-index: 2;
+}
+
+.status-live-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 6px #10b981;
 }
 
 /* Terminal Tab Switcher */
@@ -101,6 +127,10 @@
     text-transform: uppercase;
     letter-spacing: 0.03em;
 }
+
+.term-tab .tab-label-full { display: inline; }
+.term-tab .tab-label-mobile { display: none; }
+
 .badge-warning { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
 .badge-success { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
 .badge-info { background: rgba(56, 189, 248, 0.2); color: #38bdf8; border: 1px solid rgba(56, 189, 248, 0.3); }
@@ -124,7 +154,8 @@
     to { opacity: 1; transform: translateY(0); }
 }
 
-.t-prompt { color: #7ee787; font-weight: 600; margin-right: 8px; user-select: none; }
+.t-prompt { color: #7ee787; font-weight: 600; user-select: none; }
+.t-path { color: #8b949e; font-weight: 400; }
 .t-dir { color: #79c0ff; font-weight: 500; }
 .t-cmd { color: #f0f6fc; font-weight: 600; }
 .t-comment { color: #6e7681; font-style: italic; }
@@ -143,20 +174,146 @@
 .t-success { color: #3fb950; font-weight: 500; }
 .t-warn { color: #d29922; }
 
+/* Command Line Rows */
+.term-cmd-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 13.5px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+/* Vault Status Banner */
+.term-vault-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.08);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    padding: 3px 9px;
+    border-radius: 6px;
+    margin-bottom: 12px;
+}
+
+.vault-status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #38bdf8;
+}
+
+/* Code Block Inset */
+.term-code-block {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.term-code-line {
+    font-family: inherit;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+.term-code-line::-webkit-scrollbar { display: none; }
+
+/* Status Alert Callouts */
+.term-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-size: 12.5px;
+    line-height: 1.45;
+    background: rgba(16, 185, 129, 0.08);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    color: #e6edf3;
+}
+
+.term-alert .alert-icon {
+    color: #34d399;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.term-alert .alert-text strong {
+    color: #34d399;
+}
+
+/* Terminal Log Lists */
+.term-logs {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 14px;
+    font-size: 12.5px;
+}
+
+.term-log-line {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+/* Terminal Server Status */
+.term-server-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    font-size: 12px;
+    color: #8b949e;
+}
+
+.server-badge {
+    background: rgba(16, 185, 129, 0.18);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    border-radius: 4px;
+    padding: 1px 6px;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
 /* Interactive Touch ID Biometric Modal Simulation */
 .touchid-modal {
     background: rgba(22, 27, 34, 0.95);
     border: 1px solid rgba(56, 189, 248, 0.3);
     border-radius: 16px;
-    padding: 20px 24px;
-    max-width: 380px;
-    margin: 18px 0;
+    padding: 16px 20px;
+    max-width: 420px;
+    margin: 16px 0;
     box-shadow: 0 12px 36px rgba(0, 0, 0, 0.5), 0 0 20px rgba(56, 189, 248, 0.15);
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 16px;
     position: relative;
     overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.15s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.touchid-modal:hover {
+    border-color: rgba(56, 189, 248, 0.5);
+    transform: translateY(-1px);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55), 0 0 24px rgba(56, 189, 248, 0.25);
 }
 
 .touchid-modal::before {
@@ -167,8 +324,8 @@
 }
 
 .touchid-icon-pulse {
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     background: rgba(56, 189, 248, 0.12);
     border: 1.5px solid rgba(56, 189, 248, 0.4);
@@ -190,7 +347,7 @@
     font-size: 13.5px;
     font-weight: 600;
     color: #f0f6fc;
-    margin-bottom: 3px;
+    margin-bottom: 2px;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
 }
 .touchid-text p {
@@ -198,6 +355,19 @@
     color: #8b949e;
     margin: 0;
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+}
+
+.touchid-tap-pill {
+    font-size: 11px;
+    font-weight: 600;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.12);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    padding: 3px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+    margin-left: auto;
+    letter-spacing: 0.02em;
 }
 
 /* Finder Context Menu Mockup */
@@ -236,6 +406,14 @@
     color: #38bdf8;
 }
 
+.finder-file-details {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+.finder-file-details strong { color: #f0f6fc; font-size: 13px; }
+.finder-file-details span { color: #8b949e; font-size: 11.5px; }
+
 .finder-context-menu {
     background: rgba(30, 36, 48, 0.95);
     backdrop-filter: blur(25px);
@@ -256,6 +434,14 @@
     gap: 8px;
     color: #c9d1d9;
 }
+.context-item.header-item {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #8b949e;
+    padding: 4px 10px;
+}
 .context-item.highlight {
     background: #0071e3;
     color: #ffffff;
@@ -266,4 +452,230 @@
     height: 1px;
     background: rgba(255, 255, 255, 0.08);
     margin: 4px 6px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Mobile Terminal Optimization (<=640px)
+   ───────────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+    .mac-window {
+        border-radius: 14px;
+        box-shadow: 0 16px 44px -8px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.08);
+    }
+
+    .mac-header {
+        padding: 10px 12px;
+    }
+
+    .traffic-lights {
+        gap: 6px;
+    }
+
+    .traffic-dot {
+        width: 10px;
+        height: 10px;
+    }
+
+    .window-title {
+        font-size: 11px;
+        gap: 4px;
+    }
+
+    .window-title .title-full {
+        display: none;
+    }
+
+    .window-title .title-mobile {
+        display: inline;
+    }
+
+    .window-status-pill {
+        padding: 1px 6px;
+        font-size: 9.5px;
+        gap: 4px;
+    }
+
+    /* Segmented iOS/macOS Control Tabs */
+    .term-tabs {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        padding: 6px;
+        background: rgba(15, 20, 28, 0.95);
+        gap: 4px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        overflow-x: visible;
+    }
+
+    .term-tab {
+        padding: 8px 2px;
+        font-size: 11.5px;
+        font-weight: 500;
+        border: none;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        background: transparent;
+        color: #8b949e;
+        white-space: nowrap;
+        border-right: none;
+    }
+
+    .term-tab:hover {
+        background: rgba(255, 255, 255, 0.04);
+        color: #e6edf3;
+    }
+
+    .term-tab.active {
+        background: #1c2433;
+        color: #38bdf8;
+        border: 1px solid rgba(56, 189, 248, 0.28);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+        border-bottom: 1px solid rgba(56, 189, 248, 0.28);
+    }
+
+    .term-tab .tab-label-full {
+        display: none;
+    }
+
+    .term-tab .tab-label-mobile {
+        display: inline-block;
+        font-weight: 600;
+    }
+
+    .term-tab .tab-badge {
+        display: none;
+    }
+
+    /* Terminal Body on Mobile */
+    .term-body {
+        padding: 14px 12px 16px;
+        font-size: 11.5px;
+        min-height: 285px;
+        line-height: 1.5;
+        white-space: normal;
+        word-break: break-word;
+    }
+
+    .term-cmd-row {
+        font-size: 11.5px;
+        margin-bottom: 8px;
+        gap: 4px;
+    }
+
+    .term-vault-status {
+        font-size: 9px;
+        padding: 2px 7px;
+        margin-bottom: 8px;
+    }
+
+    .term-code-block {
+        padding: 8px 10px;
+        margin-bottom: 10px;
+        gap: 4px;
+        border-radius: 7px;
+    }
+
+    .term-code-line {
+        font-size: 11px;
+    }
+
+    .term-alert {
+        padding: 8px 10px;
+        font-size: 11px;
+        gap: 8px;
+        border-radius: 7px;
+    }
+
+    /* Touch ID Modal on Mobile */
+    .touchid-modal {
+        padding: 10px 12px;
+        gap: 10px;
+        margin: 10px 0;
+        border-radius: 12px;
+        max-width: 100%;
+        width: 100%;
+    }
+
+    .touchid-icon-pulse {
+        width: 36px;
+        height: 36px;
+    }
+
+    .touchid-icon-pulse svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .touchid-text h4 {
+        font-size: 12px;
+        margin-bottom: 1px;
+    }
+
+    .touchid-text p {
+        font-size: 10.5px;
+    }
+
+    .touchid-tap-pill {
+        font-size: 9.5px;
+        padding: 2px 6px;
+    }
+
+    .term-logs {
+        font-size: 11px;
+        gap: 3px;
+        margin-top: 10px;
+    }
+
+    .term-server-line {
+        font-size: 10.5px;
+        margin-top: 8px;
+        padding-top: 8px;
+    }
+
+    /* Finder Mockup on Mobile */
+    .finder-mockup {
+        padding: 10px;
+        gap: 8px;
+    }
+
+    .finder-file-row {
+        padding: 6px 10px;
+        gap: 10px;
+    }
+
+    .finder-file-icon {
+        width: 28px;
+        height: 32px;
+        font-size: 9px;
+    }
+
+    .finder-file-details strong {
+        font-size: 12px;
+    }
+
+    .finder-file-details span {
+        font-size: 10.5px;
+    }
+
+    .finder-context-menu {
+        width: 100%;
+        margin-left: 0;
+        box-sizing: border-box;
+        padding: 4px;
+        border-radius: 8px;
+    }
+
+    .context-item {
+        font-size: 11.5px;
+        padding: 6px 8px;
+        gap: 6px;
+    }
+
+    .context-item svg {
+        width: 13px;
+        height: 13px;
+        flex-shrink: 0;
+    }
 }

@@ -47,6 +47,7 @@
                 <a href="#features">Features</a>
                 <a href="#finder">Finder Actions</a>
                 <a href="#cli">CLI</a>
+                <a href="#pricing">Pricing</a>
                 <a href="#faq">FAQ</a>
             </div>
 
@@ -67,11 +68,30 @@
                         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                     </svg>
                 </button>
-                <a class="btn-github" href="https://github.com/rajanchavda/file-sec" target="_blank" rel="noopener">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-                    <span>GitHub</span>
+                <a class="btn-nav-install" href="#pricing">Get sec — $2.99</a>
+                <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Open navigation menu" aria-expanded="false">
+                    <svg class="icon-menu" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+                    <svg class="icon-close" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Navigation Drawer -->
+        <div class="mobile-drawer" id="mobileDrawer">
+            <div class="mobile-drawer-links">
+                <a href="#threat">Threat Model</a>
+                <a href="#how-it-works">How It Works</a>
+                <a href="#features">Features</a>
+                <a href="#finder">Finder Actions</a>
+                <a href="#cli">CLI</a>
+                <a href="#pricing">Pricing</a>
+                <a href="#faq">FAQ</a>
+            </div>
+            <div class="mobile-drawer-actions">
+                <a class="btn-mobile-buy" href="#pricing">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    <span>Buy sec — $2.99 Lifetime</span>
                 </a>
-                <a class="btn-nav-install" href="#install">Install sec</a>
             </div>
         </div>
     </nav>
@@ -89,14 +109,25 @@
                     <img class="hero-icon" src="assets/icon.svg" alt="sec app icon">
                 </div>
 
-                <h1 class="reveal">AI coding agents are reading your .env.<br>Stop them with Touch ID.</h1>
+                <h1 class="reveal">AI coding agents are reading your .env.<br class="desktop-br">Stop them with Touch ID.</h1>
 
                 <p class="sub reveal">
                     Shield live API keys and database credentials from Cursor, Claude, Copilot, and background tools. Real secrets stay encrypted in Apple's Secure Enclave — only injected directly into process memory on a physical Touch ID tap.
                 </p>
 
-                <!-- 1-Click Install Command Pill -->
+                <!-- Hero CTA Actions & Install Pill -->
                 <div class="hero-cta-group reveal">
+                    <div class="hero-cta-actions">
+                        <a href="#pricing" class="btn-hero-primary">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                            <span>Buy sec — $2.99 Lifetime</span>
+                        </a>
+                        <a href="#how-it-works" class="btn-hero-secondary">
+                            <span>How it works</span>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14"></path><path d="m12 5 7 7-7 7"></path></svg>
+                        </a>
+                    </div>
+
                     <div class="install-pill" data-copy="./install.sh">
                         <code>
                             <span class="prefix">$</span> ./install.sh
@@ -108,13 +139,10 @@
                     </div>
 
                     <div class="hero-meta">
-                        <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> macOS 14 Sonoma or later</span>
-                        <span>•</span>
-                        <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg> Native Swift (~340 KB)</span>
-                        <span>•</span>
-                        <span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Zero Plaintext on Disk</span>
-                        <span>•</span>
-                        <span>MIT Open Source</span>
+                        <span class="meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> macOS 14 Sonoma or later</span>
+                        <span class="meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg> Native Swift (~340 KB)</span>
+                        <span class="meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Zero Plaintext on Disk</span>
+                        <span class="meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> $2.99 Lifetime · One-Time</span>
                     </div>
                 </div>
 
@@ -128,24 +156,32 @@
                                 <span class="traffic-dot green"></span>
                             </div>
                             <div class="window-title">
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                                sec — Terminal &amp; Finder Simulation
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                <span class="title-full">sec — Terminal &amp; Finder Simulation</span>
+                                <span class="title-mobile">sec — zsh (80×24)</span>
+                            </div>
+                            <div class="window-status-pill">
+                                <span class="status-live-dot"></span>
+                                <span>Secured</span>
                             </div>
                         </div>
 
-                        <!-- Tab Switcher -->
+                        <!-- Segmented Tab Switcher -->
                         <div class="term-tabs">
                             <button class="term-tab active" data-target="pane-decoy">
-                                <span>🤖 What AI Agents See</span>
-                                <span class="tab-badge badge-warning">Decoy on Disk</span>
+                                <span class="tab-label-full">🤖 What AI Agents See</span>
+                                <span class="tab-label-mobile">🤖 AI Decoy</span>
+                                <span class="tab-badge badge-warning">Decoy</span>
                             </button>
                             <button class="term-tab" data-target="pane-ram">
-                                <span>⚡ What Your Dev Server Gets</span>
-                                <span class="tab-badge badge-success">Touch ID RAM</span>
+                                <span class="tab-label-full">⚡ What Dev Server Gets</span>
+                                <span class="tab-label-mobile">⚡ RAM Run</span>
+                                <span class="tab-badge badge-success">Touch ID</span>
                             </button>
                             <button class="term-tab" data-target="pane-finder">
-                                <span>🖱️ Finder Quick Actions</span>
-                                <span class="tab-badge badge-info">macOS Native</span>
+                                <span class="tab-label-full">🖱️ Finder Quick Actions</span>
+                                <span class="tab-label-mobile">🖱️ Finder</span>
+                                <span class="tab-badge badge-info">GUI</span>
                             </button>
                         </div>
 
@@ -153,44 +189,62 @@
                         <div class="term-body">
                             <!-- Pane 1: Decoy View -->
                             <div class="term-pane active" id="pane-decoy">
-                                <p><span class="t-comment"># An AI coding agent (Cursor, Claude, Copilot) runs cat or ripgrep in your project:</span></p>
-                                <p><span class="t-prompt">agent@mac</span><span class="t-dir">~/Developer/my-saas</span> <span class="t-cmd">cat .env</span></p>
-                                <br>
-                                <p><span class="t-comment"># 🔒 PROTECTED BY sec (Touch ID Secret Vault)</span></p>
-                                <p><span class="t-comment"># Real secrets are hardware-encrypted in .env.vault</span></p>
-                                <p><span class="t-comment"># Run commands: sec npm run dev   |   Edit secrets: sec edit</span></p>
-                                <br>
-                                <p><span class="t-key">DATABASE_URL</span>=<span class="t-decoy">locked_by_sec</span></p>
-                                <p><span class="t-key">STRIPE_SECRET_KEY</span>=<span class="t-decoy">locked_by_sec</span></p>
-                                <p><span class="t-key">OPENAI_API_KEY</span>=<span class="t-decoy">locked_by_sec</span></p>
-                                <p><span class="t-key">PORT</span>=<span class="t-val">3000</span></p>
-                                <br>
-                                <p><span class="t-success">✔ AI agent context only ingests masked dummy placeholders. Your live credentials remain 100% secret.</span></p>
+                                <div class="term-cmd-row">
+                                    <span class="t-prompt">agent@mac</span>
+                                    <span class="t-path">~/project %</span>
+                                    <span class="t-cmd">cat .env</span>
+                                </div>
+                                
+                                <div class="term-vault-status">
+                                    <span class="vault-status-dot"></span>
+                                    <span>SEALED BY SEC · HARDWARE ENCRYPTED IN .ENV.VAULT</span>
+                                </div>
+
+                                <div class="term-code-block">
+                                    <div class="term-code-line"><span class="t-key">DATABASE_URL</span>=<span class="t-decoy">"locked_by_sec"</span></div>
+                                    <div class="term-code-line"><span class="t-key">STRIPE_SECRET_KEY</span>=<span class="t-decoy">"locked_by_sec"</span></div>
+                                    <div class="term-code-line"><span class="t-key">OPENAI_API_KEY</span>=<span class="t-decoy">"locked_by_sec"</span></div>
+                                    <div class="term-code-line"><span class="t-key">PORT</span>=<span class="t-val">3000</span></div>
+                                </div>
+
+                                <div class="term-alert alert-success">
+                                    <span class="alert-icon">✔</span>
+                                    <div class="alert-text">
+                                        <strong>AI Context Protected:</strong> Only dummy tokens ingested. Live credentials remain safe in Apple Secure Enclave.
+                                    </div>
+                                </div>
                             </div>
 
                             <!-- Pane 2: RAM Injection View -->
                             <div class="term-pane" id="pane-ram">
-                                <p><span class="t-comment"># Developer starts development with `sec` prefix:</span></p>
-                                <p><span class="t-prompt">you@mac</span><span class="t-dir">~/Developer/my-saas</span> <span class="t-cmd">sec npm run dev</span></p>
+                                <div class="term-cmd-row">
+                                    <span class="t-prompt">you@mac</span>
+                                    <span class="t-path">~/project %</span>
+                                    <span class="t-cmd">sec npm run dev</span>
+                                </div>
                                 
                                 <!-- Interactive Touch ID Modal Simulation -->
-                                <div class="touchid-modal" id="touchModal" title="Click to test biometric authentication">
+                                <div class="touchid-modal" id="touchModal" role="button" tabindex="0" title="Tap to simulate Touch ID">
                                     <div class="touchid-icon-pulse">
-                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.026.99-4.18.99-6.402a17.92 17.92 0 00-1.89-7.986M6.48 4.707A17.923 17.923 0 004 11c0 2.222.345 4.376.99 6.402"/></svg>
+                                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.026.99-4.18.99-6.402a17.92 17.92 0 00-1.89-7.986M6.48 4.707A17.923 17.923 0 004 11c0 2.222.345 4.376.99 6.402"/></svg>
                                     </div>
                                     <div class="touchid-text">
                                         <h4>Touch ID or Apple Watch</h4>
                                         <p>Tap sensor to inject secrets into RAM</p>
                                     </div>
+                                    <span class="touchid-tap-pill">Tap Sensor</span>
                                 </div>
 
-                                <p><span class="t-sec-badge">[sec]</span> <span class="t-success">Unlocked via Apple Secure Enclave in 0.003s</span></p>
-                                <p><span class="t-sec-badge">[sec]</span> Injected real keys directly into process memory (<code style="color:#79c0ff">process.env</code>)</p>
-                                <p><span class="t-comment">[sec] Real secrets NEVER written to hard drive. Destroyed on command exit.</span></p>
-                                <br>
-                                <p><span class="t-prompt">&gt;</span> <span class="t-val">next dev --port 3000</span></p>
-                                <p><span class="t-success">ready</span> - started server on 0.0.0.0:3000, url: http://localhost:3000</p>
-                                <p><span class="t-comment">[App] Connected to PostgreSQL with valid credentials from RAM.</span></p>
+                                <div class="term-logs">
+                                    <div class="term-log-line"><span class="t-sec-badge">[sec]</span> <span class="t-success">Unlocked via Apple Secure Enclave (0.003s)</span></div>
+                                    <div class="term-log-line"><span class="t-sec-badge">[sec]</span> Injected real keys directly into process memory</div>
+                                    <div class="term-log-line t-comment">[sec] Real secrets NEVER written to hard drive.</div>
+                                </div>
+
+                                <div class="term-server-line">
+                                    <span class="server-badge">ready</span>
+                                    <span>started server on localhost:3000 (RAM credentials)</span>
+                                </div>
                             </div>
 
                             <!-- Pane 3: Finder Quick Actions View -->
@@ -198,28 +252,29 @@
                                 <div class="finder-mockup">
                                     <div class="finder-file-row">
                                         <div class="finder-file-icon">.env</div>
-                                        <div>
-                                            <strong>.env</strong> — Configuration Decoy File (Protected)
+                                        <div class="finder-file-details">
+                                            <strong>.env</strong>
+                                            <span>Configuration Decoy (Protected by sec)</span>
                                         </div>
                                     </div>
 
                                     <div class="finder-context-menu">
-                                        <div class="context-item">Open With</div>
+                                        <div class="context-item header-item">
+                                            <span>Finder Quick Actions</span>
+                                        </div>
                                         <div class="context-sep"></div>
                                         <div class="context-item highlight">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                                            Lock Secrets with Touch ID (sec)
+                                            <span>Lock Secrets with Touch ID</span>
                                         </div>
                                         <div class="context-item">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                                            View Secrets with Touch ID (sec)
+                                            <span>View Secrets with Touch ID</span>
                                         </div>
                                         <div class="context-item">
                                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-                                            Edit Secrets with Touch ID (sec)
+                                            <span>Edit Secrets with Touch ID</span>
                                         </div>
-                                        <div class="context-sep"></div>
-                                        <div class="context-item">Quick Look .env</div>
                                     </div>
                                 </div>
                             </div>
@@ -330,7 +385,8 @@
                     See how your security posture transforms the moment you lock your environment files.
                 </p>
 
-                <div class="comparison-wrap reveal">
+                <!-- Desktop Comparison Table (Visible on tablet/desktop) -->
+                <div class="comparison-wrap comparison-desktop reveal">
                     <table class="comparison-table">
                         <thead>
                             <tr>
@@ -367,6 +423,94 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+
+                <!-- Mobile Comparison Cards (Visible on mobile <=768px) -->
+                <div class="comparison-mobile-cards reveal">
+                    <div class="cmp-card">
+                        <div class="cmp-header">
+                            <span class="cmp-icon">💾</span>
+                            <h4>What lives on your hard drive</h4>
+                        </div>
+                        <div class="cmp-body">
+                            <div class="cmp-row without">
+                                <span class="cmp-badge-bad">Without sec ❌</span>
+                                <p>Plaintext credentials (<code>API_KEY=sk_live_...</code>) left exposed on disk.</p>
+                            </div>
+                            <div class="cmp-row with">
+                                <span class="cmp-badge-good">With sec ✅</span>
+                                <p>Masked decoy (<code>API_KEY=locked_by_sec</code>) + hardware AES-256 vault.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="cmp-card">
+                        <div class="cmp-header">
+                            <span class="cmp-icon">🤖</span>
+                            <h4>What AI coding agents can read</h4>
+                        </div>
+                        <div class="cmp-body">
+                            <div class="cmp-row without">
+                                <span class="cmp-badge-bad">Without sec ❌</span>
+                                <p>Live database URLs, Stripe keys, and API tokens copied into model prompt transcripts.</p>
+                            </div>
+                            <div class="cmp-row with">
+                                <span class="cmp-badge-good">With sec ✅</span>
+                                <p>Harmless dummy placeholders (<code>locked_by_sec</code>). Real secrets stay in Secure Enclave.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="cmp-card">
+                        <div class="cmp-header">
+                            <span class="cmp-icon">⚡</span>
+                            <h4>What your dev server gets</h4>
+                        </div>
+                        <div class="cmp-body">
+                            <div class="cmp-row without">
+                                <span class="cmp-badge-bad">Without sec ❌</span>
+                                <p>Reads plaintext file directly from local storage drive.</p>
+                            </div>
+                            <div class="cmp-row with">
+                                <span class="cmp-badge-good">With sec ✅</span>
+                                <p>Injects real secrets into process RAM on Touch ID tap. Never written to disk.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="cmp-card">
+                        <div class="cmp-header">
+                            <span class="cmp-icon">🔍</span>
+                            <h4>Process inspection (<code>ps -E</code>)</h4>
+                        </div>
+                        <div class="cmp-body">
+                            <div class="cmp-row without">
+                                <span class="cmp-badge-bad">Without sec ❌</span>
+                                <p>Plaintext secrets visible in process table or <code>KERN_PROCARGS2</code> inspection.</p>
+                            </div>
+                            <div class="cmp-row with">
+                                <span class="cmp-badge-good">With sec ✅</span>
+                                <p>Protected via stealth ephemeral preload memory hooks bypassing public args.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="cmp-card">
+                        <div class="cmp-header">
+                            <span class="cmp-icon">🛡️</span>
+                            <h4>If your laptop is stolen or cloned</h4>
+                        </div>
+                        <div class="cmp-body">
+                            <div class="cmp-row without">
+                                <span class="cmp-badge-bad">Without sec ❌</span>
+                                <p>All secrets completely exposed to anyone with disk access.</p>
+                            </div>
+                            <div class="cmp-row with">
+                                <span class="cmp-badge-good">With sec ✅</span>
+                                <p>Uncrackable hardware AES-256-GCM encryption without your physical biometrics.</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -602,16 +746,155 @@
             </div>
         </section>
 
+        <!-- ── Section: Pricing ─────────────────────────────── -->
+        <section id="pricing">
+            <div class="container text-center">
+                <p class="eyebrow reveal">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                    Simple, Honest Pricing
+                </p>
+                <h2 class="reveal">Pay once. Protect your secrets forever.</h2>
+                <p class="section-sub reveal">
+                    No subscriptions. No user accounts. No cloud telemetry. A single $2.99 lifetime purchase covers all your personal Apple Silicon Macs.
+                </p>
+
+                <div class="pricing-wrap reveal">
+                    <div class="pricing-card">
+                        <div class="pricing-badge">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                            One-Time Purchase · Lifetime Access
+                        </div>
+
+                        <div class="pricing-header">
+                            <div class="pricing-plan-info">
+                                <h3>sec for Mac</h3>
+                                <p>Complete biometric protection against AI coding agents and local tools.</p>
+                            </div>
+                            <div class="pricing-price-wrap">
+                                <div class="pricing-amount">
+                                    <span class="pricing-currency">$</span>
+                                    <span class="pricing-num">2.99</span>
+                                </div>
+                                <div class="pricing-term">Lifetime License · Billed Once</div>
+                            </div>
+                        </div>
+
+                        <ul class="pricing-features-grid">
+                            <li>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                <span><strong>Hardware Secure Enclave</strong> AES-256-GCM encryption</span>
+                            </li>
+                            <li>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                <span><strong>Touch ID &amp; Apple Watch</strong> instant biometric unlock</span>
+                            </li>
+                            <li>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                <span><strong>Zero plaintext on disk</strong> with automated decoy generator</span>
+                            </li>
+                            <li>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                <span><strong>Stealth in-memory loaders</strong> (defeats <code>ps -E</code> inspection)</span>
+                            </li>
+                            <li>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                <span><strong>macOS Finder Quick Actions</strong> right-click integration</span>
+                            </li>
+                            <li>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                <span><strong>Full CLI suite</strong> (<code>sec lock</code>, <code>run</code>, <code>edit</code>, <code>view</code>, <code>list</code>)</span>
+                            </li>
+                            <li>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                <span><strong>Monorepo aware</strong> with recursive root vault detection</span>
+                            </li>
+                            <li>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                <span><strong>Use across all your personal Macs</strong> (MacBook, Studio, Mini)</span>
+                            </li>
+                            <li>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                <span><strong>100% Offline &amp; Private</strong> — zero telemetry, zero servers</span>
+                            </li>
+                            <li>
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                                <span><strong>All future updates included</strong> (minor &amp; major versions)</span>
+                            </li>
+                        </ul>
+
+                        <div class="pricing-cta-wrap">
+                            <a href="#install" class="btn-pricing-buy">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                <span>Get Lifetime Access — $2.99</span>
+                            </a>
+                            <div class="pricing-trust-strip">
+                                <span class="trust-item">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                                    30-Day Money-Back Guarantee
+                                </span>
+                                <span class="trust-item">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                    Instant Setup
+                                </span>
+                                <span class="trust-item">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"></path></svg>
+                                    No Recurring Fees Ever
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="pricing-why-box">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                            <div>
+                                <h4>Why $2.99 instead of a monthly subscription?</h4>
+                                <p>
+                                    We believe developer utility tools shouldn't lock you into endless subscriptions. <code>sec</code> runs entirely on your local Mac's Secure Enclave without cloud hosting overhead. A single $2.99 purchase supports independent development and gives you permanent ownership.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- ── Section: FAQ ─────────────────────────────────── -->
         <section id="faq" class="tinted">
             <div class="container text-center">
                 <p class="eyebrow reveal">FAQ</p>
                 <h2 class="reveal">Frequently Asked Questions</h2>
                 <p class="section-sub reveal">
-                    Everything you need to know about Apple biometrics, memory safety, and threat boundaries.
+                    Everything you need to know about pricing, Apple Silicon biometrics, and threat protection.
                 </p>
 
                 <div class="faq-list reveal">
+                    <details open>
+                        <summary>Is sec a free app? How much does it cost?</summary>
+                        <p>
+                            No, <code>sec</code> is not a free app. It is available as a single one-time purchase of <strong>$2.99 for a lifetime license</strong>. There are no subscriptions, no recurring monthly fees, no account registrations, and no locked features. Pay once and use it forever on all your personal Macs.
+                        </p>
+                    </details>
+
+                    <details>
+                        <summary>Why is sec priced at $2.99 instead of a recurring subscription?</summary>
+                        <p>
+                            Most secret managers run centralized cloud servers and charge $5–$15 per month for syncing and team seats. <code>sec</code> is built differently: it operates 100% locally using your Mac's Apple Silicon Secure Enclave. Since we don't operate cloud servers storing your secrets, we have zero server upkeep costs. A transparent, one-time $2.99 fee supports ongoing macOS development while keeping your software permanently yours.
+                        </p>
+                    </details>
+
+                    <details>
+                        <summary>Can I use my purchase on multiple Macs?</summary>
+                        <p>
+                            Yes. Your single $2.99 lifetime license covers all personal Macs that you own (e.g. your MacBook Pro, Mac mini, or Mac Studio).
+                        </p>
+                    </details>
+
+                    <details>
+                        <summary>What is your refund policy?</summary>
+                        <p>
+                            We offer an unconditional <strong>30-day money-back guarantee</strong>. If <code>sec</code> doesn't integrate smoothly with your dev stack or workflow, just reach out for a full refund of your $2.99 purchase, no questions asked.
+                        </p>
+                    </details>
+
                     <details>
                         <summary>Does it work when my MacBook lid is closed (clamshell mode)?</summary>
                         <p>
@@ -653,13 +936,6 @@
                             Yes! If your root repository contains <code>.env.vault</code> and you execute <code>sec npm run dev</code> inside a nested subpackage (e.g. <code>apps/web</code> or <code>packages/api</code>), <code>sec</code> traverses up the folder tree, discovers the root vault, and injects the secrets seamlessly.
                         </p>
                     </details>
-
-                    <details>
-                        <summary>Is `sec` free and open source?</summary>
-                        <p>
-                            Yes, 100%. <code>sec</code> is released under the permissive MIT license. There are no subscriptions, no accounts, and no paid tiers.
-                        </p>
-                    </details>
                 </div>
             </div>
         </section>
@@ -670,9 +946,16 @@
                 <div class="install-callout reveal">
                     <p class="eyebrow">Ready in 30 seconds</p>
                     <h2>Start protecting your secrets today</h2>
-                    <p class="section-sub" style="margin-bottom: 32px;">
-                        Compile and install the native Swift binary directly to your Mac. Zero dependencies required.
+                    <p class="section-sub" style="margin-bottom: 28px;">
+                        Get lifetime protection for $2.99. Native Swift binary directly on your Mac with zero dependencies.
                     </p>
+
+                    <div style="margin-bottom: 24px;">
+                        <a href="#pricing" class="btn-hero-primary" style="font-size: 15.5px; padding: 14px 30px;">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                            <span>Buy Lifetime License — $2.99</span>
+                        </a>
+                    </div>
 
                     <div class="install-pill" style="max-width: 520px; margin: 0 auto 20px;" data-copy="./install.sh">
                         <code>
@@ -685,7 +968,7 @@
                     </div>
 
                     <p style="font-size: 13.5px; color: var(--text-faint);">
-                        Or build with make: <code>make install</code> &nbsp;•&nbsp; Run test suite: <code>make test</code>
+                        Apple Silicon native &nbsp;•&nbsp; macOS Sonoma &amp; Sequoia &nbsp;•&nbsp; 30-day money-back guarantee
                     </p>
                 </div>
             </div>
@@ -696,7 +979,7 @@
     <footer>
         <div class="container">
             <p><strong>sec</strong> — Touch ID Secret Vault for macOS.</p>
-            <p>Built with native Swift, Apple CryptoKit &amp; LocalAuthentication. Released under the MIT License.</p>
+            <p>Built with native Swift, Apple CryptoKit &amp; LocalAuthentication. $2.99 Lifetime Access · Zero Subscriptions.</p>
             <p style="margin-top: 14px; font-size: 12.5px; color: var(--text-faint);">
                 Shielding developers and teams from accidental AI credential leaks.
             </p>
