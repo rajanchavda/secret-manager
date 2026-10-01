@@ -73,7 +73,7 @@
 | **ProcessRunner** | `Sources/SecCore/Core/ProcessRunner.swift` | In-memory RAM secret injection & stealth preload loaders |
 | **FileWatcher** | `Sources/SecCore/Core/FileWatcher.swift` | FSEvents monitor powering live AI Agent Radar |
 | **SecAppStore** | `Sources/SecApp/Store/SecAppStore.swift` | Unified @MainActor state store for the macOS GUI application |
-| **MainWindowView** | `Sources/SecApp/Views/MainWindowView.swift` | Standalone sec Pro desktop window layout |
+| **MainWindowView** | `Sources/SecApp/Views/MainWindowView.swift` | Standalone Secret Manager desktop window layout |
 | **AgentRadarView** | `Sources/SecApp/Views/AgentRadarView.swift` | Real-time AI agent interception & protection feed |
 | **RunnerStudioView**| `Sources/SecApp/Views/RunnerStudioView.swift` | Visual dev server execution studio with live logs |
 | **DeepScannerView** | `Sources/SecApp/Views/DeepScannerView.swift` | System-wide search for unshielded `.env` files |

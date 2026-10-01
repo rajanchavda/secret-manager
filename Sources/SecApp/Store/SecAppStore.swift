@@ -446,7 +446,7 @@ public final class SecAppStore: ObservableObject {
         do {
             let data = try await VaultEngine.shared.readDecryptedData(
                 vaultURL: vaultURL,
-                promptReason: "Authenticate with Touch ID to unlock sec Pro secrets"
+                promptReason: "Authenticate with Touch ID to unlock Secret Manager secrets"
             )
             
             self.isAppSessionAuthenticated = true
@@ -490,7 +490,7 @@ public final class SecAppStore: ObservableObject {
             
             addRadarEvent(
                 agent: "SecApp Inspector",
-                action: isFirstAuth ? "Unlocked sec Pro with Touch ID" : "Inspected secrets (Active Session)",
+                action: isFirstAuth ? "Unlocked Secret Manager with Touch ID" : "Inspected secrets (Active Session)",
                 detail: "Decrypted \(currentSecrets.count) keys into secure RAM",
                 severity: .shielded
             )
@@ -560,7 +560,7 @@ public final class SecAppStore: ObservableObject {
     
     private func regenerateRawFromTable() {
         var lines: [String] = []
-        lines.append("# Managed by sec Pro")
+        lines.append("# Managed by Secret Manager")
         for secret in currentSecrets {
             lines.append("\(secret.key)=\(secret.value)")
         }
@@ -697,7 +697,7 @@ public final class SecAppStore: ObservableObject {
             let record = try await BackupEngine.shared.createSnapshot(
                 for: vaultURL,
                 trigger: .manual,
-                note: "User manual backup in sec Pro"
+                note: "User manual backup in Secret Manager"
             )
             loadBackupsAndTrash()
             showTemporaryStatus("Snapshot v\(record.version) created for '\(targetFile)'")

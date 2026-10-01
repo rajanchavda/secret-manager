@@ -55,12 +55,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         
         window.center()
         window.minSize = NSSize(width: 880, height: 580)
-        window.title = "sec Pro"
+        window.title = "Secret Manager"
         window.titleVisibility = .visible
         window.titlebarAppearsTransparent = false
         window.isReleasedWhenClosed = false
         window.contentViewController = NSHostingController(rootView: contentView)
-        window.setFrameAutosaveName("sec_pro_main_window")
+        window.setFrameAutosaveName("secret_manager_main_window")
         
         self.mainWindow = window
         window.makeKeyAndOrderFront(nil)
@@ -69,16 +69,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     
     // MARK: - Menu Bar Companion
     private func setupStatusItem() {
-        let posKey = "NSStatusItem Preferred Position sec_pro_status_item"
+        let posKey = "NSStatusItem Preferred Position secret_manager_status_item"
         let currentPos = UserDefaults.standard.double(forKey: posKey)
         if currentPos < 200.0 {
             UserDefaults.standard.set(450.0, forKey: posKey)
         }
-        UserDefaults.standard.set(true, forKey: "NSStatusItem Visible sec_pro_status_item")
+        UserDefaults.standard.set(true, forKey: "NSStatusItem Visible secret_manager_status_item")
         UserDefaults.standard.synchronize()
         
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem.autosaveName = "sec_pro_status_item"
+        statusItem.autosaveName = "secret_manager_status_item"
         statusItem.isVisible = true
         
         if let button = statusItem.button {
@@ -93,12 +93,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard let button = statusItem?.button else { return }
         let symbolName = store.menuBarIcon
         let config = NSImage.SymbolConfiguration(pointSize: 14, weight: .semibold)
-        if let baseImage = NSImage(systemSymbolName: symbolName, accessibilityDescription: "sec Pro") {
+        if let baseImage = NSImage(systemSymbolName: symbolName, accessibilityDescription: "Secret Manager") {
             let configured = baseImage.withSymbolConfiguration(config) ?? baseImage
             configured.isTemplate = true
             button.image = configured
             button.imagePosition = .imageOnly
-            button.toolTip = "sec Pro - \(store.statusBadgeText)"
+            button.toolTip = "Secret Manager - \(store.statusBadgeText)"
         }
     }
     
@@ -128,16 +128,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         
         // App Menu
         let appMenuItem = NSMenuItem()
-        let appMenu = NSMenu(title: "sec Pro")
-        appMenu.addItem(withTitle: "About sec Pro", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        let appMenu = NSMenu(title: "Secret Manager")
+        appMenu.addItem(withTitle: "About Secret Manager", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
         appMenu.addItem(NSMenuItem.separator())
-        appMenu.addItem(withTitle: "Hide sec Pro", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        appMenu.addItem(withTitle: "Hide Secret Manager", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         let hideOthersItem = NSMenuItem(title: "Hide Others", action: #selector(NSApplication.hideOtherApplications(_:)), keyEquivalent: "h")
         hideOthersItem.keyEquivalentModifierMask = [.command, .option]
         appMenu.addItem(hideOthersItem)
         appMenu.addItem(withTitle: "Show All", action: #selector(NSApplication.unhideAllApplications(_:)), keyEquivalent: "")
         appMenu.addItem(NSMenuItem.separator())
-        appMenu.addItem(withTitle: "Quit sec Pro", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: "Quit Secret Manager", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         appMenuItem.submenu = appMenu
         mainMenu.addItem(appMenuItem)
         

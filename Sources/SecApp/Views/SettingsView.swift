@@ -69,7 +69,7 @@ public struct SettingsView: View {
                     HStack {
                         Image(systemName: "power")
                             .foregroundColor(Color(nsColor: .systemRed))
-                        Text("Quit sec Pro")
+                        Text("Quit Secret Manager")
                             .font(.scaled(size: 12.5, weight: .medium))
                             .foregroundColor(Color(nsColor: .systemRed))
                         Spacer()
@@ -79,8 +79,8 @@ public struct SettingsView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 6))
                 }
                 .buttonStyle(.plain)
-                .help("Quit sec Pro application")
-                .accessibilityLabel("Quit sec Pro application")
+                .help("Quit Secret Manager application")
+                .accessibilityLabel("Quit Secret Manager application")
             }
         }
         .padding(16)
