@@ -24,7 +24,20 @@ public final class EditorEngine {
             throw VaultError.writeFailed("Failed to create secure edit buffer: \(error.localizedDescription)")
         }
         
+        var updateSucceeded = false
+        var lastEditedData: Data? = nil
+        
         defer {
+            if !updateSucceeded, let rescueData = lastEditedData, rescueData != plainData {
+                let home = FileManager.default.homeDirectoryForCurrentUser
+                let rescueDir = home.appendingPathComponent(".sec/rescue", isDirectory: true)
+                try? FileManager.default.createDirectory(at: rescueDir, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+                let rescueFile = rescueDir.appendingPathComponent("rescue_\(vaultURL.deletingPathExtension().lastPathComponent)_\(Int(Date().timeIntervalSince1970)).env")
+                if (try? rescueData.write(to: rescueFile, options: .atomic)) != nil {
+                    try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: rescueFile.path)
+                    print("💾 Saved rescue copy of your edits to: \(rescueFile.path)")
+                }
+            }
             // Secure shredding on exit
             shredAndRemove(tempFile)
         }
@@ -61,16 +74,20 @@ public final class EditorEngine {
             return
         }
         
-        // Zero-Data-Loss Guard: Prevent accidental wipe if editor closed with empty buffer
-        if editedData.isEmpty && !plainData.isEmpty {
-            print("⚠️  WARNING: The edited buffer is completely empty, but the original vault had secrets.")
+        // Zero-Data-Loss Guard: Prevent accidental wipe if editor closed with empty or whitespace-only buffer
+        let trimmedString = (String(data: editedData, encoding: .utf8) ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedString.isEmpty && !plainData.isEmpty {
+            print("⚠️  WARNING: The edited buffer is empty or contains only whitespace, but the original vault had secrets.")
             print("   Aborting update to prevent accidental data loss. Your vault was NOT modified.")
             print("   (To remove secrets intentionally, delete individual keys or write a comment).")
             return
         }
         
+        lastEditedData = editedData
+        
         // Re-encrypt to vault and refresh dummy .env
         try await VaultEngine.shared.updateVault(vaultURL: vaultURL, plaintextData: editedData)
+        updateSucceeded = true
         print("🔒 Successfully re-encrypted '\(vaultURL.lastPathComponent)' and refreshed placeholder.")
     }
     
@@ -80,7 +97,9 @@ public final class EditorEngine {
                         ProcessInfo.processInfo.environment["VISUAL"]
         
         if let editor = envEditor, !editor.isEmpty {
-            if (editor.contains("code") || editor.contains("cursor")) && !editor.contains("-w") && !editor.contains("--wait") {
+            let lower = editor.lowercased()
+            if (lower.contains("code") || lower.contains("cursor") || lower.contains("subl") || lower.contains("mate") || lower.contains("atom") || lower.contains("zed"))
+                && !lower.contains("-w") && !lower.contains("--wait") {
                 return "\(editor) --wait \"\(filePath)\""
             }
             return "\(editor) \"\(filePath)\""

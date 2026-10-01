@@ -68,15 +68,24 @@ public final class RegistryManager {
         }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return (try? decoder.decode(RegistryData.self, from: data)) ?? RegistryData(records: [])
+        var registry = (try? decoder.decode(RegistryData.self, from: data)) ?? RegistryData(records: [])
+        // Exclude any internal backup, snapshot, trash, or metadata files
+        registry.records = registry.records.filter { record in
+            !record.vaultPath.contains("/.sec/") && !record.vaultPath.hasSuffix(".vault.bak")
+        }
+        return registry
     }
     
     public func saveRegistry(_ registry: RegistryData) {
         ensureSecDirectory()
+        var sanitized = registry
+        sanitized.records = sanitized.records.filter { record in
+            !record.vaultPath.contains("/.sec/") && !record.vaultPath.hasSuffix(".vault.bak")
+        }
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
-        guard let data = try? encoder.encode(registry) else { return }
+        guard let data = try? encoder.encode(sanitized) else { return }
         try? data.write(to: registryFileURL, options: .atomic)
         try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: registryFileURL.path)
     }
@@ -84,6 +93,11 @@ public final class RegistryManager {
     public func register(vaultURL: URL, plainURL: URL) {
         let standardizedVault = vaultURL.standardizedFileURL.resolvingSymlinksInPath().path
         let standardizedPlain = plainURL.standardizedFileURL.resolvingSymlinksInPath().path
+        
+        // Guard: Never register internal backup, trash, or metadata files
+        if standardizedVault.contains("/.sec/") || standardizedVault.hasSuffix(".vault.bak") {
+            return
+        }
         
         var data = loadRegistry()
         if let idx = data.records.firstIndex(where: { $0.vaultPath == standardizedVault }) {
@@ -115,15 +129,37 @@ public final class RegistryManager {
         saveRegistry(data)
     }
     
-    public func prune() -> (removedCount: Int, remaining: [VaultRecord]) {
+    public func cleanOrphanVault(at vaultURL: URL) {
+        // Vaults must NEVER be automatically unlinked without explicit user intent.
+        // Unregister from registry, but leave the encrypted vault intact on disk.
+        unregister(vaultURL: vaultURL)
+    }
+    
+    @discardableResult
+    public func autoPrune(cleanOrphans: Bool = false) -> (removedCount: Int, remaining: [VaultRecord]) {
         var data = loadRegistry()
         let initialCount = data.records.count
-        data.records.removeAll { !FileManager.default.fileExists(atPath: $0.vaultPath) }
+        let fm = FileManager.default
+        
+        var toRemove: [String] = []
+        for record in data.records {
+            let vaultExists = fm.fileExists(atPath: record.vaultPath)
+            if !vaultExists || record.vaultPath.contains("/.sec/") || record.vaultPath.hasSuffix(".vault.bak") {
+                // The encrypted vault file itself was moved, deleted, or is an internal backup/trash file
+                toRemove.append(record.vaultPath)
+            }
+        }
+        
+        data.records.removeAll { toRemove.contains($0.vaultPath) }
         let removedCount = initialCount - data.records.count
         if removedCount > 0 {
             saveRegistry(data)
         }
         return (removedCount, data.records)
+    }
+    
+    public func prune() -> (removedCount: Int, remaining: [VaultRecord]) {
+        return autoPrune(cleanOrphans: false)
     }
     
     public func inspectVault(record: VaultRecord) -> VaultStatusInfo {
@@ -156,7 +192,7 @@ public final class RegistryManager {
             statusDesc = "❌ Missing Vault (vault file was moved or deleted)"
         } else if !plainExists {
             statusCode = "missing_decoy"
-            statusDesc = "⚠️ Decoy Missing (target file does not exist on disk)"
+            statusDesc = "⚠️ Decoy Missing (target file does not exist on disk, encrypted vault is preserved)"
         } else {
             if let content = try? String(contentsOfFile: record.plainPath, encoding: .utf8),
                VaultEngine.shared.isDummyContent(content) {
@@ -195,7 +231,7 @@ public final class RegistryManager {
         }
         
         let skipDirs: Set<String> = [
-            "Library", ".Trash", ".cache", "node_modules", ".git", ".build",
+            ".sec", "backups", "trash", "Library", ".Trash", ".cache", "node_modules", ".git", ".build",
             "DerivedData", "Pods", ".npm", ".yarn", ".cargo", ".rustup",
             ".gradle", "venv", ".venv", "env", ".tox", ".docker", "dist",
             ".next", ".nuxt", "vendor", "Caches", ".system_generated"
@@ -217,15 +253,18 @@ public final class RegistryManager {
             
             if resourceValues.isDirectory == true {
                 let name = fileURL.lastPathComponent
-                if skipDirs.contains(name) {
+                if skipDirs.contains(name) || name == ".sec" {
                     enumerator.skipDescendants()
                 }
                 continue
             }
             
             let filename = fileURL.lastPathComponent
-            if filename.hasSuffix(".vault") {
+            if filename.hasSuffix(".vault") && !filename.hasSuffix(".vault.bak") {
                 let resolvedURL = fileURL.standardizedFileURL.resolvingSymlinksInPath()
+                if resolvedURL.path.contains("/.sec/") {
+                    continue
+                }
                 let plainURL = VaultEngine.shared.plainFileURL(for: resolvedURL)
                 let record = VaultRecord(
                     vaultPath: resolvedURL.path,

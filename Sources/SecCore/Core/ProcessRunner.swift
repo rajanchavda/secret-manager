@@ -14,10 +14,13 @@ public final class ProcessRunner {
             return 1
         }
         
+        // Auto-prune missing vaults and deleted decoys from registry
+        RegistryManager.shared.autoPrune()
+        
         var injectedEnv = ProcessInfo.processInfo.environment
         
         // Find vault if not provided explicitly
-        let targetVault: URL?
+        var targetVault: URL?
         if let vaultURL = vaultURL {
             targetVault = vaultURL
         } else {
@@ -25,10 +28,48 @@ public final class ProcessRunner {
         }
         
         var secrets: [String: String] = [:]
+        var sourceDescription: String = ".env.vault"
+        
         if let vault = targetVault {
-            secrets = try await VaultEngine.shared.readDecryptedSecrets(vaultURL: vault)
-        } else {
-            fputs("⚠️ [sec] No .env.vault found in current or parent directories. Running with standard environment.\n", stderr)
+            sourceDescription = vault.lastPathComponent
+            let freshness = VaultEngine.shared.checkVaultFreshness(vaultURL: vault)
+            
+            switch freshness {
+            case .orphan(let orphanURL):
+                // Decoy plaintext file was removed or git-cleaned, but the encrypted vault is safe!
+                // Read decrypted secrets directly from the vault rather than destroying it.
+                secrets = try await VaultEngine.shared.readDecryptedSecrets(vaultURL: orphanURL)
+                sourceDescription = "\(orphanURL.lastPathComponent) (decoy missing)"
+                
+            case .stale(let plainURL, _, _):
+                fputs("⚠️ [sec] Stale vault detected: '\(plainURL.lastPathComponent)' was modified after '\(vault.lastPathComponent)' was created.\n", stderr)
+                fputs("   Using updated plaintext secrets from '\(plainURL.lastPathComponent)' (run 'sec lock --force \(plainURL.lastPathComponent)' to re-lock).\n", stderr)
+                if let content = try? String(contentsOf: plainURL, encoding: .utf8) {
+                    secrets = EnvParser.shared.parse(content)
+                    sourceDescription = "\(plainURL.lastPathComponent) (unlocked plaintext)"
+                }
+                
+            case .fresh:
+                secrets = try await VaultEngine.shared.readDecryptedSecrets(vaultURL: vault)
+                sourceDescription = vault.lastPathComponent
+                
+            case .missing:
+                targetVault = nil
+            }
+        }
+        
+        // If no vault or orphan was cleaned up, check if a local plaintext .env exists
+        if targetVault == nil && secrets.isEmpty {
+            let localPlain = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).appendingPathComponent(".env")
+            if FileManager.default.fileExists(atPath: localPlain.path),
+               let content = try? String(contentsOf: localPlain, encoding: .utf8),
+               !VaultEngine.shared.isDummyContent(content) {
+                fputs("ℹ️ [sec] No .env.vault found, but unlocked '.env' detected. Loading environment (run 'sec lock' to protect).\n", stderr)
+                secrets = EnvParser.shared.parse(content)
+                sourceDescription = ".env (unlocked)"
+            } else {
+                fputs("⚠️ [sec] No .env.vault found in current or parent directories. Running with standard environment.\n", stderr)
+            }
         }
         
         let firstCmd = command[0].lowercased()
@@ -57,7 +98,7 @@ public final class ProcessRunner {
                     injectedEnv["NODE_OPTIONS"] = "--require \"\(loaderPath)\" \(existingNodeOptions)"
                 }
                 
-                fputs("🔒 [sec] Injected \(secrets.count) secret\(secrets.count == 1 ? "" : "s") via stealth loader (hidden from ps -E & process table)\n", stderr)
+                fputs("🔒 [sec] Injected \(secrets.count) secret\(secrets.count == 1 ? "" : "s") from '\(sourceDescription)' via stealth loader (hidden from ps -E & process table)\n", stderr)
             } else if isPythonCommand {
                 // STEALTH MODE FOR PYTHON:
                 // Inject via an ephemeral sitecustomize.py in a private directory.
@@ -71,13 +112,13 @@ public final class ProcessRunner {
                     injectedEnv["PYTHONPATH"] = "\(pyDir):\(existingPyPath)"
                 }
                 
-                fputs("🔒 [sec] Injected \(secrets.count) secret\(secrets.count == 1 ? "" : "s") via stealth loader (hidden from ps -E & process table)\n", stderr)
+                fputs("🔒 [sec] Injected \(secrets.count) secret\(secrets.count == 1 ? "" : "s") from '\(sourceDescription)' via stealth loader (hidden from ps -E & process table)\n", stderr)
             } else {
                 // Generic command: Direct memory injection into environment
                 for (key, val) in secrets {
                     injectedEnv[key] = val
                 }
-                fputs("🔓 [sec] Injected \(secrets.count) secret\(secrets.count == 1 ? "" : "s") into memory from '\(targetVault?.lastPathComponent ?? ".env.vault")'\n", stderr)
+                fputs("🔓 [sec] Injected \(secrets.count) secret\(secrets.count == 1 ? "" : "s") into memory from '\(sourceDescription)'\n", stderr)
             }
         }
         

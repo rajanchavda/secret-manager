@@ -23,6 +23,7 @@ public final class GitIgnoreManager {
         
         let entriesToEnsure = [
             vaultFileName,
+            "*.vault.bak",
             ".sec*",
             "*.sec_tmp"
         ]

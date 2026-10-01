@@ -679,3 +679,489 @@
         flex-shrink: 0;
     }
 }
+
+/* ─────────────────────────────────────────────────────────────
+   sec Pro — Agent Radar Styles
+   ───────────────────────────────────────────────────────────── */
+.radar-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.radar-header-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(22, 27, 34, 0.7);
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.radar-live-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #34d399;
+}
+
+.radar-blip-ring {
+    position: relative;
+    width: 10px;
+    height: 10px;
+}
+
+.radar-blip-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #10b981;
+    position: absolute;
+}
+
+.radar-blip-pulse {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #10b981;
+    position: absolute;
+    animation: radarPulse 1.8s infinite ease-out;
+}
+
+@keyframes radarPulse {
+    0% { transform: scale(1); opacity: 0.8; }
+    100% { transform: scale(3.2); opacity: 0; }
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+.spin {
+    animation: spin 0.8s linear infinite;
+}
+
+.radar-stats-summary {
+    display: flex;
+    gap: 14px;
+    font-size: 11.5px;
+    color: #8b949e;
+}
+
+.radar-stats-summary strong {
+    color: #f0f6fc;
+}
+
+.radar-feed-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.radar-feed-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(13, 17, 23, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    padding: 10px 14px;
+    border-radius: 9px;
+    transition: all 0.25s ease;
+}
+
+.radar-feed-item:hover {
+    border-color: rgba(56, 189, 248, 0.3);
+    background: rgba(22, 27, 34, 0.95);
+    transform: translateX(2px);
+}
+
+.radar-feed-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.radar-agent-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: rgba(56, 189, 248, 0.12);
+    color: #38bdf8;
+    border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.radar-agent-badge.badge-cursor {
+    background: rgba(168, 85, 247, 0.12);
+    color: #c084fc;
+    border-color: rgba(168, 85, 247, 0.25);
+}
+
+.radar-agent-badge.badge-claude {
+    background: rgba(249, 115, 22, 0.12);
+    color: #fb923c;
+    border-color: rgba(249, 115, 22, 0.25);
+}
+
+.radar-agent-badge.badge-copilot {
+    background: rgba(16, 185, 129, 0.12);
+    color: #34d399;
+    border-color: rgba(16, 185, 129, 0.25);
+}
+
+.radar-action-text {
+    font-size: 12px;
+    color: #c9d1d9;
+}
+
+.radar-action-text code {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 5px;
+    border-radius: 4px;
+    color: #e6edf3;
+    font-size: 11.5px;
+}
+
+.radar-feed-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.radar-shield-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.radar-time {
+    font-size: 11px;
+    color: #6e7681;
+}
+
+.radar-action-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 4px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.btn-radar-sim {
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.28);
+    color: #38bdf8;
+    padding: 6px 12px;
+    border-radius: 7px;
+    font-size: 11.5px;
+    font-weight: 500;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+
+.btn-radar-sim:hover {
+    background: rgba(56, 189, 248, 0.2);
+    border-color: #38bdf8;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   sec Pro — Runner Studio Styles
+   ───────────────────────────────────────────────────────────── */
+.runner-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.runner-control-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(22, 27, 34, 0.7);
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    flex-wrap: wrap;
+}
+
+.runner-select-vault {
+    background: #0d1117;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #c9d1d9;
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-family: inherit;
+    outline: none;
+    cursor: pointer;
+}
+
+.runner-cmd-input {
+    background: #0d1117;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #58a6ff;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: inherit;
+    flex: 1;
+    min-width: 140px;
+    outline: none;
+}
+
+.runner-btn-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+}
+
+.runner-btn-action.run {
+    background: #10b981;
+    color: #042f1a;
+}
+
+.runner-btn-action.run:hover {
+    background: #34d399;
+}
+
+.runner-btn-action.stop {
+    background: #ef4444;
+    color: #ffffff;
+}
+
+.runner-btn-action.stop:hover {
+    background: #f87171;
+}
+
+.runner-telemetry-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #8b949e;
+    padding: 0 4px;
+}
+
+.runner-telemetry-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.12);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    font-weight: 600;
+}
+
+.runner-telemetry-badge.stopped {
+    background: rgba(107, 114, 128, 0.15);
+    color: #9ca3af;
+    border-color: rgba(107, 114, 128, 0.25);
+}
+
+.runner-console-box {
+    background: #090c10;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 12px 14px;
+    min-height: 180px;
+    max-height: 220px;
+    overflow-y: auto;
+    font-size: 11.5px;
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.runner-console-box::-webkit-scrollbar {
+    width: 6px;
+}
+.runner-console-box::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 3px;
+}
+
+.console-line-sec {
+    color: #38bdf8;
+}
+
+.console-line-app {
+    color: #c9d1d9;
+}
+
+.console-line-success {
+    color: #34d399;
+}
+
+.console-line-dim {
+    color: #6e7681;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   sec Pro — Deep Discovery Scanner Styles
+   ───────────────────────────────────────────────────────────── */
+.scanner-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.scanner-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(22, 27, 34, 0.7);
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.scanner-path-input {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #8b949e;
+}
+
+.scanner-path-input code {
+    color: #58a6ff;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 3px 8px;
+    border-radius: 5px;
+}
+
+.btn-scanner-scan {
+    background: #0071e3;
+    color: #ffffff;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+
+.btn-scanner-scan:hover {
+    background: #0077ed;
+}
+
+.scanner-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.scanner-table th {
+    text-align: left;
+    color: #8b949e;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.scanner-table td {
+    padding: 10px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+    color: #c9d1d9;
+}
+
+.scanner-badge-unshielded {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.scanner-badge-vaulted {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10.5px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.15);
+    color: #34d399;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.scanner-btn-lock {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.35);
+    color: #34d399;
+    padding: 4px 10px;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.scanner-btn-lock:hover {
+    background: #10b981;
+    color: #042f1a;
+}
+
+@media (max-width: 768px) {
+    .radar-header-bar, .runner-control-bar, .scanner-top-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .radar-stats-summary {
+        flex-direction: column;
+        gap: 4px;
+    }
+    .radar-feed-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    .radar-feed-right {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .runner-cmd-input {
+        width: 100%;
+    }
+}
