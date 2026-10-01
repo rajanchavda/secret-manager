@@ -372,7 +372,7 @@ public final class BackupEngine {
         
         // Read secrets from the restored snapshot to refresh the masked decoy file on disk
         if let decryptedSecrets = try? await VaultEngine.shared.readDecryptedSecrets(vaultURL: targetVaultURL) {
-            var lines = ["# Managed by sec Pro (Restored from Snapshot v\(snapshot.version))"]
+            var lines = ["# Managed by Secret Manager (Restored from Snapshot v\(snapshot.version))"]
             for k in decryptedSecrets.keys.sorted() {
                 lines.append("\(k)=\(decryptedSecrets[k] ?? "")")
             }
@@ -501,7 +501,7 @@ public final class BackupEngine {
         
         // Refresh decoy file on disk
         if let decryptedSecrets = try? await VaultEngine.shared.readDecryptedSecrets(vaultURL: targetVaultURL) {
-            var lines = ["# Managed by sec Pro (Restored from Trash)"]
+            var lines = ["# Managed by Secret Manager (Restored from Trash)"]
             for k in decryptedSecrets.keys.sorted() {
                 lines.append("\(k)=\(decryptedSecrets[k] ?? "")")
             }

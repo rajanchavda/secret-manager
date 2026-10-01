@@ -18,7 +18,7 @@ When `.env` files contain active API tokens (OpenAI, Anthropic, Stripe, AWS, dat
 ### How `sec` Eliminates the Threat
 1. **Zero Plaintext on Disk**: Real secrets are encrypted in `.env.vault` using **AES-256-GCM** with a hardware master key secured inside the **Apple Silicon Secure Enclave**.
 2. **Harmless Decoy File**: The disk `.env` file contains safe masked placeholders (e.g., `DATABASE_URL=locked_by_sec`, `STRIPE_KEY=locked_by_sec`). Linters, syntax highlighters, Prisma generators, and TypeScript compilers continue to function without crashing.
-3. **Pure In-Memory Injection**: When running `sec npm run dev` (or via `sec Pro` Runner Studio), Touch ID prompts the developer once. Secrets are decrypted strictly into RAM (`process.env`) and passed to the child process. Plaintext is never written to disk.
+3. **Pure In-Memory Injection**: When running `sec npm run dev` (or via Secret Manager Runner Studio), Touch ID prompts the developer once. Secrets are decrypted strictly into RAM (`process.env`) and passed to the child process. Plaintext is never written to disk.
 4. **Stealth Preload Loaders (Defeating `ps -E`)**: For Node.js and Python development, `sec` uses ephemeral self-destructing preload hooks rather than passing secrets through `execve` `envp`. AI agents running `ps -E` or inspecting Darwin's `KERN_PROCARGS2` cannot see plaintext secrets.
 5. **Strict Zero-Cache (Single-Use)**: By default, every command requires a physical Touch ID tap. No decrypted session tokens linger on disk for background agents to exploit.
 6. **AI Agent Radar**: Real-time macOS `FSEvents` monitoring intercepts and logs file access attempts by AI agents (Cursor, Claude, Copilot, terminals), proving that only decoy data was ingested while real keys stayed in the Secure Enclave.
@@ -55,7 +55,7 @@ cool-meitner/
 │   ├── sec/                    # Native CLI binary (compiled to ~340KB)
 │   │   ├── main.swift                    # CLI entry point
 │   │   └── CLI/SecCLI.swift              # Argument parsing, command dispatch, formatting
-│   └── SecApp/                 # "sec Pro" macOS SwiftUI Desktop & Menubar Application
+│   └── SecApp/                 # Secret Manager macOS SwiftUI Desktop & Menubar Application
 │       ├── SecApp.swift                  # Application delegate, NSWindow, NSStatusItem companion
 │       ├── Store/SecAppStore.swift       # Unified @MainActor state store & Combine observers
 │       ├── Models/
@@ -100,9 +100,9 @@ cool-meitner/
 - `sec unlock <file>`: Prompts Touch ID, permanently restores plaintext on disk, deletes `<file>.vault`.
 - `sec install-finder`: Installs native macOS Quick Actions into `~/Library/Services`.
 
-### B. "sec Pro" macOS Application
+### B. Secret Manager macOS Application
 - **Menubar Companion & Standalone Window**: Resides in macOS status bar for instant access or opens as a full dashboard window.
-- **AI Agent Radar**: Subscribes to `FSEvents` and process telemetry. When Cursor, Claude, Copilot, or terminal tools touch `.env` or `.env.vault`, `sec Pro` records the event, displaying the agent name, timestamp, and verification that only decoy data was exposed.
+- **AI Agent Radar**: Subscribes to `FSEvents` and process telemetry. When Cursor, Claude, Copilot, or terminal tools touch `.env` or `.env.vault`, Secret Manager records the event, displaying the agent name, timestamp, and verification that only decoy data was exposed.
 - **Runner Studio**: Visual runner where developers select a vault, choose dev commands (e.g., `npm run dev`, `cargo run`), click **Run**, and watch live formatted logs while secrets are injected into RAM. Shows live PID and RAM usage.
 - **Deep Discovery Scanner**: Recursively scans folders (e.g. `~`, `~/Developer`) to find unshielded `.env` and `.env.local` files, providing 1-click shielding.
 - **Secret Inspector & Security Audit**: Evaluates key entropy, classifies sensitive tokens (Stripe `sk_live`, OpenAI `sk-`, AWS, Postgres credentials), calculates a 0–100 Security Score, and alerts on weak keys.

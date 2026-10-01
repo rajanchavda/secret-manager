@@ -28,7 +28,7 @@ public struct SidebarView: View {
                 .accessibilityHidden(true)
                 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("sec Pro")
+                    Text("Secret Manager")
                         .font(.scaled(size: 16, weight: .bold, design: .rounded))
                         .foregroundColor(.primary)
                     

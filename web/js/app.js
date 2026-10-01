@@ -1,5 +1,5 @@
 /* ─────────────────────────────────────────────────────────────
-   sec & sec Pro — Interactive Client Script
+   Secret Manager — Interactive Client Script
    ───────────────────────────────────────────────────────────── */
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -241,9 +241,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const cmd = runnerCmdInput ? runnerCmdInput.value : 'npm run dev';
                 runnerConsole.innerHTML = `
-                    <div class="console-line-sec">[sec Pro] Unlocked via Apple Secure Enclave in 0.003s</div>
-                    <div class="console-line-sec">[sec Pro] Injected 4 credentials directly into child process RAM</div>
-                    <div class="console-line-sec">[sec Pro] Stealth preload hooks active: ps -E inspection disabled</div>
+                    <div class="console-line-sec">[Secret Manager] Unlocked via Apple Secure Enclave in 0.003s</div>
+                    <div class="console-line-sec">[Secret Manager] Injected 4 credentials directly into child process RAM</div>
+                    <div class="console-line-sec">[Secret Manager] Stealth preload hooks active: ps -E inspection disabled</div>
                     <div class="console-line-app">> ${cmd}</div>
                     <div class="console-line-dim">[next] compiling client and server packages...</div>
                     <div class="console-line-success">✔ Ready on http://localhost:3000 (connected with RAM credentials)</div>
@@ -282,7 +282,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 const logExit = document.createElement('div');
                 logExit.className = 'console-line-dim';
-                logExit.textContent = '[sec Pro] Child process 51820 terminated gracefully. RAM secrets purged.';
+                logExit.textContent = '[Secret Manager] Child process 51820 terminated gracefully. RAM secrets purged.';
                 runnerConsole.appendChild(logExit);
                 runnerConsole.scrollTop = runnerConsole.scrollHeight;
             }

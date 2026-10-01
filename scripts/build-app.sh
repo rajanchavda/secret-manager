@@ -47,9 +47,9 @@ cat << 'EOF' > "$CONTENTS_DIR/Info.plist"
     <key>CFBundleIdentifier</key>
     <string>com.sec.SecApp</string>
     <key>CFBundleName</key>
-    <string>sec Pro</string>
+    <string>Secret Manager</string>
     <key>CFBundleDisplayName</key>
-    <string>sec Pro</string>
+    <string>Secret Manager</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>CFBundlePackageType</key>

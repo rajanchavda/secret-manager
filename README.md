@@ -1,4 +1,4 @@
-# `sec`: Touch ID Secret Vault for macOS
+# Secret Manager (`sec`): Touch ID Secret Vault for macOS
 
 > **Shield your `.env` and secret files from AI agents & background tools.**  
 > Keep secrets encrypted on disk with Touch ID, inject them directly into process memory during development, and lock/edit files via macOS Finder right-click.
