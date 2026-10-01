@@ -4,14 +4,27 @@ import Darwin
 public final class SessionManager {
     public static let shared = SessionManager()
     
-    /// Zero-cache by default: Every execution requires explicit biometric authentication
-    /// to prevent background AI agents from piggybacking on an active session.
-    private var sessionDurationSeconds: Double {
+    /// User-configured session duration (in seconds). Defaults to nil (CLI single-use).
+    /// SecApp sets this to the user's chosen auto-lock policy (e.g. 15 minutes).
+    public var configuredSessionDuration: Double? = nil
+    
+    public var sessionDurationSeconds: Double {
+        if let custom = configuredSessionDuration {
+            return custom
+        }
         if let envVal = ProcessInfo.processInfo.environment["SEC_SESSION_TTL_MINUTES"],
            let mins = Double(envVal), mins > 0 {
             return mins * 60
         }
-        return 0 // Strict Zero-Cache (Single-Use)
+        return 0 // Strict Zero-Cache (Single-Use) by default
+    }
+    
+    public func setSessionDuration(seconds: Double) {
+        self.configuredSessionDuration = max(0, seconds)
+    }
+    
+    public func setSessionDuration(minutes: Double) {
+        self.configuredSessionDuration = max(0, minutes * 60)
     }
     
     private var secDirectory: URL {
@@ -31,7 +44,7 @@ public final class SessionManager {
     }
     
     private init() {
-        // Clear any legacy session file upon initialization to enforce zero-cache
+        // Clear any legacy session file upon initialization if strict zero-cache
         if sessionDurationSeconds == 0 {
             clearSession()
         }
@@ -79,8 +92,9 @@ public final class SessionManager {
     }
     
     /// Starts or refreshes an active session if TTL > 0
-    public func startSession() {
-        guard sessionDurationSeconds > 0 else {
+    public func startSession(duration: Double? = nil) {
+        let durationToUse = duration ?? sessionDurationSeconds
+        guard durationToUse > 0 else {
             clearSession()
             return
         }
@@ -90,11 +104,39 @@ public final class SessionManager {
         let session = SessionData(
             sessionId: UUID().uuidString,
             createdAt: now,
-            expiresAt: now + sessionDurationSeconds,
+            expiresAt: now + durationToUse,
             bootTime: getSystemBootTime()
         )
         
         if let encoded = try? JSONEncoder().encode(session) {
+            try? encoded.write(to: sessionFileURL, options: .atomic)
+            try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: sessionFileURL.path)
+        }
+    }
+    
+    /// Extends an active session by additional seconds
+    public func extendSession(additionalSeconds: Double) {
+        guard sessionDurationSeconds > 0 else { return }
+        
+        guard let data = try? Data(contentsOf: sessionFileURL),
+              let session = try? JSONDecoder().decode(SessionData.self, from: data) else {
+            startSession(duration: additionalSeconds)
+            return
+        }
+        
+        let now = Date().timeIntervalSince1970
+        guard now < session.expiresAt && session.bootTime == getSystemBootTime() else {
+            startSession(duration: additionalSeconds)
+            return
+        }
+        
+        let updated = SessionData(
+            sessionId: session.sessionId,
+            createdAt: session.createdAt,
+            expiresAt: max(now, session.expiresAt) + additionalSeconds,
+            bootTime: session.bootTime
+        )
+        if let encoded = try? JSONEncoder().encode(updated) {
             try? encoded.write(to: sessionFileURL, options: .atomic)
             try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: sessionFileURL.path)
         }
@@ -105,8 +147,8 @@ public final class SessionManager {
         try? FileManager.default.removeItem(at: sessionFileURL)
     }
     
-    /// Returns human-readable remaining time if session is active
-    public func remainingTimeDescription() -> String? {
+    /// Returns exact remaining seconds if session is active
+    public func remainingTimeSeconds() -> Double? {
         guard sessionDurationSeconds > 0 else {
             return nil
         }
@@ -118,7 +160,18 @@ public final class SessionManager {
         
         let now = Date().timeIntervalSince1970
         let diff = session.expiresAt - now
-        guard diff > 0 else { return nil }
+        guard diff > 0, session.bootTime == getSystemBootTime() else {
+            clearSession()
+            return nil
+        }
+        return diff
+    }
+    
+    /// Returns human-readable remaining time if session is active
+    public func remainingTimeDescription() -> String? {
+        guard let diff = remainingTimeSeconds() else {
+            return nil
+        }
         
         let mins = Int(diff) / 60
         let secs = Int(diff) % 60

@@ -1,4 +1,5 @@
 import XCTest
+@testable import SecCore
 @testable import sec
 
 final class SecTests: XCTestCase {
@@ -283,6 +284,431 @@ final class SecTests: XCTestCase {
         // Clean up test records
         RegistryManager.shared.unregister(vaultURL: validVault1)
         RegistryManager.shared.unregister(vaultURL: validVault2)
+    }
+    
+    func testSessionManagerConfigurableDurationAndLifecycle() {
+        let session = SessionManager.shared
+        defer {
+            session.configuredSessionDuration = nil
+            session.clearSession()
+        }
+        
+        // 1. Set 15 minutes (900 seconds)
+        session.setSessionDuration(minutes: 15)
+        XCTAssertEqual(session.sessionDurationSeconds, 900)
+        XCTAssertFalse(session.isZeroCacheMode)
+        
+        // 2. Start session
+        session.startSession()
+        XCTAssertTrue(session.isSessionActive())
+        
+        if let remaining = session.remainingTimeSeconds() {
+            XCTAssertTrue(remaining > 890 && remaining <= 900)
+        } else {
+            XCTFail("Expected remaining time")
+        }
+        
+        // 3. Extend session by 5 minutes (300 seconds)
+        session.extendSession(additionalSeconds: 300)
+        if let extended = session.remainingTimeSeconds() {
+            XCTAssertTrue(extended > 1180 && extended <= 1200)
+        } else {
+            XCTFail("Expected extended remaining time")
+        }
+        
+        // 4. Clear session
+        session.clearSession()
+        XCTAssertFalse(session.isSessionActive())
+        XCTAssertNil(session.remainingTimeSeconds())
+    }
+    
+    func testSessionManagerZeroCacheWhenDurationZero() {
+        let session = SessionManager.shared
+        defer {
+            session.configuredSessionDuration = nil
+            session.clearSession()
+        }
+        
+        session.setSessionDuration(seconds: 0)
+        XCTAssertEqual(session.sessionDurationSeconds, 0)
+        XCTAssertTrue(session.isZeroCacheMode)
+        
+        session.startSession()
+        XCTAssertFalse(session.isSessionActive())
+        XCTAssertNil(session.remainingTimeSeconds())
+    }
+    
+    func testVaultFreshnessAndStaleDetection() throws {
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("sec-test-freshness-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+        
+        let envFile = tempDir.appendingPathComponent(".env")
+        let vaultFile = tempDir.appendingPathComponent(".env.vault")
+        
+        // 1. Initial vault creation
+        try "FOO=BAR".write(to: envFile, atomically: true, encoding: .utf8)
+        try "encrypted-vault".write(to: vaultFile, atomically: true, encoding: .utf8)
+        
+        // When decoy has dummy content, it is fresh
+        let dummy = EnvParser.shared.generateDummyTemplate(from: "FOO=BAR", fileName: ".env")
+        try dummy.write(to: envFile, atomically: true, encoding: .utf8)
+        XCTAssertEqual(VaultEngine.shared.checkVaultFreshness(vaultURL: vaultFile), .fresh)
+        
+        // 2. When .env is deleted, vault is orphan
+        try FileManager.default.removeItem(at: envFile)
+        XCTAssertEqual(VaultEngine.shared.checkVaultFreshness(vaultURL: vaultFile), .orphan(vaultURL: vaultFile))
+        
+        // 3. When new plaintext .env is written after vault date, vault is stale
+        Thread.sleep(forTimeInterval: 0.1)
+        try "NEW_SECRET=UPDATED_VAL".write(to: envFile, atomically: true, encoding: .utf8)
+        let freshness = VaultEngine.shared.checkVaultFreshness(vaultURL: vaultFile)
+        switch freshness {
+        case .stale(let plainURL, _, _):
+            XCTAssertEqual(plainURL.lastPathComponent, ".env")
+        default:
+            XCTFail("Expected stale vault status, got \(freshness)")
+        }
+    }
+    
+    func testAutoPrunePreservesVaultWhenDecoyRemoved() throws {
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("sec-test-autoprune-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+        
+        let envFile = tempDir.appendingPathComponent(".env")
+        let vaultFile = tempDir.appendingPathComponent(".env.vault")
+        
+        try "API_KEY=locked_by_sec".write(to: envFile, atomically: true, encoding: .utf8)
+        try "encrypted-payload".write(to: vaultFile, atomically: true, encoding: .utf8)
+        
+        _ = RegistryManager.shared.autoPrune()
+        RegistryManager.shared.register(vaultURL: vaultFile, plainURL: envFile)
+        
+        // Simulate user dragging .env to Trash or git branch switch removing .env
+        try FileManager.default.removeItem(at: envFile)
+        
+        // autoPrune should NEVER delete the encrypted .vault file
+        let (removed, _) = RegistryManager.shared.autoPrune(cleanOrphans: true)
+        XCTAssertEqual(removed, 0)
+        
+        // Critical: Encrypted vault MUST be preserved
+        XCTAssertTrue(FileManager.default.fileExists(atPath: vaultFile.path))
+        
+        // When the vault file itself is deleted, autoPrune should prune the registry record
+        try FileManager.default.removeItem(at: vaultFile)
+        let (removedAfterVaultDeleted, _) = RegistryManager.shared.autoPrune()
+        XCTAssertGreaterThanOrEqual(removedAfterVaultDeleted, 1)
+        
+        let loaded = RegistryManager.shared.loadRegistry()
+        XCTAssertFalse(loaded.records.contains(where: { $0.vaultPath == vaultFile.standardizedFileURL.path }))
+    }
+    
+    func testRegistryOnlyContainsValidVaultPaths() throws {
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("sec-test-validity-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+        
+        let validEnv = tempDir.appendingPathComponent("valid.env")
+        let validVault = tempDir.appendingPathComponent("valid.env.vault")
+        let missingVault = tempDir.appendingPathComponent("missing.env.vault")
+        let missingEnv = tempDir.appendingPathComponent("missing.env")
+        
+        try "VALID_SECRET=locked_by_sec".write(to: validEnv, atomically: true, encoding: .utf8)
+        try "valid_vault_bytes".write(to: validVault, atomically: true, encoding: .utf8)
+        
+        RegistryManager.shared.register(vaultURL: validVault, plainURL: validEnv)
+        RegistryManager.shared.register(vaultURL: missingVault, plainURL: missingEnv)
+        
+        let records = RegistryManager.shared.loadRegistry().records
+        // Filter like SecAppStore does: only keep records where .vault file actually exists
+        let existingOnly = records.filter { FileManager.default.fileExists(atPath: $0.vaultPath) }
+        
+        XCTAssertTrue(existingOnly.contains(where: { $0.vaultPath == validVault.standardizedFileURL.path }))
+        XCTAssertFalse(existingOnly.contains(where: { $0.vaultPath == missingVault.standardizedFileURL.path }))
+        
+        // Clean up registry
+        RegistryManager.shared.unregister(vaultURL: validVault)
+        RegistryManager.shared.unregister(vaultURL: missingVault)
+    }
+    
+    func testFontScalingBoundsAndStepping() {
+        let minScale: CGFloat = 0.8
+        let maxScale: CGFloat = 1.6
+        let step: CGFloat = 0.1
+        let defaultScale: CGFloat = 1.0
+        
+        var currentScale: CGFloat = defaultScale
+        
+        // Step up
+        currentScale = min(maxScale, ((currentScale + step) * 10).rounded() / 10)
+        XCTAssertEqual(currentScale, 1.1)
+        
+        // Step up to max bound
+        for _ in 0..<10 {
+            currentScale = min(maxScale, ((currentScale + step) * 10).rounded() / 10)
+        }
+        XCTAssertEqual(currentScale, maxScale)
+        
+        // Cannot exceed max bound
+        let overMax = min(maxScale, ((currentScale + step) * 10).rounded() / 10)
+        XCTAssertEqual(overMax, maxScale)
+        
+        // Step down to min bound
+        for _ in 0..<15 {
+            currentScale = max(minScale, ((currentScale - step) * 10).rounded() / 10)
+        }
+        XCTAssertEqual(currentScale, minScale)
+        
+        // Cannot go below min bound
+        let underMin = max(minScale, ((currentScale - step) * 10).rounded() / 10)
+        XCTAssertEqual(underMin, minScale)
+        
+        // Reset to default
+        currentScale = defaultScale
+        XCTAssertEqual(currentScale, 1.0)
+        
+        // Test UserDefaults persistence roundtrip
+        let testKey = "sec_app_font_scale_test"
+        UserDefaults.standard.set(1.3, forKey: testKey)
+        let loaded = UserDefaults.standard.double(forKey: testKey)
+        XCTAssertEqual(loaded, 1.3, accuracy: 0.001)
+        UserDefaults.standard.removeObject(forKey: testKey)
+    }
+    
+    func testCannotLockDecoyPlaceholder() async throws {
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("sec-test-nodecoy-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+        
+        let dummyEnv = tempDir.appendingPathComponent(".env")
+        try "# PROTECTED BY sec\nAPI_KEY=locked_by_sec\n".write(to: dummyEnv, atomically: true, encoding: .utf8)
+        
+        do {
+            _ = try await VaultEngine.shared.lock(fileURL: dummyEnv, force: true)
+            XCTFail("Should have thrown cannotLockDecoyFile error")
+        } catch VaultError.cannotLockDecoyFile {
+            // Expected: safeguard prevents overwriting secrets with decoy dummy
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+    
+    func testRecoveryKeyExportAndImport() throws {
+        let exported = try KeychainManager.shared.exportRecoveryKey()
+        XCTAssertFalse(exported.isEmpty)
+        
+        // Re-import exported key
+        try KeychainManager.shared.importRecoveryKey(base64String: exported)
+        let reExported = try KeychainManager.shared.exportRecoveryKey()
+        XCTAssertEqual(exported, reExported)
+    }
+    
+    func testUnlockToDiskCreatesLocalBackup() async throws {
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("sec-test-unlock-bak-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+        
+        let envFile = tempDir.appendingPathComponent(".env")
+        let vaultFile = tempDir.appendingPathComponent(".env.vault")
+        let bakFile = tempDir.appendingPathComponent(".env.vault.bak")
+        
+        try "DB_PASSWORD=supersecret".write(to: envFile, atomically: true, encoding: .utf8)
+        
+        // Lock file
+        _ = try await VaultEngine.shared.lock(fileURL: envFile, force: false)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: vaultFile.path))
+        
+        // Unlock to disk
+        try await VaultEngine.shared.unlockToDisk(vaultURL: vaultFile)
+        
+        // Check that plain file was restored
+        let plainContent = try String(contentsOf: envFile, encoding: .utf8)
+        XCTAssertEqual(plainContent, "DB_PASSWORD=supersecret")
+        
+        // Check that backup file (.vault.bak) was preserved
+        XCTAssertTrue(FileManager.default.fileExists(atPath: bakFile.path))
+    }
+    
+    func testMemoryMonitorStats() {
+        let memInfo = MemoryMonitor.currentProcessMemory()
+        // The running test process must consume resident memory > 0
+        XCTAssertGreaterThan(memInfo.residentBytes, 0)
+        XCTAssertGreaterThan(memInfo.virtualBytes, 0)
+        XCTAssertFalse(memInfo.formattedResident.isEmpty)
+        XCTAssertFalse(memInfo.formattedVirtual.isEmpty)
+    }
+    
+    func testProcessMemoryFormatting() {
+        let sampleMB = ProcessMemoryInfo(residentBytes: 25 * 1024 * 1024, virtualBytes: 100 * 1024 * 1024)
+        XCTAssertTrue(sampleMB.formattedResident.contains("25") || sampleMB.formattedResident.contains("MB"))
+        
+        let sampleZero = ProcessMemoryInfo(residentBytes: 0, virtualBytes: 0)
+        XCTAssertTrue(sampleZero.formattedResident.localizedCaseInsensitiveContains("zero") || sampleZero.formattedResident.contains("0"))
+    }
+    
+    func testDeterministicProjectHashing() {
+        let dir1 = URL(fileURLWithPath: "/Users/test/projects/my-api")
+        let dir2 = URL(fileURLWithPath: "/Users/test/projects/my-api")
+        let dir3 = URL(fileURLWithPath: "/Users/test/projects/other-api")
+        
+        let hash1 = BackupEngine.deterministicProjectHash(for: dir1)
+        let hash2 = BackupEngine.deterministicProjectHash(for: dir2)
+        let hash3 = BackupEngine.deterministicProjectHash(for: dir3)
+        
+        XCTAssertEqual(hash1, hash2, "Identical project paths must produce identical hashes")
+        XCTAssertNotEqual(hash1, hash3, "Different project paths must produce different hashes")
+        XCTAssertFalse(hash1.isEmpty)
+    }
+    
+    func testMultiVersionSnapshotCreationAndRollback() async throws {
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+        
+        let envFile = tempDir.appendingPathComponent(".env")
+        try "API_KEY=v1_initial_secret".write(to: envFile, atomically: true, encoding: .utf8)
+        
+        // Lock to create initial vault
+        _ = try await VaultEngine.shared.lock(fileURL: envFile)
+        let vaultFile = tempDir.appendingPathComponent(".env.vault")
+        
+        // Create manual snapshot v1
+        let snap1 = try await BackupEngine.shared.createSnapshot(for: vaultFile, trigger: .manual, note: "Initial snapshot")
+        XCTAssertEqual(snap1.version, 1)
+        XCTAssertEqual(snap1.targetFileName, ".env")
+        
+        // Update vault with v2 secret
+        let v2Plain = "API_KEY=v2_modified_secret".data(using: .utf8)!
+        try await VaultEngine.shared.updateVault(vaultURL: vaultFile, plaintextData: v2Plain)
+        
+        // Create snapshot v2
+        let snap2 = try await BackupEngine.shared.createSnapshot(for: vaultFile, trigger: .manual, note: "Updated secret")
+        XCTAssertGreaterThan(snap2.version, snap1.version)
+        
+        // Verify current decrypted secret is v2
+        let currentSecrets = try await VaultEngine.shared.readDecryptedSecrets(vaultURL: vaultFile)
+        XCTAssertEqual(currentSecrets["API_KEY"], "v2_modified_secret")
+        
+        // Rollback to v1
+        try await BackupEngine.shared.restoreSnapshot(snapshotId: snap1.id)
+        
+        // Verify decrypted secret was rolled back to v1
+        let rolledBackSecrets = try await VaultEngine.shared.readDecryptedSecrets(vaultURL: vaultFile)
+        XCTAssertEqual(rolledBackSecrets["API_KEY"], "v1_initial_secret")
+        
+        // Cleanup snapshot files created in ~/.sec/backups
+        try? BackupEngine.shared.deleteSnapshot(snapshotId: snap1.id)
+        try? BackupEngine.shared.deleteSnapshot(snapshotId: snap2.id)
+    }
+    
+    func testTrashSoftDeleteAndRestoration() async throws {
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+        
+        let envFile = tempDir.appendingPathComponent(".env")
+        try "PAYLOAD=trash_test_secret".write(to: envFile, atomically: true, encoding: .utf8)
+        
+        _ = try await VaultEngine.shared.lock(fileURL: envFile)
+        let vaultFile = tempDir.appendingPathComponent(".env.vault")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: vaultFile.path))
+        
+        // Move to trash
+        let trashRecord = try await BackupEngine.shared.moveToTrash(vaultURL: vaultFile, reason: "Test soft delete")
+        XCTAssertEqual(trashRecord.targetFileName, ".env")
+        XCTAssertTrue(FileManager.default.fileExists(atPath: BackupEngine.shared.trashFileURL(for: trashRecord).path))
+        
+        // Simulate removing original vault
+        try? FileManager.default.removeItem(at: vaultFile)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: vaultFile.path))
+        
+        // Restore from trash
+        let restoredURL = try await BackupEngine.shared.restoreFromTrash(trashId: trashRecord.id)
+        XCTAssertEqual(restoredURL.path, vaultFile.path)
+        XCTAssertTrue(FileManager.default.fileExists(atPath: vaultFile.path))
+        
+        // Verify secrets are intact
+        let secrets = try await VaultEngine.shared.readDecryptedSecrets(vaultURL: vaultFile)
+        XCTAssertEqual(secrets["PAYLOAD"], "trash_test_secret")
+    }
+    
+    func testSnapshotPruningRetentionLimit() async throws {
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+        
+        let envFile = tempDir.appendingPathComponent(".env")
+        try "COUNTER=0".write(to: envFile, atomically: true, encoding: .utf8)
+        _ = try await VaultEngine.shared.lock(fileURL: envFile)
+        let vaultFile = tempDir.appendingPathComponent(".env.vault")
+        
+        // Create 1 manual snapshot
+        let manualSnap = try await BackupEngine.shared.createSnapshot(for: vaultFile, trigger: .manual, note: "Manual backup")
+        
+        // Create 27 automatic snapshots (limit is 25)
+        var autoIds: [UUID] = []
+        for i in 1...27 {
+            let snap = try await BackupEngine.shared.createSnapshot(for: vaultFile, trigger: .autoSnapshot, note: "Auto \(i)")
+            autoIds.append(snap.id)
+        }
+        
+        let projectSnapshots = BackupEngine.shared.listSnapshots(for: tempDir)
+        // Manual snapshot must still exist
+        XCTAssertTrue(projectSnapshots.contains(where: { $0.id == manualSnap.id }))
+        
+        // Total auto snapshots should be capped at maxAutomaticSnapshotsPerFile (25)
+        let autoCount = projectSnapshots.filter { $0.trigger != .manual }.count
+        XCTAssertLessThanOrEqual(autoCount, BackupEngine.maxAutomaticSnapshotsPerFile)
+        
+        // Clean up test snapshots
+        for s in projectSnapshots {
+            try? BackupEngine.shared.deleteSnapshot(snapshotId: s.id)
+        }
+    }
+    
+    func testRegistryExcludesBackupAndTrashVaults() throws {
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true).appendingPathComponent(UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+        
+        // 1. Real project vault
+        let projectDir = tempDir.appendingPathComponent("my_project")
+        try FileManager.default.createDirectory(at: projectDir, withIntermediateDirectories: true)
+        let projectVault = projectDir.appendingPathComponent(".env.vault")
+        try "dummy-vault-data".write(to: projectVault, atomically: true, encoding: .utf8)
+        
+        // 2. Backup vault in ~/.sec/backups simulation
+        let backupDir = tempDir.appendingPathComponent(".sec").appendingPathComponent("backups").appendingPathComponent("abc123hash")
+        try FileManager.default.createDirectory(at: backupDir, withIntermediateDirectories: true)
+        let backupVault = backupDir.appendingPathComponent("snapshot-uuid.vault")
+        try "backup-vault-data".write(to: backupVault, atomically: true, encoding: .utf8)
+        
+        // 3. Trash vault
+        let trashDir = tempDir.appendingPathComponent(".sec").appendingPathComponent("trash")
+        try FileManager.default.createDirectory(at: trashDir, withIntermediateDirectories: true)
+        let trashVault = trashDir.appendingPathComponent("trashed-uuid.vault")
+        try "trash-vault-data".write(to: trashVault, atomically: true, encoding: .utf8)
+        
+        // 4. Temporary backup file .vault.bak
+        let bakVault = projectDir.appendingPathComponent(".env.vault.bak")
+        try "bak-data".write(to: bakVault, atomically: true, encoding: .utf8)
+        
+        // Scan the entire temp root
+        let discovered = RegistryManager.shared.scan(directory: tempDir)
+        
+        // Verify only the real project vault was discovered
+        XCTAssertEqual(discovered.count, 1)
+        XCTAssertEqual(discovered.first?.vaultPath, projectVault.resolvingSymlinksInPath().path)
+        
+        // Verify register() strictly rejects any .sec or .bak files
+        RegistryManager.shared.register(vaultURL: backupVault, plainURL: backupVault)
+        RegistryManager.shared.register(vaultURL: trashVault, plainURL: trashVault)
+        RegistryManager.shared.register(vaultURL: bakVault, plainURL: bakVault)
+        
+        let registry = RegistryManager.shared.loadRegistry()
+        XCTAssertFalse(registry.records.contains(where: { $0.vaultPath.contains("/.sec/") }))
+        XCTAssertFalse(registry.records.contains(where: { $0.vaultPath.hasSuffix(".vault.bak") }))
     }
 }
 

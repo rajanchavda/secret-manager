@@ -6,6 +6,8 @@ public enum KeychainError: LocalizedError {
     case hardwareEnclaveUnavailable
     case generationFailed(String)
     case derivationFailed(String)
+    case masterKeyMissingWithExistingVaults(Int)
+    case invalidRecoveryKey
     
     public var errorDescription: String? {
         switch self {
@@ -17,6 +19,10 @@ public enum KeychainError: LocalizedError {
             return "Failed to generate Secure Enclave hardware key: \(msg)"
         case .derivationFailed(let msg):
             return "Failed to derive 256-bit AES master key: \(msg)"
+        case .masterKeyMissingWithExistingVaults(let count):
+            return "Master key not found at ~/.sec/enclave.token, but \(count) existing encrypted vault(s) were found on this system. Creating a new key would permanently prevent decrypting those vaults. Restore your ~/.sec/enclave.token or run 'sec import-key' with your recovery key."
+        case .invalidRecoveryKey:
+            return "The provided recovery key is invalid. It must be a valid Base64-encoded 256-bit (32-byte) key."
         }
     }
 }
@@ -66,6 +72,13 @@ public final class KeychainManager {
             return try getMasterKey()
         }
         
+        // Prevent silent key generation if existing vaults exist on disk
+        let records = RegistryManager.shared.loadRegistry().records
+        let existingVaults = records.filter { FileManager.default.fileExists(atPath: $0.vaultPath) }
+        if !existingVaults.isEmpty {
+            throw KeychainError.masterKeyMissingWithExistingVaults(existingVaults.count)
+        }
+        
         ensureSecDirectory()
         
         if SecureEnclave.isAvailable {
@@ -102,7 +115,11 @@ public final class KeychainManager {
                 let enclaveKey = try SecureEnclave.P256.KeyAgreement.PrivateKey(dataRepresentation: tokenData)
                 return try deriveSymmetricKey(from: enclaveKey)
             } catch {
-                throw KeychainError.derivationFailed(error.localizedDescription)
+                if FileManager.default.fileExists(atPath: fallbackKeyURL.path),
+                   let keyData = try? Data(contentsOf: fallbackKeyURL), keyData.count == 32 {
+                    return keyData
+                }
+                throw KeychainError.derivationFailed("Secure Enclave key agreement failed (\(error.localizedDescription)). This token may be bound to a different physical Mac. If you migrated to a new Mac, import your recovery key using 'sec import-key'.")
             }
         } else if FileManager.default.fileExists(atPath: fallbackKeyURL.path) {
             guard let keyData = try? Data(contentsOf: fallbackKeyURL), keyData.count == 32 else {
@@ -112,6 +129,23 @@ public final class KeychainManager {
         } else {
             throw KeychainError.itemNotFound
         }
+    }
+    
+    /// Exports the master key encoded as Base64 for disaster recovery (e.g. migrating to a new Mac)
+    public func exportRecoveryKey() throws -> String {
+        let key = try getMasterKey()
+        return key.base64EncodedString()
+    }
+    
+    /// Imports a previously exported master key for disaster recovery
+    public func importRecoveryKey(base64String: String) throws {
+        guard let keyData = Data(base64Encoded: base64String.trimmingCharacters(in: .whitespacesAndNewlines)),
+              keyData.count == 32 else {
+            throw KeychainError.invalidRecoveryKey
+        }
+        ensureSecDirectory()
+        try keyData.write(to: fallbackKeyURL, options: .atomic)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: fallbackKeyURL.path)
     }
     
     /// Derives a 256-bit symmetric AES key from the Secure Enclave hardware key agreement using HKDF

@@ -1556,3 +1556,110 @@ footer a:hover { text-decoration: underline; }
         transition: none;
     }
 }
+
+/* ── sec Pro Showcase Section ──────────────────────────────── */
+.secpro-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 310px), 1fr));
+    gap: 22px;
+    margin-top: 42px;
+    text-align: left;
+}
+
+.secpro-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 32px 28px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.secpro-card:hover {
+    border-color: rgba(56, 189, 248, 0.4);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-3px);
+}
+
+.secpro-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+}
+
+.secpro-icon-wrap {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+}
+
+.secpro-icon-wrap.radar { background: rgba(56, 189, 248, 0.12); color: #0284c7; }
+.secpro-icon-wrap.runner { background: rgba(16, 185, 129, 0.12); color: #059669; }
+.secpro-icon-wrap.scanner { background: rgba(168, 85, 247, 0.12); color: #7c3aed; }
+.secpro-icon-wrap.inspector { background: rgba(245, 158, 11, 0.12); color: #d97706; }
+.secpro-icon-wrap.session { background: rgba(236, 72, 153, 0.12); color: #db2777; }
+.secpro-icon-wrap.menubar { background: rgba(99, 102, 241, 0.12); color: #4f46e5; }
+
+[data-theme="dark"] .secpro-icon-wrap.radar { color: #38bdf8; }
+[data-theme="dark"] .secpro-icon-wrap.runner { color: #34d399; }
+[data-theme="dark"] .secpro-icon-wrap.scanner { color: #c084fc; }
+[data-theme="dark"] .secpro-icon-wrap.inspector { color: #fbbf24; }
+[data-theme="dark"] .secpro-icon-wrap.session { color: #f472b6; }
+[data-theme="dark"] .secpro-icon-wrap.menubar { color: #818cf8; }
+
+.secpro-badge-pill {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    background: var(--card-subtle);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+}
+
+.secpro-card h3 {
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: var(--text);
+}
+
+.secpro-card p {
+    font-size: 14px;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+.secpro-features-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
+}
+
+.secpro-features-list li {
+    font-size: 12.5px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.secpro-features-list li svg {
+    color: #10b981;
+    flex-shrink: 0;
+}

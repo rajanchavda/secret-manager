@@ -1,9 +1,17 @@
 import Foundation
 
+public enum VaultFreshness: Equatable {
+    case fresh
+    case stale(plainURL: URL, plainModified: Date, vaultModified: Date)
+    case orphan(vaultURL: URL)
+    case missing
+}
+
 public enum VaultError: LocalizedError {
     case targetFileNotFound(String)
     case vaultFileNotFound(String)
     case alreadyLocked(String)
+    case cannotLockDecoyFile(String)
     case invalidFileEncoding
     case writeFailed(String)
     
@@ -15,6 +23,8 @@ public enum VaultError: LocalizedError {
             return "Encrypted vault not found: \(path)"
         case .alreadyLocked(let path):
             return "File is already locked (\(path).vault already exists). Use 'sec edit' to modify or 'sec unlock' to decrypt."
+        case .cannotLockDecoyFile(let path):
+            return "Cannot lock '\(path)': File contains masked dummy placeholder content. Locking would destroy your real encrypted secrets. Use 'sec edit' or 'sec unlock'."
         case .invalidFileEncoding:
             return "Unable to decode file content as UTF-8 text."
         case .writeFailed(let msg):
@@ -61,6 +71,30 @@ public final class VaultEngine {
         return false
     }
 
+    /// Safely creates a local and central multi-version backup of a vault before any destructive operation (synchronous dispatch)
+    public func backupVault(at vaultURL: URL, trigger: SnapshotTrigger = .autoSnapshot, note: String? = nil) {
+        Task {
+            await backupVaultAsync(at: vaultURL, trigger: trigger, note: note)
+        }
+    }
+    
+    /// Safely creates a local and central multi-version backup of a vault (awaitable)
+    @discardableResult
+    public func backupVaultAsync(at vaultURL: URL, trigger: SnapshotTrigger = .autoSnapshot, note: String? = nil) async -> SnapshotRecord? {
+        let fm = FileManager.default
+        let resolvedVault = vaultURL.standardizedFileURL.resolvingSymlinksInPath()
+        guard fm.fileExists(atPath: resolvedVault.path) else { return nil }
+        
+        // 1. Local backup alongside the vault
+        let localBackup = resolvedVault.appendingPathExtension("bak")
+        try? fm.removeItem(at: localBackup)
+        try? fm.copyItem(at: resolvedVault, to: localBackup)
+        try? fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: localBackup.path)
+        
+        // 2. Central persistent deterministic multi-version snapshot in ~/.sec/backups/
+        return try? await BackupEngine.shared.createSnapshot(for: resolvedVault, trigger: trigger, note: note)
+    }
+
     /// Locks a secret file (e.g. .env) by encrypting it to .env.vault and replacing .env with a dummy file.
     /// If force is false and the file is already locked, it aborts to prevent overwriting secrets with dummy values.
     public func lock(fileURL: URL, force: Bool = false) async throws -> [String] {
@@ -89,16 +123,24 @@ public final class VaultEngine {
             throw VaultError.targetFileNotFound(fileURL.path)
         }
         
+        let plaintextString = String(data: plaintextData, encoding: .utf8)
+        
+        // Critical Safeguard: Never allow locking a file that already contains dummy decoy content,
+        // even if force is true, as doing so would irrevocably replace real secrets with dummy placeholders.
+        if let text = plaintextString, isDummyContent(text) {
+            throw VaultError.cannotLockDecoyFile(fileURL.lastPathComponent)
+        }
+        
         let originalAttrs = try? FileManager.default.attributesOfItem(atPath: fileURL.path)
         let originalPerms = originalAttrs?[.posixPermissions] as? NSNumber
-        
-        let plaintextString = String(data: plaintextData, encoding: .utf8)
         
         // Touch ID / Passcode authentication (if session not already active)
         if !SessionManager.shared.isSessionActive() {
             try await BiometricAuth.shared.authenticate(reason: "sec requires Touch ID to lock and encrypt '\(fileURL.lastPathComponent)'")
             SessionManager.shared.startSession()
         }
+        
+        backupVault(at: vault)
         
         let masterKey = try KeychainManager.shared.getOrCreateMasterKey()
         let encryptedVaultData = try CryptoEngine.shared.encrypt(plaintext: plaintextData, keyData: masterKey)
@@ -126,10 +168,12 @@ public final class VaultEngine {
             """
         }
         
+        // Resolve target file URL to preserve symlinks rather than replacing them with regular files
+        let targetFileURL = fileURL.resolvingSymlinksInPath()
         do {
-            try dummyContent.write(to: fileURL, atomically: true, encoding: .utf8)
+            try dummyContent.write(to: targetFileURL, atomically: true, encoding: .utf8)
             if let perms = originalPerms {
-                try? FileManager.default.setAttributes([.posixPermissions: perms], ofItemAtPath: fileURL.path)
+                try? FileManager.default.setAttributes([.posixPermissions: perms], ofItemAtPath: targetFileURL.path)
             }
         } catch {
             throw VaultError.writeFailed("Could not write masked dummy file: \(error.localizedDescription)")
@@ -182,18 +226,24 @@ public final class VaultEngine {
         return decrypted
     }
     
-    /// Completely unlocks the file back to plaintext on disk (removes .vault)
+    /// Completely unlocks the file back to plaintext on disk (moves .vault to Trash and .vault.bak for disaster recovery)
     public func unlockToDisk(vaultURL: URL) async throws {
-        let plainFile = plainFileURL(for: vaultURL)
+        let plainFile = plainFileURL(for: vaultURL).resolvingSymlinksInPath()
         let plaintextData = try await readDecryptedData(vaultURL: vaultURL, promptReason: "sec requires Touch ID to permanently unlock '\(plainFile.lastPathComponent)' to disk")
         
         do {
+            backupVault(at: vaultURL, trigger: .preUnlock, note: "Pre-unlock snapshot before restoring plaintext to disk")
+            _ = try? await BackupEngine.shared.moveToTrash(vaultURL: vaultURL, reason: "Restored plaintext to disk")
             try plaintextData.write(to: plainFile, options: .atomic)
             let name = plainFile.lastPathComponent.lowercased()
             if name.contains("rsa") || name.hasSuffix(".pem") || name.hasSuffix(".key") || name.contains("id_ed25519") || name.contains("id_ecdsa") {
                 try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: plainFile.path)
             }
-            try? FileManager.default.removeItem(at: vaultURL)
+            
+            // Move vault to local .bak file instead of outright deleting it, ensuring user never loses secrets if plain file is damaged
+            let localBak = vaultURL.appendingPathExtension("bak")
+            try? FileManager.default.removeItem(at: localBak)
+            try? FileManager.default.moveItem(at: vaultURL, to: localBak)
             RegistryManager.shared.unregister(vaultURL: vaultURL)
         } catch {
             throw VaultError.writeFailed("Failed to restore plaintext file: \(error.localizedDescription)")
@@ -202,6 +252,16 @@ public final class VaultEngine {
     
     /// Updates the vault with new plaintext data and refreshes dummy file
     public func updateVault(vaultURL: URL, plaintextData: Data) async throws {
+        // Zero-Data-Loss Guard: Prevent writing empty whitespace
+        if let str = String(data: plaintextData, encoding: .utf8) {
+            let trimmed = str.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.isEmpty && !plaintextData.isEmpty {
+                throw VaultError.writeFailed("Aborting update: payload contains only whitespace, which would wipe vault contents.")
+            }
+        }
+        
+        await backupVaultAsync(at: vaultURL, trigger: .tableSave, note: "Pre-save snapshot before modifying secrets")
+        
         let masterKey = try KeychainManager.shared.getOrCreateMasterKey()
         let encryptedVaultData = try CryptoEngine.shared.encrypt(plaintext: plaintextData, keyData: masterKey)
         
@@ -210,15 +270,50 @@ public final class VaultEngine {
         
         // Also refresh dummy file if valid utf-8 string
         if let plaintextString = String(data: plaintextData, encoding: .utf8) {
-            let plainFile = plainFileURL(for: vaultURL)
+            let plainFile = plainFileURL(for: vaultURL).resolvingSymlinksInPath()
             let dummyContent = EnvParser.shared.generateDummyTemplate(from: plaintextString, fileName: plainFile.lastPathComponent)
             try? dummyContent.write(to: plainFile, atomically: true, encoding: .utf8)
         }
     }
     
+    /// Checks the freshness of a vault against its corresponding plain decoy file on disk
+    public func checkVaultFreshness(vaultURL: URL) -> VaultFreshness {
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: vaultURL.path) else {
+            return .missing
+        }
+        
+        let plainFile = plainFileURL(for: vaultURL)
+        guard fm.fileExists(atPath: plainFile.path) else {
+            return .orphan(vaultURL: vaultURL)
+        }
+        
+        guard let content = try? String(contentsOf: plainFile, encoding: .utf8) else {
+            return .fresh
+        }
+        
+        if isDummyContent(content) {
+            return .fresh
+        }
+        
+        // Plain file has unmasked content: compare modification dates
+        let plainAttrs = try? fm.attributesOfItem(atPath: plainFile.path)
+        let vaultAttrs = try? fm.attributesOfItem(atPath: vaultURL.path)
+        
+        let plainDate = (plainAttrs?[.modificationDate] as? Date) ?? Date()
+        let vaultDate = (vaultAttrs?[.modificationDate] as? Date) ?? Date.distantPast
+        
+        if plainDate > vaultDate {
+            return .stale(plainURL: plainFile, plainModified: plainDate, vaultModified: vaultDate)
+        }
+        
+        return .fresh
+    }
+    
     /// Locates .env.vault or other .vault files in current directory or searches upwards in parent directories
     public func findNearestVault(startingAt startDir: URL = URL(fileURLWithPath: FileManager.default.currentDirectoryPath), targetName: String = ".env.vault") -> URL? {
         var current = startDir.standardizedFileURL
+        let homeDir = FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL
         
         while true {
             let candidate = current.appendingPathComponent(targetName)
@@ -243,6 +338,15 @@ public final class VaultEngine {
                         return current.appendingPathComponent(onlyVault)
                     }
                 }
+            }
+            
+            // Boundary safety: stop upward traversal at .git root or user home directory
+            let gitDir = current.appendingPathComponent(".git")
+            if FileManager.default.fileExists(atPath: gitDir.path) && current.path != startDir.standardizedFileURL.path {
+                break
+            }
+            if current.path == homeDir.path {
+                break
             }
             
             let parent = current.deletingLastPathComponent()

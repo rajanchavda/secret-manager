@@ -10,6 +10,31 @@ public final class FinderInstaller {
         return home.appendingPathComponent("Library/Services", isDirectory: true)
     }
     
+    public func isInstalled() -> Bool {
+        let workflow = servicesDirectory.appendingPathComponent("Lock Secrets with Touch ID (sec).workflow")
+        return FileManager.default.fileExists(atPath: workflow.path)
+    }
+    
+    public func uninstall() throws {
+        let fm = FileManager.default
+        let names = [
+            "Lock Secrets with Touch ID (sec).workflow",
+            "Unlock Secrets with Touch ID (sec).workflow",
+            "Edit Secrets with Touch ID (sec).workflow",
+            "View Secrets with Touch ID (sec).workflow"
+        ]
+        for name in names {
+            let path = servicesDirectory.appendingPathComponent(name).path
+            if fm.fileExists(atPath: path) {
+                try? fm.removeItem(atPath: path)
+            }
+        }
+        let refreshProcess = Process()
+        refreshProcess.executableURL = URL(fileURLWithPath: "/System/Library/CoreServices/pbs")
+        refreshProcess.arguments = ["-flush"]
+        try? refreshProcess.run()
+    }
+    
     /// Installs macOS Quick Actions into ~/Library/Services for Finder right-click integration
     public func install() throws {
         let fm = FileManager.default

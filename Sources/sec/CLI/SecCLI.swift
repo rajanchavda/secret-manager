@@ -1,4 +1,5 @@
 import Foundation
+import SecCore
 
 public struct SecCLI {
     public static func run(args: [String]) async {
@@ -65,6 +66,22 @@ public struct SecCLI {
             
         case "install-finder":
             handleInstallFinder()
+            
+        case "export-key", "backup-key":
+            handleExportKey()
+            
+        case "import-key", "restore-key":
+            let keyArg = arguments.count > 1 ? arguments[1] : ""
+            handleImportKey(key: keyArg)
+            
+        case "backup":
+            await handleBackup(arguments: Array(arguments.dropFirst()))
+            
+        case "restore":
+            await handleRestore(arguments: Array(arguments.dropFirst()))
+            
+        case "trash":
+            await handleTrash(arguments: Array(arguments.dropFirst()))
             
         case "--help", "-h", "help":
             printHelp()
@@ -137,6 +154,13 @@ public struct SecCLI {
             print("ℹ️ '\(name)' is already locked and protected by sec.")
             print("   (To force re-lock with current file contents, run: sec lock --force \(name))")
             Notifier.shared.notify(title: "sec: Already Locked", message: "'\(name)' is already protected.")
+        } catch VaultError.cannotLockDecoyFile(let name) {
+            print("❌ Cannot lock '\(name)': The file contains dummy decoy placeholder text.")
+            print("   Re-locking this file would destroy your real encrypted secrets.")
+            print("   💡 Edit secrets:   sec edit \(name)")
+            print("   💡 Unlock to disk: sec unlock \(name)")
+            Notifier.shared.notify(title: "sec: Lock Aborted", message: "'\(name)' contains decoy content. Real secrets preserved.")
+            exit(1)
         } catch {
             print("❌ Error locking file: \(error.localizedDescription)")
             Notifier.shared.notify(title: "sec: Lock Failed", message: error.localizedDescription)
@@ -466,6 +490,228 @@ public struct SecCLI {
         }
     }
     
+    private static func handleExportKey() {
+        do {
+            let keyString = try KeychainManager.shared.exportRecoveryKey()
+            print("🔑 === sec Master Recovery Key ===")
+            print("Keep this key private and secure! You can use it to restore your vaults")
+            print("if you migrate to a new Mac or reinstall macOS:\n")
+            print(keyString)
+            print("\nTo restore on another Mac, run:")
+            print("   sec import-key <key>")
+        } catch {
+            print("❌ Failed to export recovery key: \(error.localizedDescription)")
+            exit(1)
+        }
+    }
+    
+    private static func handleImportKey(key: String) {
+        var keyToImport = key.trimmingCharacters(in: .whitespacesAndNewlines)
+        if keyToImport.isEmpty {
+            print("Enter master recovery key: ", terminator: "")
+            guard let entered = readLine()?.trimmingCharacters(in: .whitespacesAndNewlines), !entered.isEmpty else {
+                print("❌ No key entered. Aborting.")
+                exit(1)
+            }
+            keyToImport = entered
+        }
+        
+        do {
+            try KeychainManager.shared.importRecoveryKey(base64String: keyToImport)
+            print("✅ Master recovery key successfully imported!")
+            print("   Your existing vaults can now be decrypted on this Mac.")
+        } catch {
+            print("❌ Failed to import recovery key: \(error.localizedDescription)")
+            exit(1)
+        }
+    }
+
+    private static func handleBackup(arguments: [String]) async {
+        if arguments.contains("--all") {
+            print("📦 Creating backup snapshots for all registered vaults...")
+            do {
+                let snaps = try await BackupEngine.shared.backupAllRegisteredVaults()
+                print("✅ Successfully backed up \(snaps.count) vault\(snaps.count == 1 ? "" : "s"):")
+                for s in snaps {
+                    print("   • \(s.projectName)/\(s.targetFileName) -> v\(s.version) (\(s.keyCount) keys)")
+                }
+            } catch {
+                print("❌ Backup failed: \(error.localizedDescription)")
+                exit(1)
+            }
+            return
+        }
+        
+        if arguments.contains("--list") {
+            let snapshots = BackupEngine.shared.listAllSnapshots()
+            if snapshots.isEmpty {
+                print("No backup snapshots found.")
+                return
+            }
+            print("=== sec Backup Snapshots (\(snapshots.count)) ===")
+            print(String(format: "%-10@ %-16@ %-16@ %-12@ %-8@ %@", "ID", "PROJECT", "FILE", "VERSION", "KEYS", "DATE"))
+            print(String(repeating: "-", count: 74))
+            let df = DateFormatter()
+            df.dateStyle = .short
+            df.timeStyle = .short
+            for s in snapshots {
+                let idPrefix = String(s.id.uuidString.prefix(8))
+                let dateStr = df.string(from: s.timestamp)
+                print(String(format: "%-10@ %-16@ %-16@ v%-11d %-8d %@", idPrefix, s.projectName, s.targetFileName, s.version, s.keyCount, dateStr))
+            }
+            return
+        }
+        
+        let target = arguments.first { !$0.hasPrefix("-") } ?? ".env"
+        let currentDir = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        guard let vaultURL = VaultEngine.shared.findNearestVault(startingAt: currentDir, targetName: "\(target).vault") ??
+                             VaultEngine.shared.findNearestVault(startingAt: currentDir, targetName: target) else {
+            print("❌ Vault file not found for '\(target)'")
+            exit(1)
+        }
+        
+        do {
+            let record = try await BackupEngine.shared.createSnapshot(for: vaultURL, trigger: .manual, note: "CLI manual backup")
+            print("✅ Snapshot v\(record.version) created for '\(record.targetFileName)' (Snapshot ID: \(record.id.uuidString.prefix(8)))")
+            print("   Location: ~/.sec/backups/\(record.projectHash)/\(record.snapshotFileName)")
+        } catch {
+            print("❌ Backup failed: \(error.localizedDescription)")
+            exit(1)
+        }
+    }
+    
+    private static func handleRestore(arguments: [String]) async {
+        if arguments.contains("--list") {
+            await handleBackup(arguments: ["--list"])
+            return
+        }
+        
+        let snapshots = BackupEngine.shared.listAllSnapshots()
+        if snapshots.isEmpty {
+            print("❌ No backup snapshots available to restore.")
+            exit(1)
+        }
+        
+        // Check for specific version ID or prefix
+        var snapshotIdMatch: SnapshotRecord? = nil
+        if let versionIdx = arguments.firstIndex(of: "--version") ?? arguments.firstIndex(of: "-v"),
+           versionIdx + 1 < arguments.count {
+            let query = arguments[versionIdx + 1]
+            snapshotIdMatch = snapshots.first {
+                $0.id.uuidString.lowercased().hasPrefix(query.lowercased()) ||
+                "v\($0.version)".lowercased() == query.lowercased() ||
+                String($0.version) == query
+            }
+        }
+        
+        let targetArg = arguments.first { !$0.hasPrefix("-") }
+        
+        let chosen: SnapshotRecord
+        if let m = snapshotIdMatch {
+            chosen = m
+        } else if let t = targetArg {
+            // Find most recent snapshot matching filename
+            let clean = t.replacingOccurrences(of: ".vault", with: "")
+            if let match = snapshots.first(where: { $0.targetFileName == clean || $0.targetFileName == t }) {
+                chosen = match
+            } else {
+                print("❌ No snapshot found matching '\(t)'. Run 'sec backup --list' to view available versions.")
+                exit(1)
+            }
+        } else {
+            // Default: restore most recent snapshot in current project directory
+            let currentDir = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).standardizedFileURL.resolvingSymlinksInPath().path
+            if let match = snapshots.first(where: { $0.projectPath == currentDir }) {
+                chosen = match
+            } else if let first = snapshots.first {
+                chosen = first
+            } else {
+                print("❌ No snapshots available.")
+                exit(1)
+            }
+        }
+        
+        print("Restoring '\(chosen.targetFileName)' to snapshot v\(chosen.version) from \(chosen.relativeTime)...")
+        do {
+            try await BackupEngine.shared.restoreSnapshot(snapshotId: chosen.id)
+            print("✅ Successfully rolled back '\(chosen.targetFileName)' to v\(chosen.version)!")
+            print("   Masked decoy and active vault updated on disk.")
+        } catch {
+            print("❌ Restore failed: \(error.localizedDescription)")
+            exit(1)
+        }
+    }
+    
+    private static func handleTrash(arguments: [String]) async {
+        if arguments.contains("--empty") || arguments.contains("--purge-all") {
+            do {
+                try BackupEngine.shared.purgeAllTrash()
+                print("✅ Emptied all soft-deleted vaults from trash.")
+            } catch {
+                print("❌ Failed to empty trash: \(error.localizedDescription)")
+            }
+            return
+        }
+        
+        if let restoreIdx = arguments.firstIndex(of: "--restore") ?? arguments.firstIndex(of: "-r"),
+           restoreIdx + 1 < arguments.count {
+            let idQuery = arguments[restoreIdx + 1]
+            let trash = BackupEngine.shared.loadTrash()
+            guard let match = trash.first(where: { $0.id.uuidString.lowercased().hasPrefix(idQuery.lowercased()) || $0.targetFileName == idQuery }) else {
+                print("❌ Trash item not found matching '\(idQuery)'. Run 'sec trash' to list trashed vaults.")
+                exit(1)
+            }
+            do {
+                let restoredURL = try await BackupEngine.shared.restoreFromTrash(trashId: match.id)
+                print("✅ Successfully restored '\(match.targetFileName)' to '\(restoredURL.path)'!")
+            } catch {
+                print("❌ Failed to restore from trash: \(error.localizedDescription)")
+                exit(1)
+            }
+            return
+        }
+        
+        if let purgeIdx = arguments.firstIndex(of: "--purge") ?? arguments.firstIndex(of: "-p"),
+           purgeIdx + 1 < arguments.count {
+            let idQuery = arguments[purgeIdx + 1]
+            let trash = BackupEngine.shared.loadTrash()
+            guard let match = trash.first(where: { $0.id.uuidString.lowercased().hasPrefix(idQuery.lowercased()) || $0.targetFileName == idQuery }) else {
+                print("❌ Trash item not found matching '\(idQuery)'.")
+                exit(1)
+            }
+            do {
+                try BackupEngine.shared.purgeTrashItem(trashId: match.id)
+                print("✅ Purged '\(match.targetFileName)' from trash.")
+            } catch {
+                print("❌ Failed to purge: \(error.localizedDescription)")
+                exit(1)
+            }
+            return
+        }
+        
+        let trash = BackupEngine.shared.loadTrash()
+        if trash.isEmpty {
+            print("🗑️  Trash is empty. Unlocked or removed vaults are automatically archived here.")
+            return
+        }
+        
+        print("=== sec Vault Trash (\(trash.count)) ===")
+        print(String(format: "%-10@ %-16@ %-16@ %-8@ %@", "ID", "PROJECT", "FILE", "KEYS", "REMOVED"))
+        print(String(repeating: "-", count: 68))
+        let df = DateFormatter()
+        df.dateStyle = .short
+        df.timeStyle = .short
+        for t in trash {
+            let idPrefix = String(t.id.uuidString.prefix(8))
+            let dateStr = df.string(from: t.removedAt)
+            print(String(format: "%-10@ %-16@ %-16@ %-8d %@", idPrefix, t.projectName, t.targetFileName, t.originalKeyCount, dateStr))
+        }
+        print("\nCommands:")
+        print("   • Restore a vault:   sec trash --restore <id>")
+        print("   • Purge from trash:  sec trash --purge <id>")
+        print("   • Empty all trash:   sec trash --empty")
+    }
+
     private static func printHelp() {
         let help = """
         sec - Touch ID Secret Vault for macOS
@@ -477,9 +723,14 @@ public struct SecCLI {
             sec lock [--force] [file]   Lock file & replace with dummy (skips if already locked)
             sec edit [file]             Safely edit secrets in temporary buffer and re-encrypt
             sec view [file]             Print decrypted secrets to terminal (prompts Touch ID)
-            sec unlock [--yes] [file]   Restore plaintext to disk and remove vault
+            sec unlock [--yes] [file]   Restore plaintext to disk and move vault to trash
+            sec backup [--all] [--list] Create or list versioned snapshots of encrypted vaults
+            sec restore [file] [-v <#>] Rollback vault to a previous version snapshot
+            sec trash [--restore <id>]  View or restore soft-deleted and unlocked vaults
             sec list [--scan] [--prune] List all locked secret vaults across your Mac
             sec scan [dir]              Discover and register existing vaults across folders
+            sec export-key              Export master key for disaster recovery or Mac migration
+            sec import-key [key]        Import master recovery key on a new or wiped Mac
             sec status                  Show keychain, zero-cache policy, and project vault status
             sec session                 Inspect access policy (Zero-Cache by default)
             sec install-finder          Install macOS Finder right-click Quick Actions
@@ -490,22 +741,33 @@ public struct SecCLI {
             sec lock .env
             sec lock credentials.json
 
-            # 2. View all locked vaults across your Mac
+            # 2. View version snapshots and take manual backups
+            sec backup .env
+            sec backup --all
+            sec backup --list
+            sec restore .env --version 1
+
+            # 3. Soft-delete trash recovery
+            sec trash
+            sec trash --restore 8f2a1b4c
+
+            # 4. View all locked vaults across your Mac
             sec list
             sec list --scan ~/Developer
             sec list --prune
 
-            # 3. Run your app with secrets injected in memory (never written to disk)
+            # 5. Export / Import master recovery key
+            sec export-key
+            sec import-key <key>
+
+            # 6. Run your app with secrets injected in memory (never written to disk)
             sec npm run dev
             sec -f .env.local npm run dev
             sec -f credentials.json python app.py
             sec cargo run
 
-            # 4. Edit secrets safely
+            # 7. Edit secrets safely
             sec edit .env
-
-            # 5. Right-click integration in Finder
-            sec install-finder
         """
         print(help)
     }
