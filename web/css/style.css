@@ -563,6 +563,98 @@ nav {
     transform: translateY(-1px);
 }
 
+/* Hero Install Method Switcher & Command Pills */
+.hero-install-switcher {
+    width: 100%;
+    max-width: 540px;
+    margin: 4px auto 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.install-tabs {
+    display: inline-flex;
+    align-items: center;
+    background: var(--card-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    padding: 3px;
+    gap: 3px;
+}
+
+[data-theme="dark"] .install-tabs {
+    background: #0f1422;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.install-tab-btn {
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-full);
+    padding: 5px 13px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    user-select: none;
+}
+
+.install-tab-btn:hover {
+    color: var(--text);
+}
+
+.install-tab-btn.active {
+    background: var(--card);
+    color: var(--text);
+    box-shadow: var(--shadow-sm);
+    font-weight: 600;
+}
+
+[data-theme="dark"] .install-tab-btn.active {
+    background: #1e293b;
+    color: #f1f5f9;
+}
+
+.install-tab-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.15);
+    color: #059669;
+}
+
+[data-theme="dark"] .install-tab-badge {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+}
+
+.install-tab-pane {
+    width: 100%;
+}
+
+.install-helper-text {
+    font-size: 12px;
+    color: var(--text-faint);
+    margin-top: 6px;
+    text-align: center;
+}
+
+.install-helper-text code {
+    font-family: "SF Mono", monospace;
+    font-size: 11px;
+    background: var(--card-subtle);
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: var(--text-muted);
+}
+
 /* 1-Click Install Command Pill */
 .install-pill {
     display: flex;
@@ -576,6 +668,7 @@ nav {
     box-shadow: var(--shadow-md);
     cursor: pointer;
     transition: border-color 0.2s, box-shadow 0.2s;
+    overflow: hidden;
 }
 
 .install-pill:hover {
@@ -585,17 +678,29 @@ nav {
 
 .install-pill code {
     font-family: "SF Mono", Menlo, Consolas, monospace;
-    font-size: 13.5px;
+    font-size: 13px;
     color: #e2e8f0;
     display: flex;
     align-items: center;
     gap: 8px;
     user-select: all;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex: 1;
+    min-width: 0;
+    padding-right: 8px;
+}
+
+.install-pill code::-webkit-scrollbar {
+    display: none;
 }
 
 .install-pill .prefix {
     color: #38bdf8;
     font-weight: 600;
+    flex-shrink: 0;
 }
 
 .copy-btn {
@@ -2107,18 +2212,377 @@ footer a:hover { text-decoration: underline; }
     color: var(--text);
     font-size: 12.5px;
     cursor: pointer;
+/* Base Accordion UI Elements (Desktop default: all details visible) */
+.cli-accordion-chevron {
+    display: none;
+}
+
+.cli-toggle-all-btn {
+    display: none;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    padding: 3px 10px;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.cli-toggle-all-btn:hover {
+    color: var(--text);
+    border-color: var(--border-strong);
+    background: var(--card-hover);
+}
+
+.cli-meta-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* ── Mobile-Friendly Responsive CLI Accordion & Documentation ── */
+@media (max-width: 768px) {
+    .cli-quick-box {
+        margin: 28px auto 0;
+        border-radius: var(--radius-md);
+    }
+
+    .cli-quick-content {
+        padding: 18px 16px;
+        gap: 14px;
+        font-size: 12.5px;
+    }
+
+    .cli-line {
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+
+    .t-comment {
+        font-size: 11.5px;
+    }
+
+    .stacks-strip {
+        gap: 8px;
+        margin-top: 20px;
+    }
+
+    .stack-chip {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    .cli-explorer-wrap {
+        margin-top: 36px;
+    }
+
+    .cli-toggle-all-btn {
+        display: inline-flex;
+    }
+
+    .cli-meta-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    /* ── Collapsible Accordion Cards on Mobile ── */
+    .cli-cmd-card {
+        padding: 14px 16px;
+        border-radius: 14px;
+        transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .cli-card-header {
+        cursor: pointer;
+        user-select: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 0;
+        padding: 2px 0;
+    }
+
+    .cli-card-title-group {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .cli-cmd-badge {
+        font-size: 10px;
+        padding: 2px 6px;
+        flex-shrink: 0;
+    }
+
+    .cli-cmd-syntax {
+        font-size: 13.5px;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        line-height: 1.35;
+    }
+
+    .cli-card-header .copy-btn {
+        padding: 5px 10px;
+        font-size: 11.5px;
+        flex-shrink: 0;
+    }
+
+    .cli-accordion-chevron {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--card-subtle);
+        color: var(--text-muted);
+        flex-shrink: 0;
+        transition: transform 0.25s ease, background 0.2s ease, color 0.2s ease;
+    }
+
+    /* Expanded State */
+    .cli-cmd-card.expanded {
+        border-color: rgba(0, 113, 227, 0.4);
+        box-shadow: 0 4px 20px rgba(0, 113, 227, 0.08);
+    }
+
+    [data-theme="dark"] .cli-cmd-card.expanded {
+        border-color: rgba(56, 189, 248, 0.4);
+        box-shadow: 0 4px 20px rgba(14, 165, 233, 0.12);
+    }
+
+    .cli-cmd-card.expanded .cli-card-header {
+        margin-bottom: 12px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .cli-cmd-card.expanded .cli-accordion-chevron {
+        transform: rotate(180deg);
+        background: var(--accent-subtle);
+        color: var(--accent);
+    }
+
+    /* Hide Body Elements When Collapsed on Mobile */
+    .cli-cmd-card .cli-cmd-desc,
+    .cli-cmd-card .cli-flags-row,
+    .cli-cmd-card .cli-card-example {
+        display: none;
+    }
+
+    /* Show Body Elements When Expanded */
+    .cli-cmd-card.expanded .cli-cmd-desc {
+        display: block;
+        font-size: 13px;
+        line-height: 1.5;
+        margin-bottom: 10px;
+        animation: cliFadeIn 0.22s ease-out;
+    }
+
+    .cli-cmd-card.expanded .cli-flags-row {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 10px;
+        width: 100%;
+        animation: cliFadeIn 0.22s ease-out;
+    }
+
+    .cli-cmd-card.expanded .cli-card-example {
+        display: flex;
+        animation: cliFadeIn 0.22s ease-out;
+    }
+
+    @keyframes cliFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-4px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
 }
 
 @media (max-width: 640px) {
+    /* Hero Installation Switcher on Mobile */
+    .hero-install-switcher {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .install-tabs {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+
+    .install-tab-btn {
+        flex: 1;
+        justify-content: center;
+        padding: 6px 8px;
+        font-size: 11.5px;
+    }
+
+    .install-pill {
+        padding: 5px 6px 5px 12px;
+    }
+
+    .install-pill code {
+        font-size: 11px;
+        gap: 6px;
+    }
+
+    .install-pill .copy-btn {
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+
+    /* CLI Filter Bar on Mobile */
     .cli-filter-bar {
         flex-direction: column;
         align-items: stretch;
+        gap: 10px;
+        margin-bottom: 12px;
     }
+
+    .cli-category-tabs {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        flex-wrap: nowrap;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding: 2px 2px 6px;
+        margin: 0 -4px;
+    }
+
+    .cli-category-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .cli-tab-btn {
+        flex-shrink: 0;
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
     .cli-search-wrap {
+        width: 100%;
+        min-width: 0;
         max-width: 100%;
     }
-    .cli-card-header {
-        align-items: flex-start;
+
+    .cli-search-input {
+        padding: 8px 14px 8px 34px;
+        font-size: 13px;
+    }
+
+    .cli-meta-bar {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 11.5px;
+        margin-bottom: 12px;
+    }
+
+    /* CLI Command Grid on Mobile */
+    .cli-command-grid {
+        gap: 10px;
+    }
+
+    /* Flags & Parameters Stack on Mobile */
+    .cli-flag-item {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 3px 6px;
+        font-size: 12px;
+        width: 100%;
+        background: var(--card-subtle);
+        padding: 6px 10px;
+        border-radius: 6px;
+        box-sizing: border-box;
+    }
+
+    .cli-flag-tag {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--accent);
+        background: transparent;
+        border: none;
+        padding: 0;
+    }
+
+    .cli-flag-hint {
+        font-size: 11.5px;
+        color: var(--text-muted);
+    }
+
+    /* Interactive Command Example Row on Mobile */
+    .cli-card-example {
+        padding: 8px 10px;
+        gap: 8px;
+        min-width: 0;
+    }
+
+    .cli-example-code {
+        flex: 1;
+        min-width: 0;
+        overflow-x: auto;
+        white-space: nowrap;
+        -webkit-overflow-scrolling: touch;
+        font-size: 12px;
+        scrollbar-width: none;
+    }
+
+    .cli-example-code::-webkit-scrollbar {
+        display: none;
+    }
+
+    .cli-card-copy-hint span {
+        display: none; /* Hide label on mobile to prevent squishing code */
+    }
+
+    .cli-card-copy-hint {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        color: var(--text-faint);
+    }
+}
+
+@media (max-width: 420px) {
+    .cli-cmd-card {
+        padding: 12px 14px;
+    }
+
+    .cli-card-header .copy-btn span {
+        display: none; /* Icon-only on very narrow phones */
+    }
+
+    .cli-card-header .copy-btn {
+        padding: 5px 8px;
+    }
+
+    .cli-cmd-syntax {
+        font-size: 12.5px;
+    }
+
+    .cli-accordion-chevron {
+        width: 22px;
+        height: 22px;
     }
 }
 
