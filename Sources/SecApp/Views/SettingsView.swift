@@ -64,6 +64,40 @@ public struct SettingsView: View {
                 .accessibilityLabel("Reinstall Finder Right-Click Actions")
                 
                 Button(action: {
+                    Task {
+                        await UpdateChecker.shared.checkForUpdates(userInitiated: true)
+                    }
+                }) {
+                    HStack {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .foregroundColor(.green)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Check for Updates...")
+                                .font(.scaled(size: 12.5, weight: .medium))
+                            Text("Version \(UpdateChecker.shared.currentVersion)")
+                                .font(.scaled(size: 11))
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        if UpdateChecker.shared.isChecking {
+                            ProgressView()
+                                .scaleEffect(0.7)
+                        } else {
+                            Image(systemName: "chevron.right")
+                                .font(.scaled(size: 11))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(10)
+                    .background(Color(nsColor: .controlBackgroundColor).opacity(0.45))
+                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                }
+                .buttonStyle(.plain)
+                .disabled(UpdateChecker.shared.isChecking)
+                .help("Check for latest Secret Manager releases on GitHub")
+                .accessibilityLabel("Check for Updates")
+                
+                Button(action: {
                     NSApplication.shared.terminate(nil)
                 }) {
                     HStack {

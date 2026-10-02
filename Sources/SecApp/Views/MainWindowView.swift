@@ -2,6 +2,7 @@ import SwiftUI
 
 public struct MainWindowView: View {
     @ObservedObject var store: SecAppStore
+    @ObservedObject private var updater = UpdateChecker.shared
     @FocusState private var isSearchFocused: Bool
     @State private var isWindowDropTargeted: Bool = false
     
@@ -325,6 +326,9 @@ public struct MainWindowView: View {
         }
         .sheet(isPresented: $store.showProtectFileModal) {
             ProtectFileModalView(store: store, isPresented: $store.showProtectFileModal)
+        }
+        .sheet(isPresented: $updater.showUpdateSheet) {
+            UpdateDialogView(updater: updater)
         }
         .alert(
             "Encrypt '\(store.pendingEncryptionURL?.lastPathComponent ?? "File")'?",
