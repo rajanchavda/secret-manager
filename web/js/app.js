@@ -550,4 +550,33 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
+
+    // 10. Nav Brand Logo Smooth Scroll to Top without URL hash
+    const navBrands = document.querySelectorAll('.nav-brand');
+    navBrands.forEach(brand => {
+        brand.addEventListener('click', (e) => {
+            e.preventDefault();
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+
+            // Close mobile drawer if open
+            if (mobileDrawer && mobileDrawer.classList.contains('open') && mobileMenuBtn) {
+                mobileDrawer.classList.remove('open');
+                mobileMenuBtn.classList.remove('active');
+                mobileMenuBtn.setAttribute('aria-expanded', 'false');
+                mobileMenuBtn.setAttribute('aria-label', 'Open navigation menu');
+            }
+
+            // Remove any hash tag from URL without reloading
+            if (window.location.hash) {
+                try {
+                    history.replaceState(null, '', window.location.pathname + window.location.search);
+                } catch (_) {
+                    // Fallback for sandboxed or restricted file:// contexts
+                }
+            }
+        });
+    });
 });
