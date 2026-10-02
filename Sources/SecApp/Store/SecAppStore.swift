@@ -913,7 +913,7 @@ public final class SecAppStore: ObservableObject {
         outPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
             let data = handle.availableData
             guard !data.isEmpty, let text = String(data: data, encoding: .utf8) else { return }
-            DispatchQueue.main.async {
+            DispatchQueue.main.async { [weak self] in
                 self?.appendLog(text.trimmingCharacters(in: .newlines), isError: false)
             }
         }
@@ -921,7 +921,7 @@ public final class SecAppStore: ObservableObject {
         errPipe.fileHandleForReading.readabilityHandler = { [weak self] handle in
             let data = handle.availableData
             guard !data.isEmpty, let text = String(data: data, encoding: .utf8) else { return }
-            DispatchQueue.main.async {
+            DispatchQueue.main.async { [weak self] in
                 self?.appendLog(text.trimmingCharacters(in: .newlines), isError: true)
             }
         }
@@ -944,7 +944,7 @@ public final class SecAppStore: ObservableObject {
             )
             
             process.terminationHandler = { [weak self] proc in
-                DispatchQueue.main.async {
+                DispatchQueue.main.async { [weak self] in
                     self?.isProcessRunning = false
                     self?.runningPID = nil
                     self?.appendLog("────────────────────────────────────────────────────────", isError: false)
@@ -1380,7 +1380,8 @@ public final class SecAppStore: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            Task { @MainActor in
+            guard let self = self else { return }
+            Task { @MainActor [weak self] in
                 self?.lockAll()
             }
         }
