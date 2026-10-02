@@ -60,12 +60,17 @@ jobs:
           prerelease: false
 
       - name: Update Homebrew cask
-        if: env.GH_TOKEN != ''
         env:
           GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           SHA256: ${{ steps.checksum.outputs.sha256 }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "❌ Error: HOMEBREW_TAP_TOKEN is not configured in this repository's Secrets!"
+            echo "👉 Go to: https://github.com/rajanchavda/file-sec/settings/secrets/actions and add HOMEBREW_TAP_TOKEN"
+            exit 1
+          fi
+
           git clone "https://x-access-token:${GH_TOKEN}@github.com/rajanchavda/homebrew-tap.git" /tmp/homebrew-tap
 
           ruby -e "
