@@ -68,6 +68,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (matchesCategory && matchesSearch) {
                 card.style.display = '';
                 visibleCount++;
+                if (query.length > 0) {
+                    card.classList.add('expanded');
+                }
             } else {
                 card.style.display = 'none';
             }
@@ -114,6 +117,83 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // 2.3 Mobile-Friendly CLI Accordion Behavior
+    if (cliCards.length > 0) {
+        // Expand first card by default on mobile as a visual indicator
+        cliCards[0].classList.add('expanded');
+
+        cliCards.forEach(card => {
+            const header = card.querySelector('.cli-card-header');
+            if (header && !header.querySelector('.cli-accordion-chevron')) {
+                const chevron = document.createElement('span');
+                chevron.className = 'cli-accordion-chevron';
+                chevron.setAttribute('aria-hidden', 'true');
+                chevron.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>`;
+                header.appendChild(chevron);
+
+                header.addEventListener('click', (e) => {
+                    // Do not toggle accordion if clicking on the Copy button
+                    if (e.target.closest('.copy-btn')) return;
+                    card.classList.toggle('expanded');
+                });
+            }
+        });
+
+        // Expand All / Collapse All Toggle Button
+        const toggleAllBtn = document.getElementById('cliToggleAllBtn');
+        if (toggleAllBtn) {
+            let isAllExpanded = false;
+            toggleAllBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                isAllExpanded = !isAllExpanded;
+                cliCards.forEach(card => {
+                    if (card.style.display !== 'none') {
+                        if (isAllExpanded) {
+                            card.classList.add('expanded');
+                        } else {
+                            card.classList.remove('expanded');
+                        }
+                    }
+                });
+                const label = toggleAllBtn.querySelector('.toggle-all-text');
+                if (label) {
+                    label.textContent = isAllExpanded ? 'Collapse All' : 'Expand All';
+                }
+            });
+        }
+    }
+
+
+    // 2.5 Installation Method Switcher (Homebrew vs Direct Script)
+    const installSwitchers = document.querySelectorAll('.hero-install-switcher');
+    installSwitchers.forEach(switcher => {
+        const tabs = switcher.querySelectorAll('.install-tab-btn');
+        const panes = switcher.querySelectorAll('.install-tab-pane');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetKey = tab.getAttribute('data-tab');
+
+                tabs.forEach(t => {
+                    t.classList.remove('active');
+                    t.setAttribute('aria-selected', 'false');
+                });
+                tab.classList.add('active');
+                tab.setAttribute('aria-selected', 'true');
+
+                panes.forEach(pane => {
+                    if (pane.id === `hero-pane-${targetKey}`) {
+                        pane.classList.add('active');
+                        pane.style.display = 'block';
+                    } else {
+                        pane.classList.remove('active');
+                        pane.style.display = 'none';
+                    }
+                });
+            });
+        });
+    });
 
     // 3. One-Click Copy Buttons (Install pills and code snippets)
     const copyTriggers = document.querySelectorAll('[data-copy]');
