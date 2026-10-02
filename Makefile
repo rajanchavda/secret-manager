@@ -29,6 +29,9 @@ test:
 install:
 	./install.sh
 
+uninstall:
+	./uninstall.sh
+
 clean:
 	swift package clean
 	rm -rf .build build
