@@ -67,7 +67,7 @@ jobs:
         run: |
           if [ -z "$GH_TOKEN" ]; then
             echo "❌ Error: HOMEBREW_TAP_TOKEN is not configured in this repository's Secrets!"
-            echo "👉 Go to: https://github.com/rajanchavda/file-sec/settings/secrets/actions and add HOMEBREW_TAP_TOKEN"
+            echo "👉 Go to: https://github.com/rajanchavda/security-manager/settings/secrets/actions and add HOMEBREW_TAP_TOKEN"
             exit 1
           fi
 
@@ -81,10 +81,10 @@ jobs:
                 version \"#{version}\"
                 sha256 \"#{sha256}\"
 
-                url \"https://github.com/rajanchavda/file-sec/releases/download/v\#{version}/Secret-Manager-\#{version}.dmg\"
+                url \"https://github.com/rajanchavda/security-manager/releases/download/v\#{version}/Secret-Manager-\#{version}.dmg\"
                 name \"Secret Manager\"
                 desc \"Hardware-grade Touch ID Secret Manager and stealth secret injection\"
-                homepage \"https://github.com/rajanchavda/file-sec\"
+                homepage \"https://github.com/rajanchavda/security-manager\"
 
                 app \"Secret Manager.app\"
                 binary \"\#{appdir}/Secret Manager.app/Contents/MacOS/sec\", target: \"sec\"
