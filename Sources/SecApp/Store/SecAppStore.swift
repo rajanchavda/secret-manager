@@ -489,7 +489,7 @@ public final class SecAppStore: ObservableObject {
             playHapticFeedback()
             
             addRadarEvent(
-                agent: "SecApp Inspector",
+                agent: "Secret Manager Inspector",
                 action: isFirstAuth ? "Unlocked Secret Manager with Touch ID" : "Inspected secrets (Active Session)",
                 detail: "Decrypted \(currentSecrets.count) keys into secure RAM",
                 severity: .shielded
@@ -497,7 +497,7 @@ public final class SecAppStore: ObservableObject {
         } catch {
             showTemporaryStatus("Authentication cancelled or failed")
             addRadarEvent(
-                agent: "SecApp Inspector",
+                agent: "Secret Manager Inspector",
                 action: "Touch ID inspection failed",
                 detail: error.localizedDescription,
                 severity: .alert
@@ -593,7 +593,7 @@ public final class SecAppStore: ObservableObject {
             }
             
             addRadarEvent(
-                agent: "SecApp Editor",
+                agent: "Secret Manager Editor",
                 action: "Updated vault with AES-256-GCM (Cmd+S)",
                 detail: "Updated \(targetFile).vault & refreshed decoy on disk",
                 severity: .success
@@ -614,7 +614,7 @@ public final class SecAppStore: ObservableObject {
             playHapticFeedback()
             
             addRadarEvent(
-                agent: "SecApp",
+                agent: "Secret Manager",
                 action: "Locked '\(fileName)' with Touch ID",
                 detail: "Generated masked decoy on disk & AES-256 vault",
                 severity: .success
@@ -669,7 +669,7 @@ public final class SecAppStore: ObservableObject {
             playHapticFeedback()
             
             addRadarEvent(
-                agent: "SecApp",
+                agent: "Secret Manager",
                 action: "Restored plaintext to disk",
                 detail: "Plaintext written to '\(targetFile)' • Vault removed",
                 severity: .warning
@@ -703,7 +703,7 @@ public final class SecAppStore: ObservableObject {
             showTemporaryStatus("Snapshot v\(record.version) created for '\(targetFile)'")
             playHapticFeedback()
             addRadarEvent(
-                agent: "SecApp",
+                agent: "Secret Manager",
                 action: "Created snapshot v\(record.version)",
                 detail: "Stored snapshot in ~/.sec/backups for \(targetFile)",
                 severity: .success
@@ -722,7 +722,7 @@ public final class SecAppStore: ObservableObject {
             showTemporaryStatus("Created snapshots for \(created.count) vault\(created.count == 1 ? "" : "s")")
             playHapticFeedback()
             addRadarEvent(
-                agent: "SecApp",
+                agent: "Secret Manager",
                 action: "Batch backup completed",
                 detail: "Created snapshots for \(created.count) registered vaults",
                 severity: .success
@@ -755,7 +755,7 @@ public final class SecAppStore: ObservableObject {
             showTemporaryStatus("Restored '\(snapshot.targetFileName)' to v\(snapshot.version)")
             playHapticFeedback()
             addRadarEvent(
-                agent: "SecApp",
+                agent: "Secret Manager",
                 action: "Rolled back to v\(snapshot.version)",
                 detail: "Restored \(snapshot.targetFileName) to version from \(snapshot.relativeTime)",
                 severity: .warning
@@ -822,7 +822,7 @@ public final class SecAppStore: ObservableObject {
             showTemporaryStatus("Restored '\(item.targetFileName)' from Trash")
             playHapticFeedback()
             addRadarEvent(
-                agent: "SecApp",
+                agent: "Secret Manager",
                 action: "Restored from Trash",
                 detail: "Restored vault '\(restoredURL.lastPathComponent)'",
                 severity: .success

@@ -12,8 +12,8 @@ app:
 	./scripts/build-app.sh
 
 run-app: app
-	pkill -x SecApp 2>/dev/null || true
-	open build/SecApp.app
+	pkill -x "Secret Manager" 2>/dev/null || pkill -x SecApp 2>/dev/null || true
+	open "build/Secret Manager.app"
 
 runapp: run-app
 
