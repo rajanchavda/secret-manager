@@ -563,6 +563,98 @@ nav {
     transform: translateY(-1px);
 }
 
+/* Hero Install Method Switcher & Command Pills */
+.hero-install-switcher {
+    width: 100%;
+    max-width: 540px;
+    margin: 4px auto 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.install-tabs {
+    display: inline-flex;
+    align-items: center;
+    background: var(--card-subtle);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    padding: 3px;
+    gap: 3px;
+}
+
+[data-theme="dark"] .install-tabs {
+    background: #0f1422;
+    border-color: rgba(255, 255, 255, 0.08);
+}
+
+.install-tab-btn {
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-full);
+    padding: 5px 13px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    user-select: none;
+}
+
+.install-tab-btn:hover {
+    color: var(--text);
+}
+
+.install-tab-btn.active {
+    background: var(--card);
+    color: var(--text);
+    box-shadow: var(--shadow-sm);
+    font-weight: 600;
+}
+
+[data-theme="dark"] .install-tab-btn.active {
+    background: #1e293b;
+    color: #f1f5f9;
+}
+
+.install-tab-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: rgba(16, 185, 129, 0.15);
+    color: #059669;
+}
+
+[data-theme="dark"] .install-tab-badge {
+    background: rgba(16, 185, 129, 0.2);
+    color: #34d399;
+}
+
+.install-tab-pane {
+    width: 100%;
+}
+
+.install-helper-text {
+    font-size: 12px;
+    color: var(--text-faint);
+    margin-top: 6px;
+    text-align: center;
+}
+
+.install-helper-text code {
+    font-family: "SF Mono", monospace;
+    font-size: 11px;
+    background: var(--card-subtle);
+    padding: 1px 5px;
+    border-radius: 4px;
+    color: var(--text-muted);
+}
+
 /* 1-Click Install Command Pill */
 .install-pill {
     display: flex;
@@ -576,6 +668,7 @@ nav {
     box-shadow: var(--shadow-md);
     cursor: pointer;
     transition: border-color 0.2s, box-shadow 0.2s;
+    overflow: hidden;
 }
 
 .install-pill:hover {
@@ -585,17 +678,29 @@ nav {
 
 .install-pill code {
     font-family: "SF Mono", Menlo, Consolas, monospace;
-    font-size: 13.5px;
+    font-size: 13px;
     color: #e2e8f0;
     display: flex;
     align-items: center;
     gap: 8px;
     user-select: all;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    flex: 1;
+    min-width: 0;
+    padding-right: 8px;
+}
+
+.install-pill code::-webkit-scrollbar {
+    display: none;
 }
 
 .install-pill .prefix {
     color: #38bdf8;
     font-weight: 600;
+    flex-shrink: 0;
 }
 
 .copy-btn {
@@ -1816,6 +1921,11 @@ footer a:hover { text-decoration: underline; }
     margin-bottom: 18px;
 }
 
+.cli-category-tabs-wrap {
+    position: relative;
+    min-width: 0;
+}
+
 .cli-category-tabs {
     display: flex;
     flex-wrap: wrap;
@@ -1836,6 +1946,7 @@ footer a:hover { text-decoration: underline; }
     align-items: center;
     gap: 6px;
     user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .cli-tab-btn:hover {
@@ -1889,12 +2000,13 @@ footer a:hover { text-decoration: underline; }
     background: var(--card);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-full);
-    padding: 8px 16px 8px 36px;
+    padding: 8px 36px 8px 36px;
     font-size: 13px;
     color: var(--text);
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
     font-family: inherit;
+    -webkit-appearance: none;
 }
 
 .cli-search-input:focus {
@@ -1904,6 +2016,28 @@ footer a:hover { text-decoration: underline; }
 
 .cli-search-input::placeholder {
     color: var(--text-faint);
+}
+
+.cli-search-clear {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    cursor: pointer;
+    padding: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: color 0.2s ease, background 0.2s ease;
+}
+
+.cli-search-clear:hover {
+    color: var(--text);
+    background: var(--card-subtle);
 }
 
 .cli-meta-bar {
@@ -1923,6 +2057,7 @@ footer a:hover { text-decoration: underline; }
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    transition: color 0.2s ease;
 }
 
 .cli-docs-link:hover {
@@ -1932,8 +2067,12 @@ footer a:hover { text-decoration: underline; }
 /* Command Cards List */
 .cli-command-grid {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     gap: 14px;
+    box-sizing: border-box;
 }
 
 .cli-cmd-card {
@@ -1943,6 +2082,11 @@ footer a:hover { text-decoration: underline; }
     padding: 20px 24px;
     transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     box-shadow: var(--shadow-sm);
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 .cli-cmd-card:hover {
@@ -1957,7 +2101,10 @@ footer a:hover { text-decoration: underline; }
     justify-content: space-between;
     gap: 12px;
     margin-bottom: 10px;
-    flex-wrap: wrap;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .cli-card-title-group {
@@ -1965,6 +2112,15 @@ footer a:hover { text-decoration: underline; }
     align-items: center;
     gap: 10px;
     flex-wrap: wrap;
+    flex: 1;
+    min-width: 0;
+}
+
+.cli-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
 }
 
 .cli-cmd-badge {
@@ -1974,6 +2130,7 @@ footer a:hover { text-decoration: underline; }
     letter-spacing: 0.05em;
     padding: 3px 8px;
     border-radius: 6px;
+    flex-shrink: 0;
 }
 
 .badge-core {
@@ -2014,6 +2171,8 @@ footer a:hover { text-decoration: underline; }
     font-weight: 600;
     color: var(--text);
     letter-spacing: -0.01em;
+    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 .cli-cmd-desc {
@@ -2021,6 +2180,14 @@ footer a:hover { text-decoration: underline; }
     color: var(--text-muted);
     line-height: 1.55;
     margin-bottom: 12px;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+}
+
+.cli-cmd-desc code {
+    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 .cli-flags-row {
@@ -2029,6 +2196,9 @@ footer a:hover { text-decoration: underline; }
     gap: 8px;
     align-items: center;
     margin-bottom: 14px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
 }
 
 .cli-flag-item {
@@ -2036,6 +2206,8 @@ footer a:hover { text-decoration: underline; }
     align-items: center;
     gap: 6px;
     font-size: 12.5px;
+    max-width: 100%;
+    min-width: 0;
 }
 
 .cli-flag-tag {
@@ -2046,11 +2218,16 @@ footer a:hover { text-decoration: underline; }
     padding: 2px 7px;
     border-radius: 6px;
     color: var(--text);
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    max-width: 100%;
 }
 
 .cli-flag-hint {
     color: var(--text-faint);
     font-size: 12px;
+    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 .cli-card-example {
@@ -2067,11 +2244,26 @@ footer a:hover { text-decoration: underline; }
     gap: 10px;
     cursor: pointer;
     transition: border-color 0.2s ease, background 0.2s ease;
+    user-select: text;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .cli-card-example:hover {
     border-color: rgba(56, 189, 248, 0.4);
     background: #111722;
+}
+
+.cli-card-example.copied {
+    border-color: #10b981;
+    background: #092015;
+}
+
+.cli-card-example svg {
+    flex-shrink: 0;
 }
 
 .cli-example-code {
@@ -2080,6 +2272,7 @@ footer a:hover { text-decoration: underline; }
     gap: 8px;
     overflow-x: auto;
     white-space: nowrap;
+    min-width: 0;
 }
 
 .cli-empty-state {
@@ -2109,17 +2302,494 @@ footer a:hover { text-decoration: underline; }
     cursor: pointer;
 }
 
-@media (max-width: 640px) {
+.cli-accordion-chevron {
+    display: none;
+}
+
+.cli-toggle-all-btn {
+    display: none;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    cursor: pointer;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+
+.cli-toggle-all-btn:hover {
+    color: var(--text);
+    border-color: var(--border-strong);
+    background: var(--card-hover);
+}
+
+.cli-meta-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* ── Mobile-Friendly Responsive CLI Accordion & Documentation ── */
+@media (max-width: 768px) {
+    .cli-quick-box {
+        margin: 28px auto 0;
+        border-radius: var(--radius-md);
+    }
+
+    .cli-quick-content {
+        padding: 18px 16px;
+        gap: 14px;
+        font-size: 12.5px;
+    }
+
+    .cli-line {
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+
+    .t-comment {
+        font-size: 11.5px;
+    }
+
+    .stacks-strip {
+        gap: 8px;
+        margin-top: 20px;
+    }
+
+    .stack-chip {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    .cli-explorer-wrap {
+        margin-top: 36px;
+    }
+
     .cli-filter-bar {
         flex-direction: column;
         align-items: stretch;
+        gap: 12px;
+        margin-bottom: 14px;
     }
+
     .cli-search-wrap {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .cli-search-input {
+        padding: 10px 36px 10px 38px;
+        font-size: 13.5px;
+        border-radius: var(--radius-sm);
+    }
+
+    .cli-search-icon {
+        left: 13px;
+        width: 16px;
+        height: 16px;
+    }
+
+    /* Category horizontal scroll rail */
+    .cli-category-tabs-wrap {
+        position: relative;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .cli-category-tabs {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 8px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding: 4px 2px 8px;
+        margin: 0;
+    }
+
+    .cli-category-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .cli-tab-btn {
+        flex-shrink: 0;
+        padding: 8px 14px;
+        font-size: 13px;
+        min-height: 38px;
+        border-radius: var(--radius-full);
+    }
+
+    .cli-meta-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 14px;
+        font-size: 12px;
+        padding: 0 2px;
+    }
+
+    .cli-toggle-all-btn {
+        display: inline-flex;
+        padding: 5px 12px;
+        font-size: 12px;
+        border-radius: var(--radius-full);
+    }
+
+    .cli-meta-actions {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    /* ── Collapsible Accordion Cards on Mobile ── */
+    .cli-command-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+
+    .cli-cmd-card {
+        padding: 14px 16px;
+        border-radius: 14px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+
+    .cli-card-header {
+        cursor: pointer;
+        user-select: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 0;
+        padding: 2px 0;
+        min-height: 44px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .cli-card-title-group {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .cli-cmd-badge {
+        font-size: 10.5px;
+        padding: 2.5px 7px;
+        flex-shrink: 0;
+    }
+
+    .cli-cmd-syntax {
+        font-size: 13.5px;
+        line-height: 1.4;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+
+    .cli-card-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+
+    .cli-card-actions .copy-btn {
+        padding: 6px 11px;
+        font-size: 12px;
+        min-height: 34px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        border-radius: 8px;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .cli-accordion-chevron {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        min-height: 32px;
+        border-radius: 50%;
+        background: var(--card-subtle);
+        color: var(--text-muted);
+        flex-shrink: 0;
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease, color 0.2s ease;
+    }
+
+    /* Expanded State */
+    .cli-cmd-card.expanded {
+        border-color: rgba(0, 113, 227, 0.45);
+        box-shadow: 0 4px 18px rgba(0, 113, 227, 0.08);
+    }
+
+    [data-theme="dark"] .cli-cmd-card.expanded {
+        border-color: rgba(56, 189, 248, 0.45);
+        box-shadow: 0 4px 18px rgba(14, 165, 233, 0.12);
+    }
+
+    .cli-cmd-card.expanded .cli-card-header {
+        margin-bottom: 12px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .cli-cmd-card.expanded .cli-accordion-chevron {
+        transform: rotate(180deg);
+        background: var(--accent-subtle);
+        color: var(--accent);
+    }
+
+    /* Hide Body Elements When Collapsed on Mobile */
+    .cli-cmd-card:not(.expanded) .cli-cmd-desc,
+    .cli-cmd-card:not(.expanded) .cli-flags-row,
+    .cli-cmd-card:not(.expanded) .cli-card-example {
+        display: none !important;
+    }
+
+    /* Show Body Elements When Expanded */
+    .cli-cmd-card.expanded .cli-cmd-desc {
+        display: block;
+        font-size: 13.5px;
+        line-height: 1.55;
+        margin-bottom: 12px;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        animation: cliFadeIn 0.2s ease-out;
+    }
+
+    .cli-cmd-card.expanded .cli-flags-row {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        margin-bottom: 12px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        animation: cliFadeIn 0.2s ease-out;
+    }
+
+    .cli-flag-item {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        background: var(--card-subtle);
+        padding: 8px 10px;
+        border-radius: 8px;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+    .cli-flag-tag {
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--accent);
+        background: transparent;
+        border: none;
+        padding: 0;
+        word-break: break-word;
+        overflow-wrap: anywhere;
         max-width: 100%;
     }
-    .cli-card-header {
+
+    .cli-flag-hint {
+        font-size: 12px;
+        color: var(--text-muted);
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        max-width: 100%;
+    }
+
+    .cli-cmd-card.expanded .cli-card-example {
+        display: flex;
         align-items: flex-start;
+        justify-content: space-between;
+        padding: 10px 12px;
+        gap: 8px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        border-radius: 8px;
+        box-sizing: border-box;
+        overflow: hidden;
+        animation: cliFadeIn 0.2s ease-out;
+    }
+
+    .cli-example-code {
+        flex: 1;
+        min-width: 0;
+        max-width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 2px 6px;
+        white-space: normal;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        font-size: 12.5px;
+        line-height: 1.45;
+        box-sizing: border-box;
+    }
+
+    .cli-example-code .t-prompt {
+        color: #38bdf8;
+        font-weight: 600;
+        flex-shrink: 0;
+    }
+
+    .cli-example-code .t-cmd {
+        color: #f1f5f9;
+        font-weight: 500;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+
+    .cli-example-code .t-comment {
+        width: 100%;
+        color: #8b949e;
+        font-size: 11.5px;
+        line-height: 1.4;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        margin-top: 3px;
+        display: block;
+    }
+
+    .cli-card-example svg {
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+
+    @keyframes cliFadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-4px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
     }
 }
+
+@media (max-width: 640px) {
+    /* Hero Installation Switcher on Mobile */
+    .hero-install-switcher {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .install-tabs {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+
+    .install-tab-btn {
+        flex: 1;
+        justify-content: center;
+        padding: 6px 8px;
+        font-size: 11.5px;
+    }
+
+    .install-pill {
+        padding: 5px 6px 5px 12px;
+    }
+
+    .install-pill code {
+        font-size: 11px;
+        gap: 6px;
+    }
+
+    .install-pill .copy-btn {
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+
+    /* CLI Filter Bar & Tabs on Small Screens */
+    .cli-tab-btn {
+        padding: 7px 12px;
+        font-size: 12.5px;
+    }
+
+    .cli-search-input {
+        padding: 9px 36px 9px 36px;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 480px) {
+    .cli-cmd-card {
+        padding: 12px 14px;
+    }
+
+    .cli-card-actions .copy-btn span {
+        display: none; /* Icon-only on narrow phones to save space */
+    }
+
+    .cli-card-actions .copy-btn {
+        padding: 6px 8px;
+    }
+
+    .cli-cmd-syntax {
+        font-size: 13px;
+    }
+
+    .cli-accordion-chevron {
+        width: 28px;
+        height: 28px;
+        min-width: 28px;
+        min-height: 28px;
+    }
+
+    .cli-meta-bar {
+        font-size: 11px;
+    }
+
+    .cli-toggle-all-btn {
+        padding: 4px 10px;
+        font-size: 11px;
+    }
+
+    .cli-docs-link {
+        font-size: 11px;
+    }
+}
+
 
 

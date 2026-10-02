@@ -12,3 +12,7 @@ dist/
 *.dmg
 *.sha256
 SHA256SUMS.txt
+
+# Web & Cloudflare
+node_modules/
+.wrangler/
