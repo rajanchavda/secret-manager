@@ -44,24 +44,76 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // 2. Interactive Cheatsheet Switcher
-    const cheatBtns = document.querySelectorAll('.cheat-btn');
-    const cheatPanels = document.querySelectorAll('.cheat-panel');
+    // 2. Interactive CLI Command Explorer (Category Filter & Real-Time Search)
+    const cliTabs = document.querySelectorAll('.cli-tab-btn');
+    const cliCards = document.querySelectorAll('.cli-cmd-card');
+    const cliSearchInput = document.getElementById('cliSearchInput');
+    const cliVisibleCount = document.getElementById('cliVisibleCount');
+    const cliEmptyState = document.getElementById('cliEmptyState');
+    const cliResetBtn = document.getElementById('cliResetBtn');
 
-    cheatBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const targetId = btn.getAttribute('data-target');
+    let currentCategory = 'all';
 
-            cheatBtns.forEach(b => b.classList.remove('active'));
-            cheatPanels.forEach(p => p.classList.remove('active'));
+    function filterCommands() {
+        const query = (cliSearchInput ? cliSearchInput.value : '').toLowerCase().trim();
+        let visibleCount = 0;
 
-            btn.classList.add('active');
-            const targetPanel = document.getElementById(targetId);
-            if (targetPanel) {
-                targetPanel.classList.add('active');
+        cliCards.forEach(card => {
+            const category = card.getAttribute('data-category');
+            const searchContent = (card.getAttribute('data-search') || card.textContent).toLowerCase();
+
+            const matchesCategory = currentCategory === 'all' || category === currentCategory;
+            const matchesSearch = !query || searchContent.includes(query);
+
+            if (matchesCategory && matchesSearch) {
+                card.style.display = '';
+                visibleCount++;
+            } else {
+                card.style.display = 'none';
             }
         });
-    });
+
+        if (cliVisibleCount) {
+            cliVisibleCount.textContent = `Showing ${visibleCount} of ${cliCards.length} commands`;
+        }
+
+        if (cliEmptyState) {
+            cliEmptyState.style.display = visibleCount === 0 ? 'block' : 'none';
+        }
+    }
+
+    if (cliTabs.length > 0) {
+        cliTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                cliTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentCategory = tab.getAttribute('data-category') || 'all';
+                filterCommands();
+            });
+        });
+    }
+
+    if (cliSearchInput) {
+        cliSearchInput.addEventListener('input', () => {
+            filterCommands();
+        });
+    }
+
+    if (cliResetBtn) {
+        cliResetBtn.addEventListener('click', () => {
+            if (cliSearchInput) cliSearchInput.value = '';
+            currentCategory = 'all';
+            cliTabs.forEach(t => {
+                if (t.getAttribute('data-category') === 'all') {
+                    t.classList.add('active');
+                } else {
+                    t.classList.remove('active');
+                }
+            });
+            filterCommands();
+        });
+    }
+
 
     // 3. One-Click Copy Buttons (Install pills and code snippets)
     const copyTriggers = document.querySelectorAll('[data-copy]');

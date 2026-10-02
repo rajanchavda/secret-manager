@@ -29,8 +29,8 @@ public struct HeaderView: View {
                 }
                 .accessibilityHidden(true)
                 
-                Text("sec")
-                    .font(.scaled(size: 18, weight: .bold, design: .rounded))
+                Text("Secret Manager")
+                    .font(.scaled(size: 16, weight: .bold, design: .rounded))
                     .foregroundColor(.primary)
                 
                 Text("PRO")

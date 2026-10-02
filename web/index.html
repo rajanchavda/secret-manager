@@ -450,6 +450,533 @@
                         <span class="stack-chip">Ruby on Rails</span>
                     </div>
                 </div>
+
+                <!-- ── Interactive CLI Command Explorer ────────────── -->
+                <div class="cli-explorer-wrap reveal">
+                    <div style="margin-bottom: 24px;">
+                        <span class="eyebrow">Command Reference</span>
+                        <h3 style="font-size: 24px; margin-top: 4px;">Explore all 16 CLI commands</h3>
+                        <p style="font-size: 14.5px; color: var(--text-muted); margin-top: 6px;">Filter by category or search by command name, flag, or keyword.</p>
+                    </div>
+
+                    <!-- Category Pills & Live Search Filter -->
+                    <div class="cli-filter-bar">
+                        <div class="cli-category-tabs" role="tablist" aria-label="CLI Command Categories">
+                            <button class="cli-tab-btn active" data-category="all" role="tab" aria-selected="true">
+                                <span>All Commands</span>
+                                <span class="cli-tab-count">16</span>
+                            </button>
+                            <button class="cli-tab-btn" data-category="core" role="tab" aria-selected="false">
+                                <span>Core</span>
+                                <span class="cli-tab-count">5</span>
+                            </button>
+                            <button class="cli-tab-btn" data-category="discovery" role="tab" aria-selected="false">
+                                <span>Discovery</span>
+                                <span class="cli-tab-count">3</span>
+                            </button>
+                            <button class="cli-tab-btn" data-category="backup" role="tab" aria-selected="false">
+                                <span>Backups</span>
+                                <span class="cli-tab-count">3</span>
+                            </button>
+                            <button class="cli-tab-btn" data-category="security" role="tab" aria-selected="false">
+                                <span>Security</span>
+                                <span class="cli-tab-count">5</span>
+                            </button>
+                        </div>
+
+                        <div class="cli-search-wrap">
+                            <svg class="cli-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                            </svg>
+                            <input type="text" id="cliSearchInput" class="cli-search-input" placeholder="Search commands, flags, or keywords..." aria-label="Search CLI commands">
+                        </div>
+                    </div>
+
+                    <div class="cli-meta-bar">
+                        <span id="cliVisibleCount">Showing 16 of 16 commands</span>
+                        <a href="https://github.com/rajanchavda/file-sec/blob/main/docs/CLI_REFERENCE.md" target="_blank" rel="noopener noreferrer" class="cli-docs-link">
+                            <span>Full Markdown Specs</span>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                        </a>
+                    </div>
+
+                    <!-- Command Cards List -->
+                    <div class="cli-command-grid" id="cliCommandGrid">
+
+                        <!-- Command 1: sec <command...> / sec run -->
+                        <div class="cli-cmd-card" data-category="core" data-search="sec run execute child process in-memory ram injection dev server file vault">
+                            <div class="cli-card-header">
+                                <div class="cli-card-title-group">
+                                    <span class="cli-cmd-badge badge-core">Core</span>
+                                    <span class="cli-cmd-syntax">sec [-f &lt;file&gt;] &lt;cmd...&gt;</span>
+                                </div>
+                                <button class="copy-btn" data-copy="sec npm run dev" aria-label="Copy run command">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    <span>Copy</span>
+                                </button>
+                            </div>
+                            <p class="cli-cmd-desc">
+                                Executes dev servers or scripts with decrypted secrets injected straight into process RAM. Plaintext never touches your storage drive, defeating disk scrapers and AI agents.
+                            </p>
+                            <div class="cli-flags-row">
+                                <div class="cli-flag-item">
+                                    <code class="cli-flag-tag">-f, --file, --vault &lt;path&gt;</code>
+                                    <span class="cli-flag-hint">Inject a custom secret/vault file</span>
+                                </div>
+                            </div>
+                            <div class="cli-card-example" data-copy="sec npm run dev" title="Click to copy example">
+                                <div class="cli-example-code">
+                                    <span class="t-prompt">$</span>
+                                    <span class="t-cmd">sec npm run dev</span>
+                                    <span class="t-comment"># Prompts Touch ID once; credentials live strictly in RAM</span>
+                                </div>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </div>
+                        </div>
+
+                        <!-- Command 2: sec lock -->
+                        <div class="cli-cmd-card" data-category="core" data-search="sec lock encrypt aes-256-gcm hardware secure enclave decoy placeholder dummy">
+                            <div class="cli-card-header">
+                                <div class="cli-card-title-group">
+                                    <span class="cli-cmd-badge badge-core">Core</span>
+                                    <span class="cli-cmd-syntax">sec lock [--force] [file]</span>
+                                </div>
+                                <button class="copy-btn" data-copy="sec lock .env" aria-label="Copy lock command">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    <span>Copy</span>
+                                </button>
+                            </div>
+                            <p class="cli-cmd-desc">
+                                Hardware-encrypts target file into an AES-256-GCM <code>.vault</code>. Replaces the file on disk with safe masked dummy values (<code>locked_by_sec</code>) so linters and parsers continue to work without exposing keys.
+                            </p>
+                            <div class="cli-flags-row">
+                                <div class="cli-flag-item">
+                                    <code class="cli-flag-tag">--force, -f</code>
+                                    <span class="cli-flag-hint">Force re-lock if already protected</span>
+                                </div>
+                            </div>
+                            <div class="cli-card-example" data-copy="sec lock .env" title="Click to copy example">
+                                <div class="cli-example-code">
+                                    <span class="t-prompt">$</span>
+                                    <span class="t-cmd">sec lock .env</span>
+                                    <span class="t-comment"># Encrypts to .env.vault &amp; masks disk file</span>
+                                </div>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </div>
+                        </div>
+
+                        <!-- Command 3: sec edit -->
+                        <div class="cli-cmd-card" data-category="core" data-search="sec edit modify update editor secure buffer temporary 0600 re-encrypt">
+                            <div class="cli-card-header">
+                                <div class="cli-card-title-group">
+                                    <span class="cli-cmd-badge badge-core">Core</span>
+                                    <span class="cli-cmd-syntax">sec edit [file]</span>
+                                </div>
+                                <button class="copy-btn" data-copy="sec edit .env" aria-label="Copy edit command">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    <span>Copy</span>
+                                </button>
+                            </div>
+                            <p class="cli-cmd-desc">
+                                Decrypts vault secrets into an ephemeral buffer with strict <code>0600</code> permissions, opens your default <code>$EDITOR</code>, and automatically re-encrypts upon save. Wipes temporary memory immediately.
+                            </p>
+                            <div class="cli-card-example" data-copy="sec edit .env" title="Click to copy example">
+                                <div class="cli-example-code">
+                                    <span class="t-prompt">$</span>
+                                    <span class="t-cmd">sec edit .env</span>
+                                    <span class="t-comment"># Opens in VS Code, Cursor, or Vim with auto re-encryption</span>
+                                </div>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </div>
+                        </div>
+
+                        <!-- Command 4: sec view / show -->
+                        <div class="cli-cmd-card" data-category="core" data-search="sec view show inspect print stdout terminal json format decrypt">
+                            <div class="cli-card-header">
+                                <div class="cli-card-title-group">
+                                    <span class="cli-cmd-badge badge-core">Core</span>
+                                    <span class="cli-cmd-syntax">sec view [file] &nbsp;<span style="font-size:12px; font-weight:normal; color:var(--text-faint);">(alias: show)</span></span>
+                                </div>
+                                <button class="copy-btn" data-copy="sec view .env" aria-label="Copy view command">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    <span>Copy</span>
+                                </button>
+                            </div>
+                            <p class="cli-cmd-desc">
+                                Prompts Touch ID and outputs decrypted secrets directly to terminal standard output. If the file is JSON, it formats and indents the output automatically.
+                            </p>
+                            <div class="cli-card-example" data-copy="sec view .env" title="Click to copy example">
+                                <div class="cli-example-code">
+                                    <span class="t-prompt">$</span>
+                                    <span class="t-cmd">sec view .env</span>
+                                    <span class="t-comment"># View decrypted credentials without writing to disk</span>
+                                </div>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </div>
+                        </div>
+
+                        <!-- Command 5: sec unlock -->
+                        <div class="cli-cmd-card" data-category="core" data-search="sec unlock restore plaintext disk trash archive remove vault">
+                            <div class="cli-card-header">
+                                <div class="cli-card-title-group">
+                                    <span class="cli-cmd-badge badge-core">Core</span>
+                                    <span class="cli-cmd-syntax">sec unlock [--yes] [file]</span>
+                                </div>
+                                <button class="copy-btn" data-copy="sec unlock .env" aria-label="Copy unlock command">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    <span>Copy</span>
+                                </button>
+                            </div>
+                            <p class="cli-cmd-desc">
+                                Permanently decrypts the vault, restores plaintext secrets back to disk, and moves the encrypted vault to soft-deleted trash to prevent accidental data loss.
+                            </p>
+                            <div class="cli-flags-row">
+                                <div class="cli-flag-item">
+                                    <code class="cli-flag-tag">--yes, -y, --force, -f</code>
+                                    <span class="cli-flag-hint">Skip confirmation warning</span>
+                                </div>
+                            </div>
+                            <div class="cli-card-example" data-copy="sec unlock .env" title="Click to copy example">
+                                <div class="cli-example-code">
+                                    <span class="t-prompt">$</span>
+                                    <span class="t-cmd">sec unlock .env</span>
+                                    <span class="t-comment"># Restores plaintext file and archives vault to trash</span>
+                                </div>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </div>
+                        </div>
+
+                        <!-- Command 6: sec status -->
+                        <div class="cli-cmd-card" data-category="discovery" data-search="sec status health keychain secure enclave zero-cache policy session nearest vault">
+                            <div class="cli-card-header">
+                                <div class="cli-card-title-group">
+                                    <span class="cli-cmd-badge badge-discovery">Discovery</span>
+                                    <span class="cli-cmd-syntax">sec status</span>
+                                </div>
+                                <button class="copy-btn" data-copy="sec status" aria-label="Copy status command">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    <span>Copy</span>
+                                </button>
+                            </div>
+                            <p class="cli-cmd-desc">
+                                Displays environment diagnostics: Apple Silicon Secure Enclave master key configuration, Zero-Cache session state, current project vault path, and total indexed vaults.
+                            </p>
+                            <div class="cli-card-example" data-copy="sec status" title="Click to copy example">
+                                <div class="cli-example-code">
+                                    <span class="t-prompt">$</span>
+                                    <span class="t-cmd">sec status</span>
+                                </div>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </div>
+                        </div>
+
+                        <!-- Command 7: sec list / ls -->
+                        <div class="cli-cmd-card" data-category="discovery" data-search="sec list ls audit scan prune json registry global vaults projects mac">
+                            <div class="cli-card-header">
+                                <div class="cli-card-title-group">
+                                    <span class="cli-cmd-badge badge-discovery">Discovery</span>
+                                    <span class="cli-cmd-syntax">sec list [--scan] [--prune] [--json] &nbsp;<span style="font-size:12px; font-weight:normal; color:var(--text-faint);">(alias: ls)</span></span>
+                                </div>
+                                <button class="copy-btn" data-copy="sec list" aria-label="Copy list command">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    <span>Copy</span>
+                                </button>
+                            </div>
+                            <p class="cli-cmd-desc">
+                                Audits and catalogs all locked vaults across your Mac grouped by directory. Displays target files, encrypted vault sizes, decoy statuses, and last modified dates.
+                            </p>
+                            <div class="cli-flags-row">
+                                <div class="cli-flag-item">
+                                    <code class="cli-flag-tag">--scan, -s [dir]</code>
+                                    <span class="cli-flag-hint">Search &amp; register unindexed vaults</span>
+                                </div>
+                                <div class="cli-flag-item">
+                                    <code class="cli-flag-tag">--prune, -p</code>
+                                    <span class="cli-flag-hint">Clean removed or missing vaults</span>
+                                </div>
+                                <div class="cli-flag-item">
+                                    <code class="cli-flag-tag">--json</code>
+                                    <span class="cli-flag-hint">Output structured JSON for CI/CD</span>
+                                </div>
+                            </div>
+                            <div class="cli-card-example" data-copy="sec list --scan ~/Developer" title="Click to copy example">
+                                <div class="cli-example-code">
+                                    <span class="t-prompt">$</span>
+                                    <span class="t-cmd">sec list --scan ~/Developer</span>
+                                </div>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </div>
+                        </div>
+
+                        <!-- Command 8: sec scan -->
+                        <div class="cli-cmd-card" data-category="discovery" data-search="sec scan find discover index directory tree folders">
+                            <div class="cli-card-header">
+                                <div class="cli-card-title-group">
+                                    <span class="cli-cmd-badge badge-discovery">Discovery</span>
+                                    <span class="cli-cmd-syntax">sec scan [directory] &nbsp;<span style="font-size:12px; font-weight:normal; color:var(--text-faint);">(alias: find)</span></span>
+                                </div>
+                                <button class="copy-btn" data-copy="sec scan ~/Developer" aria-label="Copy scan command">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    <span>Copy</span>
+                                </button>
+                            </div>
+                            <p class="cli-cmd-desc">
+                                Fast shorthand to recursively crawl folders and register all existing <code>.vault</code> files into the centralized macOS status registry without manual navigation.
+                            </p>
+                            <div class="cli-card-example" data-copy="sec scan" title="Click to copy example">
+                                <div class="cli-example-code">
+                                    <span class="t-prompt">$</span>
+                                    <span class="t-cmd">sec scan</span>
+                                    <span class="t-comment"># Crawls ~ and registers all vaults</span>
+                                </div>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </div>
+                        </div>
+
+                        <!-- Command 9: sec backup -->
+                        <div class="cli-cmd-card" data-category="backup" data-search="sec backup snapshots versioning history immutable all list archive">
+                            <div class="cli-card-header">
+                                <div class="cli-card-title-group">
+                                    <span class="cli-cmd-badge badge-backup">Backups</span>
+                                    <span class="cli-cmd-syntax">sec backup [file] [--all] [--list]</span>
+                                </div>
+                                <button class="copy-btn" data-copy="sec backup .env" aria-label="Copy backup command">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    <span>Copy</span>
+                                </button>
+                            </div>
+                            <p class="cli-cmd-desc">
+                                Creates immutable, versioned backup snapshots in <code>~/.sec/backups/</code>. Lets you edit credentials fearlessly, knowing you can roll back to any prior version.
+                            </p>
+                            <div class="cli-flags-row">
+                                <div class="cli-flag-item">
+                                    <code class="cli-flag-tag">--all</code>
+                                    <span class="cli-flag-hint">Snapshot all registered vaults</span>
+                                </div>
+                                <div class="cli-flag-item">
+                                    <code class="cli-flag-tag">--list</code>
+                                    <span class="cli-flag-hint">View version history and timestamps</span>
+                                </div>
+                            </div>
+                            <div class="cli-card-example" data-copy="sec backup --list" title="Click to copy example">
+                                <div class="cli-example-code">
+                                    <span class="t-prompt">$</span>
+                                    <span class="t-cmd">sec backup --list</span>
+                                    <span class="t-comment"># Shows version numbers, key counts, and dates</span>
+                                </div>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </div>
+                        </div>
+
+                        <!-- Command 10: sec restore -->
+                        <div class="cli-cmd-card" data-category="backup" data-search="sec restore rollback snapshot version recover revert history">
+                            <div class="cli-card-header">
+                                <div class="cli-card-title-group">
+                                    <span class="cli-cmd-badge badge-backup">Backups</span>
+                                    <span class="cli-cmd-syntax">sec restore [file] [-v &lt;version|id&gt;]</span>
+                                </div>
+                                <button class="copy-btn" data-copy="sec restore .env -v 1" aria-label="Copy restore command">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    <span>Copy</span>
+                                </button>
+                            </div>
+                            <p class="cli-cmd-desc">
+                                Rolls back a project vault to a previous version snapshot. Synchronizes both the encrypted vault file and the on-disk masked decoy placeholder seamlessly.
+                            </p>
+                            <div class="cli-flags-row">
+                                <div class="cli-flag-item">
+                                    <code class="cli-flag-tag">-v, --version &lt;id|#&gt;</code>
+                                    <span class="cli-flag-hint">Target version number or UUID prefix</span>
+                                </div>
+                            </div>
+                            <div class="cli-card-example" data-copy="sec restore .env --version 1" title="Click to copy example">
+                                <div class="cli-example-code">
+                                    <span class="t-prompt">$</span>
+                                    <span class="t-cmd">sec restore .env --version 1</span>
+                                    <span class="t-comment"># Reverts vault and decoy to v1</span>
+                                </div>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </div>
+                        </div>
+
+                        <!-- Command 11: sec trash -->
+                        <div class="cli-cmd-card" data-category="backup" data-search="sec trash soft-delete recover purge empty undelete archive">
+                            <div class="cli-card-header">
+                                <div class="cli-card-title-group">
+                                    <span class="cli-cmd-badge badge-backup">Backups</span>
+                                    <span class="cli-cmd-syntax">sec trash [--restore &lt;id&gt;] [--purge &lt;id&gt;] [--empty]</span>
+                                </div>
+                                <button class="copy-btn" data-copy="sec trash" aria-label="Copy trash command">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    <span>Copy</span>
+                                </button>
+                            </div>
+                            <p class="cli-cmd-desc">
+                                Manages soft-deleted vaults. When vaults are unlocked or removed from disk, they are automatically placed into the trash bin to prevent accidental credential loss.
+                            </p>
+                            <div class="cli-flags-row">
+                                <div class="cli-flag-item">
+                                    <code class="cli-flag-tag">--restore, -r &lt;id&gt;</code>
+                                    <span class="cli-flag-hint">Recover archived vault back to original path</span>
+                                </div>
+                                <div class="cli-flag-item">
+                                    <code class="cli-flag-tag">--purge, -p &lt;id&gt;</code>
+                                    <span class="cli-flag-hint">Permanently delete single trashed vault</span>
+                                </div>
+                                <div class="cli-flag-item">
+                                    <code class="cli-flag-tag">--empty</code>
+                                    <span class="cli-flag-hint">Purge all trashed vaults</span>
+                                </div>
+                            </div>
+                            <div class="cli-card-example" data-copy="sec trash" title="Click to copy example">
+                                <div class="cli-example-code">
+                                    <span class="t-prompt">$</span>
+                                    <span class="t-cmd">sec trash</span>
+                                    <span class="t-comment"># View soft-deleted vaults eligible for recovery</span>
+                                </div>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </div>
+                        </div>
+
+                        <!-- Command 12: sec export-key -->
+                        <div class="cli-cmd-card" data-category="security" data-search="sec export-key backup-key master key recovery disaster migration">
+                            <div class="cli-card-header">
+                                <div class="cli-card-title-group">
+                                    <span class="cli-cmd-badge badge-security">Security</span>
+                                    <span class="cli-cmd-syntax">sec export-key &nbsp;<span style="font-size:12px; font-weight:normal; color:var(--text-faint);">(alias: backup-key)</span></span>
+                                </div>
+                                <button class="copy-btn" data-copy="sec export-key" aria-label="Copy export-key command">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    <span>Copy</span>
+                                </button>
+                            </div>
+                            <p class="cli-cmd-desc">
+                                Exports your base64 master hardware recovery key. Store it securely in your password manager (e.g. 1Password) for disaster recovery or when migrating to a new Mac.
+                            </p>
+                            <div class="cli-card-example" data-copy="sec export-key" title="Click to copy example">
+                                <div class="cli-example-code">
+                                    <span class="t-prompt">$</span>
+                                    <span class="t-cmd">sec export-key</span>
+                                    <span class="t-comment"># Generates base64 recovery key string</span>
+                                </div>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </div>
+                        </div>
+
+                        <!-- Command 13: sec import-key -->
+                        <div class="cli-cmd-card" data-category="security" data-search="sec import-key restore-key restore master key migration new mac">
+                            <div class="cli-card-header">
+                                <div class="cli-card-title-group">
+                                    <span class="cli-cmd-badge badge-security">Security</span>
+                                    <span class="cli-cmd-syntax">sec import-key [key] &nbsp;<span style="font-size:12px; font-weight:normal; color:var(--text-faint);">(alias: restore-key)</span></span>
+                                </div>
+                                <button class="copy-btn" data-copy="sec import-key" aria-label="Copy import-key command">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    <span>Copy</span>
+                                </button>
+                            </div>
+                            <p class="cli-cmd-desc">
+                                Imports your master recovery key onto a new or wiped Mac, allowing all your existing <code>.vault</code> repositories to be unlocked with Touch ID immediately.
+                            </p>
+                            <div class="cli-card-example" data-copy="sec import-key" title="Click to copy example">
+                                <div class="cli-example-code">
+                                    <span class="t-prompt">$</span>
+                                    <span class="t-cmd">sec import-key</span>
+                                    <span class="t-comment"># Prompts securely for recovery key</span>
+                                </div>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </div>
+                        </div>
+
+                        <!-- Command 14: sec session -->
+                        <div class="cli-cmd-card" data-category="security" data-search="sec session status clear cache policy zero-cache access">
+                            <div class="cli-card-header">
+                                <div class="cli-card-title-group">
+                                    <span class="cli-cmd-badge badge-security">Security</span>
+                                    <span class="cli-cmd-syntax">sec session [status|clear]</span>
+                                </div>
+                                <button class="copy-btn" data-copy="sec session status" aria-label="Copy session command">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    <span>Copy</span>
+                                </button>
+                            </div>
+                            <p class="cli-cmd-desc">
+                                Inspects or clears the biometric session cache. In strict Zero-Cache mode (default), every command requires a fresh physical Touch ID tap so background AI processes can never hijack credentials.
+                            </p>
+                            <div class="cli-card-example" data-copy="sec session clear" title="Click to copy example">
+                                <div class="cli-example-code">
+                                    <span class="t-prompt">$</span>
+                                    <span class="t-cmd">sec session clear</span>
+                                    <span class="t-comment"># Flush session cache immediately</span>
+                                </div>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </div>
+                        </div>
+
+                        <!-- Command 15: sec logout -->
+                        <div class="cli-cmd-card" data-category="security" data-search="sec logout lock clear session touch id biometric purge">
+                            <div class="cli-card-header">
+                                <div class="cli-card-title-group">
+                                    <span class="cli-cmd-badge badge-security">Security</span>
+                                    <span class="cli-cmd-syntax">sec logout</span>
+                                </div>
+                                <button class="copy-btn" data-copy="sec logout" aria-label="Copy logout command">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    <span>Copy</span>
+                                </button>
+                            </div>
+                            <p class="cli-cmd-desc">
+                                Immediately locks your biometric session state, requiring a physical Touch ID tap on the next CLI command or GUI action.
+                            </p>
+                            <div class="cli-card-example" data-copy="sec logout" title="Click to copy example">
+                                <div class="cli-example-code">
+                                    <span class="t-prompt">$</span>
+                                    <span class="t-cmd">sec logout</span>
+                                    <span class="t-comment"># 🔒 Session cleared. Touch ID required next.</span>
+                                </div>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </div>
+                        </div>
+
+                        <!-- Command 16: sec install-finder -->
+                        <div class="cli-cmd-card" data-category="security" data-search="sec install-finder macos finder quick actions right-click services menu">
+                            <div class="cli-card-header">
+                                <div class="cli-card-title-group">
+                                    <span class="cli-cmd-badge badge-security">System</span>
+                                    <span class="cli-cmd-syntax">sec install-finder</span>
+                                </div>
+                                <button class="copy-btn" data-copy="sec install-finder" aria-label="Copy install-finder command">
+                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    <span>Copy</span>
+                                </button>
+                            </div>
+                            <p class="cli-cmd-desc">
+                                Installs macOS Finder Quick Actions into <code>~/Library/Services/</code>. Allows you to right-click any <code>.env</code> or <code>.vault</code> in Finder to Lock, Unlock, Edit, or View secrets with native macOS notification banners.
+                            </p>
+                            <div class="cli-card-example" data-copy="sec install-finder" title="Click to copy example">
+                                <div class="cli-example-code">
+                                    <span class="t-prompt">$</span>
+                                    <span class="t-cmd">sec install-finder</span>
+                                    <span class="t-comment"># Adds right-click services to Finder</span>
+                                </div>
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Empty State (When no commands match search) -->
+                    <div class="cli-empty-state" id="cliEmptyState">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                            <circle cx="11" cy="11" r="8"></circle>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                        </svg>
+                        <p>No commands matched your filter criteria.</p>
+                        <button class="cli-btn-reset" id="cliResetBtn">Reset filters</button>
+                    </div>
+                </div>
+
             </div>
         </section>
 
