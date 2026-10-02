@@ -59,40 +59,46 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Publish Homebrew Cask Info to Summary
+      - name: Update Homebrew cask
+        if: env.GH_TOKEN != ''
+        env:
+          GH_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          SHA256: ${{ steps.checksum.outputs.sha256 }}
+          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          cat << 'EOF' >> "$GITHUB_STEP_SUMMARY"
-          ## 🍺 Homebrew Cask Release Information
-          
-          **Version**: `${{ steps.version.outputs.version }}`  
-          **SHA256**: `${{ steps.checksum.outputs.sha256 }}`  
-          **Download URL**: `https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/Secret-Manager-${{ steps.version.outputs.version }}.dmg`
-          
-          ### Updated Cask Formula (`Casks/secret-manager.rb`)
-          ```ruby
-          cask "secret-manager" do
-            version "${{ steps.version.outputs.version }}"
-            sha256 "${{ steps.checksum.outputs.sha256 }}"
+          git clone "https://x-access-token:${GH_TOKEN}@github.com/rajanchavda/homebrew-tap.git" /tmp/homebrew-tap
 
-            url "https://github.com/${{ github.repository }}/releases/download/v#{version}/Secret-Manager-#{version}.dmg"
-            name "Secret Manager"
-            desc "Hardware-grade Touch ID Secret Manager and stealth secret injection"
-            homepage "https://github.com/${{ github.repository }}"
+          ruby -e "
+            version = ENV['VERSION']
+            sha256  = ENV['SHA256']
+            File.write('/tmp/homebrew-tap/Casks/secret-manager.rb', <<~CASK)
+              cask \"secret-manager\" do
+                version \"#{version}\"
+                sha256 \"#{sha256}\"
 
-            app "Secret Manager.app"
-            binary "#{appdir}/Secret Manager.app/Contents/MacOS/sec", target: "sec"
+                url \"https://github.com/rajanchavda/file-sec/releases/download/v\#{version}/Secret-Manager-\#{version}.dmg\"
+                name \"Secret Manager\"
+                desc \"Hardware-grade Touch ID Secret Manager and stealth secret injection\"
+                homepage \"https://github.com/rajanchavda/file-sec\"
 
-            postflight do
-              system_command "/usr/bin/xattr",
-                             args: ["-cr", "#{appdir}/Secret Manager.app"],
-                             sudo: false
-            end
+                app \"Secret Manager.app\"
+                binary \"\#{appdir}/Secret Manager.app/Contents/MacOS/sec\", target: \"sec\"
 
-            zap trash: [
-              "~/.sec",
-              "~/Library/Application Support/Secret Manager",
-              "~/Library/Preferences/com.sec.SecretManager.plist",
-            ]
-          end
-          ```
-          EOF
+                postflight do
+                  system_command \"xattr\",
+                                 args: [\"-cr\", \"\#{appdir}/Secret Manager.app\"]
+                end
+
+                livecheck do
+                  url :url
+                  strategy :github_latest
+                end
+              end
+            CASK
+          "
+
+          cd /tmp/homebrew-tap
+          git add Casks/secret-manager.rb
+          git -c user.name="SecretManager Bot" -c user.email="bot@secretmanager.app" commit -m "Update secret-manager to v${VERSION}" || echo "No changes to commit"
+          git push
+
