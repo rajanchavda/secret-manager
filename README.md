@@ -94,7 +94,7 @@ brew upgrade secret-manager
 ```
 
 ### Option 2: Download DMG Installer (Universal for Apple Silicon & Intel)
-1. Download the latest `Secret-Manager-X.Y.Z.dmg` from [GitHub Releases](https://github.com/rajanchavda/file-sec/releases).
+1. Download the latest `Secret-Manager-X.Y.Z.dmg` from [GitHub Releases](https://github.com/rajanchavda/security-manager/releases).
 2. Open the `.dmg` and drag **Secret Manager** into `/Applications`.
 3. *Note for direct downloads*: Since this open-source project does not use a paid Apple Developer certificate, on first launch right-click the app in `/Applications` and select **Open** (or run `xattr -cr "/Applications/Secret Manager.app"`). *Using Homebrew bypasses this step automatically.*
 
