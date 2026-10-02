@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const cliTabs = document.querySelectorAll('.cli-tab-btn');
     const cliCards = document.querySelectorAll('.cli-cmd-card');
     const cliSearchInput = document.getElementById('cliSearchInput');
+    const cliSearchClear = document.getElementById('cliSearchClear');
     const cliVisibleCount = document.getElementById('cliVisibleCount');
     const cliEmptyState = document.getElementById('cliEmptyState');
     const cliResetBtn = document.getElementById('cliResetBtn');
@@ -70,6 +71,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 visibleCount++;
                 if (query.length > 0) {
                     card.classList.add('expanded');
+                    const h = card.querySelector('.cli-card-header');
+                    if (h) h.setAttribute('aria-expanded', 'true');
                 }
             } else {
                 card.style.display = 'none';
@@ -88,16 +91,35 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cliTabs.length > 0) {
         cliTabs.forEach(tab => {
             tab.addEventListener('click', () => {
-                cliTabs.forEach(t => t.classList.remove('active'));
+                cliTabs.forEach(t => {
+                    t.classList.remove('active');
+                    t.setAttribute('aria-selected', 'false');
+                });
                 tab.classList.add('active');
+                tab.setAttribute('aria-selected', 'true');
                 currentCategory = tab.getAttribute('data-category') || 'all';
                 filterCommands();
+                tab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
             });
         });
     }
 
     if (cliSearchInput) {
         cliSearchInput.addEventListener('input', () => {
+            if (cliSearchClear) {
+                cliSearchClear.style.display = cliSearchInput.value ? 'inline-flex' : 'none';
+            }
+            filterCommands();
+        });
+    }
+
+    if (cliSearchClear) {
+        cliSearchClear.addEventListener('click', () => {
+            if (cliSearchInput) {
+                cliSearchInput.value = '';
+                cliSearchInput.focus();
+            }
+            cliSearchClear.style.display = 'none';
             filterCommands();
         });
     }
@@ -105,12 +127,15 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cliResetBtn) {
         cliResetBtn.addEventListener('click', () => {
             if (cliSearchInput) cliSearchInput.value = '';
+            if (cliSearchClear) cliSearchClear.style.display = 'none';
             currentCategory = 'all';
             cliTabs.forEach(t => {
                 if (t.getAttribute('data-category') === 'all') {
                     t.classList.add('active');
+                    t.setAttribute('aria-selected', 'true');
                 } else {
                     t.classList.remove('active');
+                    t.setAttribute('aria-selected', 'false');
                 }
             });
             filterCommands();
@@ -119,22 +144,50 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 2.3 Mobile-Friendly CLI Accordion Behavior
     if (cliCards.length > 0) {
-        // Expand first card by default on mobile as a visual indicator
-        cliCards[0].classList.add('expanded');
-
         cliCards.forEach(card => {
             const header = card.querySelector('.cli-card-header');
-            if (header && !header.querySelector('.cli-accordion-chevron')) {
-                const chevron = document.createElement('span');
-                chevron.className = 'cli-accordion-chevron';
-                chevron.setAttribute('aria-hidden', 'true');
-                chevron.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>`;
-                header.appendChild(chevron);
+            if (header) {
+                // Group copy-btn and accordion chevron into cli-card-actions container
+                let actionGroup = header.querySelector('.cli-card-actions');
+                if (!actionGroup) {
+                    actionGroup = document.createElement('div');
+                    actionGroup.className = 'cli-card-actions';
 
-                header.addEventListener('click', (e) => {
-                    // Do not toggle accordion if clicking on the Copy button
+                    const copyBtn = header.querySelector('.copy-btn');
+                    if (copyBtn) {
+                        actionGroup.appendChild(copyBtn);
+                    }
+
+                    const chevron = document.createElement('span');
+                    chevron.className = 'cli-accordion-chevron';
+                    chevron.setAttribute('aria-hidden', 'true');
+                    chevron.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>`;
+                    actionGroup.appendChild(chevron);
+
+                    header.appendChild(actionGroup);
+                }
+
+                header.setAttribute('role', 'button');
+                header.setAttribute('tabindex', '0');
+                header.setAttribute('aria-expanded', card.classList.contains('expanded') ? 'true' : 'false');
+                const syntaxEl = card.querySelector('.cli-cmd-syntax');
+                if (syntaxEl) {
+                    header.setAttribute('aria-label', `Toggle command ${syntaxEl.textContent.trim()}`);
+                }
+
+                const toggleCard = (e) => {
                     if (e.target.closest('.copy-btn')) return;
-                    card.classList.toggle('expanded');
+                    const isExpanded = card.classList.toggle('expanded');
+                    header.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
+                };
+
+                header.addEventListener('click', toggleCard);
+                header.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        if (e.target.closest('.copy-btn')) return;
+                        e.preventDefault();
+                        toggleCard(e);
+                    }
                 });
             }
         });
@@ -153,6 +206,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         } else {
                             card.classList.remove('expanded');
                         }
+                        const h = card.querySelector('.cli-card-header');
+                        if (h) h.setAttribute('aria-expanded', isAllExpanded ? 'true' : 'false');
                     }
                 });
                 const label = toggleAllBtn.querySelector('.toggle-all-text');
@@ -200,6 +255,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     copyTriggers.forEach(trigger => {
         trigger.addEventListener('click', async (e) => {
+            // Prevent accordion trigger when copy button is inside header
+            e.stopPropagation();
             e.preventDefault();
             const textToCopy = trigger.getAttribute('data-copy');
             if (!textToCopy) return;
@@ -208,16 +265,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 await navigator.clipboard.writeText(textToCopy);
                 
                 // Visual feedback
-                const btn = trigger.classList.contains('copy-btn') ? trigger : trigger.querySelector('.copy-btn');
-                if (btn) {
-                    const originalText = btn.innerHTML;
-                    btn.classList.add('copied');
-                    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
-
+                if (trigger.classList.contains('cli-card-example')) {
+                    trigger.classList.add('copied');
                     setTimeout(() => {
-                        btn.classList.remove('copied');
-                        btn.innerHTML = originalText;
-                    }, 2000);
+                        trigger.classList.remove('copied');
+                    }, 1800);
+                } else {
+                    const btn = trigger.classList.contains('copy-btn') ? trigger : trigger.querySelector('.copy-btn');
+                    if (btn) {
+                        const originalText = btn.innerHTML;
+                        btn.classList.add('copied');
+                        btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Copied!`;
+
+                        setTimeout(() => {
+                            btn.classList.remove('copied');
+                            btn.innerHTML = originalText;
+                        }, 2000);
+                    }
                 }
             } catch (err) {
                 console.error('Clipboard copy failed:', err);

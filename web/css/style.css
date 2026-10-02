@@ -1921,6 +1921,11 @@ footer a:hover { text-decoration: underline; }
     margin-bottom: 18px;
 }
 
+.cli-category-tabs-wrap {
+    position: relative;
+    min-width: 0;
+}
+
 .cli-category-tabs {
     display: flex;
     flex-wrap: wrap;
@@ -1941,6 +1946,7 @@ footer a:hover { text-decoration: underline; }
     align-items: center;
     gap: 6px;
     user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .cli-tab-btn:hover {
@@ -1994,12 +2000,13 @@ footer a:hover { text-decoration: underline; }
     background: var(--card);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-full);
-    padding: 8px 16px 8px 36px;
+    padding: 8px 36px 8px 36px;
     font-size: 13px;
     color: var(--text);
     outline: none;
     transition: border-color 0.2s, box-shadow 0.2s;
     font-family: inherit;
+    -webkit-appearance: none;
 }
 
 .cli-search-input:focus {
@@ -2009,6 +2016,28 @@ footer a:hover { text-decoration: underline; }
 
 .cli-search-input::placeholder {
     color: var(--text-faint);
+}
+
+.cli-search-clear {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--text-faint);
+    cursor: pointer;
+    padding: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: color 0.2s ease, background 0.2s ease;
+}
+
+.cli-search-clear:hover {
+    color: var(--text);
+    background: var(--card-subtle);
 }
 
 .cli-meta-bar {
@@ -2028,6 +2057,7 @@ footer a:hover { text-decoration: underline; }
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    transition: color 0.2s ease;
 }
 
 .cli-docs-link:hover {
@@ -2037,8 +2067,12 @@ footer a:hover { text-decoration: underline; }
 /* Command Cards List */
 .cli-command-grid {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     gap: 14px;
+    box-sizing: border-box;
 }
 
 .cli-cmd-card {
@@ -2048,6 +2082,11 @@ footer a:hover { text-decoration: underline; }
     padding: 20px 24px;
     transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     box-shadow: var(--shadow-sm);
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 .cli-cmd-card:hover {
@@ -2062,7 +2101,10 @@ footer a:hover { text-decoration: underline; }
     justify-content: space-between;
     gap: 12px;
     margin-bottom: 10px;
-    flex-wrap: wrap;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
 }
 
 .cli-card-title-group {
@@ -2070,6 +2112,15 @@ footer a:hover { text-decoration: underline; }
     align-items: center;
     gap: 10px;
     flex-wrap: wrap;
+    flex: 1;
+    min-width: 0;
+}
+
+.cli-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
 }
 
 .cli-cmd-badge {
@@ -2079,6 +2130,7 @@ footer a:hover { text-decoration: underline; }
     letter-spacing: 0.05em;
     padding: 3px 8px;
     border-radius: 6px;
+    flex-shrink: 0;
 }
 
 .badge-core {
@@ -2119,6 +2171,8 @@ footer a:hover { text-decoration: underline; }
     font-weight: 600;
     color: var(--text);
     letter-spacing: -0.01em;
+    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 .cli-cmd-desc {
@@ -2126,6 +2180,14 @@ footer a:hover { text-decoration: underline; }
     color: var(--text-muted);
     line-height: 1.55;
     margin-bottom: 12px;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+}
+
+.cli-cmd-desc code {
+    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 .cli-flags-row {
@@ -2134,6 +2196,9 @@ footer a:hover { text-decoration: underline; }
     gap: 8px;
     align-items: center;
     margin-bottom: 14px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
 }
 
 .cli-flag-item {
@@ -2141,6 +2206,8 @@ footer a:hover { text-decoration: underline; }
     align-items: center;
     gap: 6px;
     font-size: 12.5px;
+    max-width: 100%;
+    min-width: 0;
 }
 
 .cli-flag-tag {
@@ -2151,11 +2218,16 @@ footer a:hover { text-decoration: underline; }
     padding: 2px 7px;
     border-radius: 6px;
     color: var(--text);
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    max-width: 100%;
 }
 
 .cli-flag-hint {
     color: var(--text-faint);
     font-size: 12px;
+    word-break: break-word;
+    overflow-wrap: anywhere;
 }
 
 .cli-card-example {
@@ -2172,11 +2244,26 @@ footer a:hover { text-decoration: underline; }
     gap: 10px;
     cursor: pointer;
     transition: border-color 0.2s ease, background 0.2s ease;
+    user-select: text;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .cli-card-example:hover {
     border-color: rgba(56, 189, 248, 0.4);
     background: #111722;
+}
+
+.cli-card-example.copied {
+    border-color: #10b981;
+    background: #092015;
+}
+
+.cli-card-example svg {
+    flex-shrink: 0;
 }
 
 .cli-example-code {
@@ -2185,6 +2272,7 @@ footer a:hover { text-decoration: underline; }
     gap: 8px;
     overflow-x: auto;
     white-space: nowrap;
+    min-width: 0;
 }
 
 .cli-empty-state {
@@ -2212,7 +2300,8 @@ footer a:hover { text-decoration: underline; }
     color: var(--text);
     font-size: 12.5px;
     cursor: pointer;
-/* Base Accordion UI Elements (Desktop default: all details visible) */
+}
+
 .cli-accordion-chevron {
     display: none;
 }
@@ -2222,8 +2311,8 @@ footer a:hover { text-decoration: underline; }
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: var(--radius-full);
-    padding: 3px 10px;
-    font-size: 11.5px;
+    padding: 4px 12px;
+    font-size: 12px;
     font-weight: 500;
     color: var(--text-muted);
     cursor: pointer;
@@ -2281,21 +2370,105 @@ footer a:hover { text-decoration: underline; }
         margin-top: 36px;
     }
 
+    .cli-filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+
+    .cli-search-wrap {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .cli-search-input {
+        padding: 10px 36px 10px 38px;
+        font-size: 13.5px;
+        border-radius: var(--radius-sm);
+    }
+
+    .cli-search-icon {
+        left: 13px;
+        width: 16px;
+        height: 16px;
+    }
+
+    /* Category horizontal scroll rail */
+    .cli-category-tabs-wrap {
+        position: relative;
+        width: 100%;
+        overflow: hidden;
+    }
+
+    .cli-category-tabs {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 8px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        padding: 4px 2px 8px;
+        margin: 0;
+    }
+
+    .cli-category-tabs::-webkit-scrollbar {
+        display: none;
+    }
+
+    .cli-tab-btn {
+        flex-shrink: 0;
+        padding: 8px 14px;
+        font-size: 13px;
+        min-height: 38px;
+        border-radius: var(--radius-full);
+    }
+
+    .cli-meta-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 14px;
+        font-size: 12px;
+        padding: 0 2px;
+    }
+
     .cli-toggle-all-btn {
         display: inline-flex;
+        padding: 5px 12px;
+        font-size: 12px;
+        border-radius: var(--radius-full);
     }
 
     .cli-meta-actions {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 10px;
     }
 
     /* ── Collapsible Accordion Cards on Mobile ── */
+    .cli-command-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+    }
+
     .cli-cmd-card {
         padding: 14px 16px;
         border-radius: 14px;
-        transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+        transition: background 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        overflow: hidden;
+        box-sizing: border-box;
     }
 
     .cli-card-header {
@@ -2304,9 +2477,15 @@ footer a:hover { text-decoration: underline; }
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 8px;
+        gap: 10px;
         margin-bottom: 0;
         padding: 2px 0;
+        min-height: 44px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
     }
 
     .cli-card-title-group {
@@ -2319,46 +2498,60 @@ footer a:hover { text-decoration: underline; }
     }
 
     .cli-cmd-badge {
-        font-size: 10px;
-        padding: 2px 6px;
+        font-size: 10.5px;
+        padding: 2.5px 7px;
         flex-shrink: 0;
     }
 
     .cli-cmd-syntax {
         font-size: 13.5px;
+        line-height: 1.4;
         word-break: break-word;
         overflow-wrap: anywhere;
-        line-height: 1.35;
     }
 
-    .cli-card-header .copy-btn {
-        padding: 5px 10px;
-        font-size: 11.5px;
+    .cli-card-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
         flex-shrink: 0;
+    }
+
+    .cli-card-actions .copy-btn {
+        padding: 6px 11px;
+        font-size: 12px;
+        min-height: 34px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        border-radius: 8px;
+        -webkit-tap-highlight-color: transparent;
     }
 
     .cli-accordion-chevron {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 26px;
-        height: 26px;
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        min-height: 32px;
         border-radius: 50%;
         background: var(--card-subtle);
         color: var(--text-muted);
         flex-shrink: 0;
-        transition: transform 0.25s ease, background 0.2s ease, color 0.2s ease;
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background 0.2s ease, color 0.2s ease;
     }
 
     /* Expanded State */
     .cli-cmd-card.expanded {
-        border-color: rgba(0, 113, 227, 0.4);
-        box-shadow: 0 4px 20px rgba(0, 113, 227, 0.08);
+        border-color: rgba(0, 113, 227, 0.45);
+        box-shadow: 0 4px 18px rgba(0, 113, 227, 0.08);
     }
 
     [data-theme="dark"] .cli-cmd-card.expanded {
-        border-color: rgba(56, 189, 248, 0.4);
-        box-shadow: 0 4px 20px rgba(14, 165, 233, 0.12);
+        border-color: rgba(56, 189, 248, 0.45);
+        box-shadow: 0 4px 18px rgba(14, 165, 233, 0.12);
     }
 
     .cli-cmd-card.expanded .cli-card-header {
@@ -2374,33 +2567,132 @@ footer a:hover { text-decoration: underline; }
     }
 
     /* Hide Body Elements When Collapsed on Mobile */
-    .cli-cmd-card .cli-cmd-desc,
-    .cli-cmd-card .cli-flags-row,
-    .cli-cmd-card .cli-card-example {
-        display: none;
+    .cli-cmd-card:not(.expanded) .cli-cmd-desc,
+    .cli-cmd-card:not(.expanded) .cli-flags-row,
+    .cli-cmd-card:not(.expanded) .cli-card-example {
+        display: none !important;
     }
 
     /* Show Body Elements When Expanded */
     .cli-cmd-card.expanded .cli-cmd-desc {
         display: block;
-        font-size: 13px;
-        line-height: 1.5;
-        margin-bottom: 10px;
-        animation: cliFadeIn 0.22s ease-out;
+        font-size: 13.5px;
+        line-height: 1.55;
+        margin-bottom: 12px;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        animation: cliFadeIn 0.2s ease-out;
     }
 
     .cli-cmd-card.expanded .cli-flags-row {
         display: flex;
         flex-direction: column;
         gap: 6px;
-        margin-bottom: 10px;
+        margin-bottom: 12px;
         width: 100%;
-        animation: cliFadeIn 0.22s ease-out;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        animation: cliFadeIn 0.2s ease-out;
+    }
+
+    .cli-flag-item {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        background: var(--card-subtle);
+        padding: 8px 10px;
+        border-radius: 8px;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+    .cli-flag-tag {
+        font-size: 11.5px;
+        font-weight: 600;
+        color: var(--accent);
+        background: transparent;
+        border: none;
+        padding: 0;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        max-width: 100%;
+    }
+
+    .cli-flag-hint {
+        font-size: 12px;
+        color: var(--text-muted);
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        max-width: 100%;
     }
 
     .cli-cmd-card.expanded .cli-card-example {
         display: flex;
-        animation: cliFadeIn 0.22s ease-out;
+        align-items: flex-start;
+        justify-content: space-between;
+        padding: 10px 12px;
+        gap: 8px;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        border-radius: 8px;
+        box-sizing: border-box;
+        overflow: hidden;
+        animation: cliFadeIn 0.2s ease-out;
+    }
+
+    .cli-example-code {
+        flex: 1;
+        min-width: 0;
+        max-width: 100%;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 2px 6px;
+        white-space: normal;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        font-size: 12.5px;
+        line-height: 1.45;
+        box-sizing: border-box;
+    }
+
+    .cli-example-code .t-prompt {
+        color: #38bdf8;
+        font-weight: 600;
+        flex-shrink: 0;
+    }
+
+    .cli-example-code .t-cmd {
+        color: #f1f5f9;
+        font-weight: 500;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+    }
+
+    .cli-example-code .t-comment {
+        width: 100%;
+        color: #8b949e;
+        font-size: 11.5px;
+        line-height: 1.4;
+        word-break: break-word;
+        overflow-wrap: anywhere;
+        margin-top: 3px;
+        display: block;
+    }
+
+    .cli-card-example svg {
+        flex-shrink: 0;
+        margin-top: 2px;
     }
 
     @keyframes cliFadeIn {
@@ -2449,141 +2741,55 @@ footer a:hover { text-decoration: underline; }
         font-size: 11px;
     }
 
-    /* CLI Filter Bar on Mobile */
-    .cli-filter-bar {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 10px;
-        margin-bottom: 12px;
-    }
-
-    .cli-category-tabs {
-        display: flex;
-        gap: 6px;
-        overflow-x: auto;
-        flex-wrap: nowrap;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none;
-        padding: 2px 2px 6px;
-        margin: 0 -4px;
-    }
-
-    .cli-category-tabs::-webkit-scrollbar {
-        display: none;
-    }
-
+    /* CLI Filter Bar & Tabs on Small Screens */
     .cli-tab-btn {
-        flex-shrink: 0;
-        padding: 6px 12px;
-        font-size: 12px;
-    }
-
-    .cli-search-wrap {
-        width: 100%;
-        min-width: 0;
-        max-width: 100%;
+        padding: 7px 12px;
+        font-size: 12.5px;
     }
 
     .cli-search-input {
-        padding: 8px 14px 8px 34px;
+        padding: 9px 36px 9px 36px;
         font-size: 13px;
-    }
-
-    .cli-meta-bar {
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 11.5px;
-        margin-bottom: 12px;
-    }
-
-    /* CLI Command Grid on Mobile */
-    .cli-command-grid {
-        gap: 10px;
-    }
-
-    /* Flags & Parameters Stack on Mobile */
-    .cli-flag-item {
-        display: flex;
-        flex-wrap: wrap;
-        align-items: baseline;
-        gap: 3px 6px;
-        font-size: 12px;
-        width: 100%;
-        background: var(--card-subtle);
-        padding: 6px 10px;
-        border-radius: 6px;
-        box-sizing: border-box;
-    }
-
-    .cli-flag-tag {
-        font-size: 11px;
-        font-weight: 600;
-        color: var(--accent);
-        background: transparent;
-        border: none;
-        padding: 0;
-    }
-
-    .cli-flag-hint {
-        font-size: 11.5px;
-        color: var(--text-muted);
-    }
-
-    /* Interactive Command Example Row on Mobile */
-    .cli-card-example {
-        padding: 8px 10px;
-        gap: 8px;
-        min-width: 0;
-    }
-
-    .cli-example-code {
-        flex: 1;
-        min-width: 0;
-        overflow-x: auto;
-        white-space: nowrap;
-        -webkit-overflow-scrolling: touch;
-        font-size: 12px;
-        scrollbar-width: none;
-    }
-
-    .cli-example-code::-webkit-scrollbar {
-        display: none;
-    }
-
-    .cli-card-copy-hint span {
-        display: none; /* Hide label on mobile to prevent squishing code */
-    }
-
-    .cli-card-copy-hint {
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        color: var(--text-faint);
     }
 }
 
-@media (max-width: 420px) {
+@media (max-width: 480px) {
     .cli-cmd-card {
         padding: 12px 14px;
     }
 
-    .cli-card-header .copy-btn span {
-        display: none; /* Icon-only on very narrow phones */
+    .cli-card-actions .copy-btn span {
+        display: none; /* Icon-only on narrow phones to save space */
     }
 
-    .cli-card-header .copy-btn {
-        padding: 5px 8px;
+    .cli-card-actions .copy-btn {
+        padding: 6px 8px;
     }
 
     .cli-cmd-syntax {
-        font-size: 12.5px;
+        font-size: 13px;
     }
 
     .cli-accordion-chevron {
-        width: 22px;
-        height: 22px;
+        width: 28px;
+        height: 28px;
+        min-width: 28px;
+        min-height: 28px;
+    }
+
+    .cli-meta-bar {
+        font-size: 11px;
+    }
+
+    .cli-toggle-all-btn {
+        padding: 4px 10px;
+        font-size: 11px;
+    }
+
+    .cli-docs-link {
+        font-size: 11px;
     }
 }
+
 
 
