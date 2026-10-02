@@ -122,14 +122,51 @@
                         </a>
                     </div>
 
-                    <div class="install-pill" data-copy="./install.sh">
-                        <code>
-                            <span class="prefix">$</span> ./install.sh
-                        </code>
-                        <button class="copy-btn" aria-label="Copy install command">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                            Copy
-                        </button>
+                    <!-- Hero Installation Method Switcher -->
+                    <div class="hero-install-switcher">
+                        <div class="install-tabs" role="tablist" aria-label="Installation Method">
+                            <button class="install-tab-btn active" data-tab="brew" role="tab" aria-selected="true">
+                                <span class="install-tab-icon">🍺</span>
+                                <span>Homebrew</span>
+                                <span class="install-tab-badge">Recommended</span>
+                            </button>
+                            <button class="install-tab-btn" data-tab="script" role="tab" aria-selected="false">
+                                <span class="install-tab-icon">⚡</span>
+                                <span>Install Script</span>
+                            </button>
+                        </div>
+
+                        <!-- Homebrew Option (Default Active) -->
+                        <div class="install-tab-pane active" id="hero-pane-brew">
+                            <div class="install-pill" data-copy="brew tap rajanchavda/tap &amp;&amp; brew install --cask secret-manager">
+                                <code>
+                                    <span class="prefix">$</span> brew tap rajanchavda/tap &amp;&amp; brew install --cask secret-manager
+                                </code>
+                                <button class="copy-btn" aria-label="Copy Homebrew install command">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    Copy
+                                </button>
+                            </div>
+                            <div class="install-helper-text">
+                                <span>Installs desktop GUI &amp; <code>sec</code> CLI via Homebrew Cask</span>
+                            </div>
+                        </div>
+
+                        <!-- Shell Script Option -->
+                        <div class="install-tab-pane" id="hero-pane-script" style="display: none;">
+                            <div class="install-pill" data-copy="./install.sh">
+                                <code>
+                                    <span class="prefix">$</span> ./install.sh
+                                </code>
+                                <button class="copy-btn" aria-label="Copy install script command">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    Copy
+                                </button>
+                            </div>
+                            <div class="install-helper-text">
+                                <span>Builds native release binary and registers Finder Quick Actions</span>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="hero-meta">
@@ -461,27 +498,29 @@
 
                     <!-- Category Pills & Live Search Filter -->
                     <div class="cli-filter-bar">
-                        <div class="cli-category-tabs" role="tablist" aria-label="CLI Command Categories">
-                            <button class="cli-tab-btn active" data-category="all" role="tab" aria-selected="true">
-                                <span>All Commands</span>
-                                <span class="cli-tab-count">16</span>
-                            </button>
-                            <button class="cli-tab-btn" data-category="core" role="tab" aria-selected="false">
-                                <span>Core</span>
-                                <span class="cli-tab-count">5</span>
-                            </button>
-                            <button class="cli-tab-btn" data-category="discovery" role="tab" aria-selected="false">
-                                <span>Discovery</span>
-                                <span class="cli-tab-count">3</span>
-                            </button>
-                            <button class="cli-tab-btn" data-category="backup" role="tab" aria-selected="false">
-                                <span>Backups</span>
-                                <span class="cli-tab-count">3</span>
-                            </button>
-                            <button class="cli-tab-btn" data-category="security" role="tab" aria-selected="false">
-                                <span>Security</span>
-                                <span class="cli-tab-count">5</span>
-                            </button>
+                        <div class="cli-category-tabs-wrap">
+                            <div class="cli-category-tabs" role="tablist" aria-label="CLI Command Categories">
+                                <button class="cli-tab-btn active" data-category="all" role="tab" aria-selected="true">
+                                    <span>All Commands</span>
+                                    <span class="cli-tab-count">16</span>
+                                </button>
+                                <button class="cli-tab-btn" data-category="core" role="tab" aria-selected="false">
+                                    <span>Core</span>
+                                    <span class="cli-tab-count">5</span>
+                                </button>
+                                <button class="cli-tab-btn" data-category="discovery" role="tab" aria-selected="false">
+                                    <span>Discovery</span>
+                                    <span class="cli-tab-count">3</span>
+                                </button>
+                                <button class="cli-tab-btn" data-category="backup" role="tab" aria-selected="false">
+                                    <span>Backups</span>
+                                    <span class="cli-tab-count">3</span>
+                                </button>
+                                <button class="cli-tab-btn" data-category="security" role="tab" aria-selected="false">
+                                    <span>Security</span>
+                                    <span class="cli-tab-count">5</span>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="cli-search-wrap">
@@ -490,15 +529,24 @@
                                 <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                             </svg>
                             <input type="text" id="cliSearchInput" class="cli-search-input" placeholder="Search commands, flags, or keywords..." aria-label="Search CLI commands">
+                            <button type="button" id="cliSearchClear" class="cli-search-clear" aria-label="Clear search query" style="display: none;">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
                         </div>
                     </div>
 
                     <div class="cli-meta-bar">
-                        <span id="cliVisibleCount">Showing 16 of 16 commands</span>
-                        <a href="https://github.com/rajanchavda/security-manager/blob/main/docs/CLI_REFERENCE.md" target="_blank" rel="noopener noreferrer" class="cli-docs-link">
-                            <span>Full Markdown Specs</span>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                        </a>
+                        <span id="cliVisibleCount" class="cli-visible-count">Showing 16 of 16 commands</span>
+                        <div class="cli-meta-actions">
+                            <button class="cli-toggle-all-btn" id="cliToggleAllBtn" type="button" aria-label="Expand or collapse all commands">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="7 13 12 18 17 13"></polyline><polyline points="7 6 12 11 17 6"></polyline></svg>
+                                <span class="toggle-all-text">Expand All</span>
+                            </button>
+                            <a href="https://github.com/rajanchavda/security-manager/blob/main/docs/CLI_REFERENCE.md" target="_blank" rel="noopener noreferrer" class="cli-docs-link">
+                                <span>Markdown Specs</span>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                            </a>
+                        </div>
                     </div>
 
                     <!-- Command Cards List -->
@@ -1042,14 +1090,44 @@
                         </a>
                     </div>
 
-                    <div class="install-pill" style="max-width: 480px; margin: 0 auto 16px;" data-copy="./install.sh">
-                        <code>
-                            <span class="prefix">$</span> ./install.sh
-                        </code>
-                        <button class="copy-btn">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                            Copy
-                        </button>
+                    <div class="hero-install-switcher" style="margin-bottom: 16px;">
+                        <div class="install-tabs" role="tablist" aria-label="Installation Method">
+                            <button class="install-tab-btn active" data-tab="bottom-brew" role="tab" aria-selected="true">
+                                <span class="install-tab-icon">🍺</span>
+                                <span>Homebrew</span>
+                                <span class="install-tab-badge">Recommended</span>
+                            </button>
+                            <button class="install-tab-btn" data-tab="bottom-script" role="tab" aria-selected="false">
+                                <span class="install-tab-icon">⚡</span>
+                                <span>Install Script</span>
+                            </button>
+                        </div>
+
+                        <!-- Homebrew Option -->
+                        <div class="install-tab-pane active" id="hero-pane-bottom-brew">
+                            <div class="install-pill" data-copy="brew tap rajanchavda/tap &amp;&amp; brew install --cask secret-manager">
+                                <code>
+                                    <span class="prefix">$</span> brew tap rajanchavda/tap &amp;&amp; brew install --cask secret-manager
+                                </code>
+                                <button class="copy-btn" aria-label="Copy Homebrew install command">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    Copy
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Shell Script Option -->
+                        <div class="install-tab-pane" id="hero-pane-bottom-script" style="display: none;">
+                            <div class="install-pill" data-copy="./install.sh">
+                                <code>
+                                    <span class="prefix">$</span> ./install.sh
+                                </code>
+                                <button class="copy-btn" aria-label="Copy install script command">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                                    Copy
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <p style="font-size: 13px; color: var(--text-faint);">
