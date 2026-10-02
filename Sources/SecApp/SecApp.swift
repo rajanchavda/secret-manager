@@ -33,6 +33,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.updateStatusButton()
             }
             .store(in: &cancellables)
+            
+        // 7. Check for application updates in background (throttled once daily)
+        UpdateChecker.shared.performBackgroundCheckIfStale()
     }
     
     // MARK: - Main Standalone Window
@@ -84,6 +87,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if let button = statusItem.button {
             button.target = self
             button.action = #selector(statusItemClicked(_:))
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
         
         updateStatusButton()
@@ -103,6 +107,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     @objc func statusItemClicked(_ sender: AnyObject?) {
+        guard let event = NSApp.currentEvent else {
+            showMainWindow()
+            return
+        }
+        if event.type == .rightMouseUp {
+            let menu = NSMenu()
+            let openItem = NSMenuItem(title: "Open Secret Manager", action: #selector(showMainWindowFromMenu), keyEquivalent: "")
+            openItem.target = self
+            menu.addItem(openItem)
+            
+            let lockItem = NSMenuItem(title: "Lock All Vaults", action: #selector(triggerLockAll), keyEquivalent: "l")
+            lockItem.target = self
+            menu.addItem(lockItem)
+            
+            menu.addItem(NSMenuItem.separator())
+            
+            let updateItem = NSMenuItem(title: "Check for Updates...", action: #selector(checkForUpdatesAction), keyEquivalent: "")
+            updateItem.target = self
+            menu.addItem(updateItem)
+            
+            menu.addItem(NSMenuItem.separator())
+            menu.addItem(withTitle: "Quit Secret Manager", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+            
+            statusItem.menu = menu
+            statusItem.button?.performClick(nil)
+            statusItem.menu = nil
+        } else {
+            showMainWindow()
+        }
+    }
+    
+    @objc func checkForUpdatesAction() {
+        showMainWindow()
+        Task {
+            await UpdateChecker.shared.checkForUpdates(userInitiated: true)
+        }
+    }
+    
+    @objc func showMainWindowFromMenu() {
         showMainWindow()
     }
     
@@ -130,6 +173,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let appMenuItem = NSMenuItem()
         let appMenu = NSMenu(title: "Secret Manager")
         appMenu.addItem(withTitle: "About Secret Manager", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        
+        let updateMenuItem = NSMenuItem(title: "Check for Updates...", action: #selector(checkForUpdatesAction), keyEquivalent: "")
+        updateMenuItem.target = self
+        appMenu.addItem(updateMenuItem)
+        
         appMenu.addItem(NSMenuItem.separator())
         appMenu.addItem(withTitle: "Hide Secret Manager", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         let hideOthersItem = NSMenuItem(title: "Hide Others", action: #selector(NSApplication.hideOtherApplications(_:)), keyEquivalent: "h")

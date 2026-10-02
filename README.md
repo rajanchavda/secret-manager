@@ -82,20 +82,28 @@ flowchart TD
 
 ## 🚀 Installation
 
-### One-line Installation
-From this repository directory, run:
+### Option 1: Homebrew Cask (Recommended)
+Install the **Secret Manager** desktop GUI app and the `sec` CLI with a single command:
 ```bash
-./install.sh
+brew tap rajanchavda/tap
+brew install --cask secret-manager
 ```
-Or with `make`:
+To update at any time:
 ```bash
-make install
+brew upgrade secret-manager
 ```
 
-This will:
-1. Compile the native Swift release binary (only ~340KB with zero external dependencies).
-2. Install the binary to `/usr/local/bin/sec` (or `~/.local/bin/sec`).
-3. Install macOS Quick Actions into `~/Library/Services` for Finder right-click support.
+### Option 2: Download DMG Installer (Universal for Apple Silicon & Intel)
+1. Download the latest `Secret-Manager-X.Y.Z.dmg` from [GitHub Releases](https://github.com/rajanchavda/file-sec/releases).
+2. Open the `.dmg` and drag **Secret Manager** into `/Applications`.
+3. *Note for direct downloads*: Since this open-source project does not use a paid Apple Developer certificate, on first launch right-click the app in `/Applications` and select **Open** (or run `xattr -cr "/Applications/Secret Manager.app"`). *Using Homebrew bypasses this step automatically.*
+
+### Option 3: Build & Install From Source
+From this repository directory:
+```bash
+./install.sh
+# or: make install
+```
 
 ---
 
@@ -251,6 +259,33 @@ sec unlock .env
 make test
 ```
 Runs the XCTest suite validating encryption round-trips, `.env` parsing, and vault URL resolution.
+
+## 🔄 In-App Updates
+Secret Manager includes a native, zero-dependency update checker:
+- **Menu Bar**: Click **Secret Manager** in the top macOS menu bar ➡️ **Check for Updates...**
+- **Settings**: Click the gear icon in the app header ➡️ **Check for Updates...**
+- When a new version is published on GitHub, a native update dialog provides release notes, a direct DMG download link, and a copy button for `brew upgrade secret-manager`.
+
+---
+
+## 📦 Automated Release Pipeline (No Apple ID Required)
+
+Releases are fully automated via GitHub Actions on Git tag push:
+
+```bash
+git tag v1.0.1
+git push origin v1.0.1
+```
+
+The GitHub Actions workflow automatically:
+1. Compiles a native **Universal 2** binary supporting both Apple Silicon (M1/M2/M3/M4) and Intel Macs.
+2. Ad-hoc signs the application bundle.
+3. Packages a compressed DMG (`Secret-Manager-1.0.1.dmg`) with `/Applications` drag-and-drop installer.
+4. Generates SHA256 checksums (`Secret-Manager-1.0.1.dmg.sha256` and `SHA256SUMS.txt`).
+5. Publishes a GitHub Release with release notes and attaches all release assets.
+6. Outputs the updated Homebrew Cask formula for your tap repository.
+
+See [docs/HOMEBREW_GUIDE.md](docs/HOMEBREW_GUIDE.md) for full Homebrew Tap hosting setup.
 
 ---
 

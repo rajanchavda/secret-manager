@@ -5,3 +5,10 @@
 .DS_Store
 .agents
 brag-output
+
+# Build & Release Artifacts
+build/
+dist/
+*.dmg
+*.sha256
+SHA256SUMS.txt

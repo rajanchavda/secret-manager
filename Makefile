@@ -1,4 +1,4 @@
-.PHONY: all build release test clean install uninstall app run-app runapp
+.PHONY: all build release test clean install uninstall app run-app runapp dmg
 
 all: build
 
@@ -10,6 +10,9 @@ release:
 
 app:
 	./scripts/build-app.sh
+
+dmg:
+	./scripts/build-release-dmg.sh
 
 run-app: app
 	pkill -x "Secret Manager" 2>/dev/null || pkill -x SecApp 2>/dev/null || true
