@@ -1017,6 +1017,14 @@
                             Yes. Apple's LocalAuthentication framework automatically falls back to an Apple Watch biometric tap, Touch ID on an external Apple Magic Keyboard, or your Mac login password if the MacBook display lid is closed.
                         </p>
                     </details>
+
+                    <details>
+                        <summary>How do I uninstall the CLI and desktop app?</summary>
+                        <p>
+                            If installed via Homebrew Cask, simply run <code>brew uninstall --cask secret-manager</code> to remove both the app and the <code>sec</code> CLI symlink.<br><br>
+                            If installed from source, run <code>./uninstall.sh</code> (or <code>make uninstall</code>) from the repository. This cleanly deletes the CLI binary, removes Finder Quick Actions from <code>~/Library/Services/</code>, and flushes macOS system services.
+                        </p>
+                    </details>
                 </div>
 
                 <!-- ── Download / Install CTA Callout ──────────────── -->

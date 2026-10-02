@@ -107,6 +107,43 @@ From this repository directory:
 
 ---
 
+## 🗑️ Uninstallation
+
+Depending on how you installed Secret Manager and the `sec` CLI:
+
+### Option 1: If Installed via Homebrew Cask
+To remove both the desktop app and the `sec` CLI symlink:
+```bash
+brew uninstall --cask secret-manager
+```
+
+### Option 2: If Installed From Source or Makefile
+From this repository directory:
+```bash
+./uninstall.sh
+# or: make uninstall
+```
+*(To also erase master encryption tokens and backup snapshots in `~/.sec`, pass `./uninstall.sh --purge`)*.
+
+### Option 3: Manual CLI & Finder Actions Removal
+If you only want to remove the CLI and Finder Quick Actions manually:
+```bash
+# 1. Remove CLI binary / symlink
+rm -f /usr/local/bin/sec ~/.local/bin/sec /opt/homebrew/bin/sec
+
+# 2. Remove Finder Quick Actions
+rm -rf ~/Library/Services/*Secrets\ with\ Touch\ ID\ \(sec\).workflow
+/System/Library/CoreServices/pbs -flush
+
+# 3. (Optional) Remove desktop app
+rm -rf "/Applications/Secret Manager.app"
+```
+
+> [!CAUTION]
+> **Warning regarding `~/.sec`**: Your Secure Enclave hardware master key token is stored at `~/.sec/enclave.token`. **Do NOT delete `~/.sec` if you still have encrypted `.vault` files**, or they will be permanently lost unless you exported your recovery key (`sec export-key`).
+
+---
+
 ## 🖱️ Finder Right-Click Usage
 
 Once installed:
