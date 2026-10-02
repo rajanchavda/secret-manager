@@ -33,10 +33,10 @@ cask "secret-manager" do
   version "1.0.0"
   sha256 "PASTE_SHA256_FROM_GITHUB_RELEASE"
 
-  url "https://github.com/rajanchavda/file-sec/releases/download/v#{version}/Secret-Manager-#{version}.dmg"
+  url "https://github.com/rajanchavda/security-manager/releases/download/v#{version}/Secret-Manager-#{version}.dmg"
   name "Secret Manager"
   desc "Hardware-grade Touch ID Secret Manager and stealth secret injection"
-  homepage "https://github.com/rajanchavda/file-sec"
+  homepage "https://github.com/rajanchavda/security-manager"
 
   livecheck do
     url :url
@@ -88,7 +88,7 @@ brew upgrade secret-manager
 
 ## 4. How Releases Work Automatically
 
-Whenever you cut a new version in `file-sec`:
+Whenever you cut a new version in `security-manager`:
 
 ```bash
 git tag v1.0.1
