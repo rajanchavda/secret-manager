@@ -327,4 +327,6 @@ See [docs/HOMEBREW_GUIDE.md](docs/HOMEBREW_GUIDE.md) for full Homebrew Tap hosti
 ---
 
 ## 📄 License
-MIT License.
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
