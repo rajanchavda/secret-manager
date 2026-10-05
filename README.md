@@ -5,6 +5,16 @@
 
 ---
 
+## 🎬 Quick Demo & Walkthrough
+
+Watch a walkthrough video showing how Secret Manager protects your `.env` secrets with Apple Silicon Touch ID and injects them directly into running processes:
+
+<video src="docs/assets/introduction.mp4" poster="docs/assets/thumb.jpeg" controls="controls" width="100%" style="max-width: 840px; border-radius: 8px;">
+      Your browser or markdown viewer does not support the video tag. Please view or download the video directly at <a href="docs/assets/introduction.mp4">docs/assets/introduction.mp4</a>.
+    </video>
+
+---
+
 ## ⚡ The Threat Model
 
 AI coding agents (Cursor, Claude Desktop, Antigravity, GitHub Copilot, local LLMs) inspect your project workspace, run shell tools (`cat`, `ripgrep`, `grep`), and ingest files into context windows.
@@ -15,6 +25,7 @@ If your `.env` contains live credentials (database connection strings, Stripe ke
 If a utility decrypts `.env` to plaintext on disk while your dev server runs (`npm run dev`), the agent can read those secrets at any moment during development.
 
 **How `sec` solves this:**
+
 1. **Plaintext never touches the disk during development**: Real secrets are encrypted in `.env.vault` (AES-256-GCM with hardware-backed macOS Keychain key).
 2. **Sanitized Placeholder**: The `.env` file on disk is replaced with masked dummy values (e.g. `API_KEY=locked_by_sec`) so project linters, syntax highlighters, and static tools never break.
 3. **In-Memory Injection**: When you run `sec npm run dev`, Touch ID prompts once, decrypts secrets directly into RAM (`process.env`), and passes them to the child process. AI agents reading the filesystem only ever see dummy placeholders.
@@ -71,35 +82,42 @@ flowchart TD
 
 ### ⚖️ Before vs. After `sec`
 
-| Situation | Without `sec` ❌ | With `sec` ✅ |
-|---|---|---|
-| **What lives on your hard drive** | Plaintext credentials (`API_KEY=sk_live_12345`) | Masked decoy (`API_KEY=locked_by_sec`) + encrypted `.vault` |
-| **What AI agents can read** | Live passwords, database links, and secret tokens | Only the decoy labels (`locked_by_sec`) |
-| **What your dev server gets** | Reads plaintext file from disk | Receives real secrets directly into RAM on Touch ID tap |
-| **If someone steals your project folder** | All secrets are completely exposed | Secrets are uncrackable AES-256-GCM without your biometric fingerprint |
+| Situation                                 | Without `sec` ❌                                  | With `sec` ✅                                                          |
+| ----------------------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------- |
+| **What lives on your hard drive**         | Plaintext credentials (`API_KEY=sk_live_12345`)   | Masked decoy (`API_KEY=locked_by_sec`) + encrypted `.vault`            |
+| **What AI agents can read**               | Live passwords, database links, and secret tokens | Only the decoy labels (`locked_by_sec`)                                |
+| **What your dev server gets**             | Reads plaintext file from disk                    | Receives real secrets directly into RAM on Touch ID tap                |
+| **If someone steals your project folder** | All secrets are completely exposed                | Secrets are uncrackable AES-256-GCM without your biometric fingerprint |
 
 ---
 
 ## 🚀 Installation
 
 ### Option 1: Homebrew Cask (Recommended)
+
 Install the **Secret Manager** desktop GUI app and the `sec` CLI with a single command:
+
 ```bash
 brew tap rajanchavda/tap
 brew install --cask secret-manager
 ```
+
 To update at any time:
+
 ```bash
 brew upgrade secret-manager
 ```
 
 ### Option 2: Download DMG Installer (Universal for Apple Silicon & Intel)
+
 1. Download the latest `Secret-Manager-X.Y.Z.dmg` from [GitHub Releases](https://github.com/rajanchavda/security-manager/releases).
 2. Open the `.dmg` and drag **Secret Manager** into `/Applications`.
-3. *Note for direct downloads*: Since this open-source project does not use a paid Apple Developer certificate, on first launch right-click the app in `/Applications` and select **Open** (or run `xattr -cr "/Applications/Secret Manager.app"`). *Using Homebrew bypasses this step automatically.*
+3. _Note for direct downloads_: Since this open-source project does not use a paid Apple Developer certificate, on first launch right-click the app in `/Applications` and select **Open** (or run `xattr -cr "/Applications/Secret Manager.app"`). _Using Homebrew bypasses this step automatically._
 
 ### Option 3: Build & Install From Source
+
 From this repository directory:
+
 ```bash
 ./install.sh
 # or: make install
@@ -112,21 +130,28 @@ From this repository directory:
 Depending on how you installed Secret Manager and the `sec` CLI:
 
 ### Option 1: If Installed via Homebrew Cask
+
 To remove both the desktop app and the `sec` CLI symlink:
+
 ```bash
 brew uninstall --cask secret-manager
 ```
 
 ### Option 2: If Installed From Source or Makefile
+
 From this repository directory:
+
 ```bash
 ./uninstall.sh
 # or: make uninstall
 ```
-*(To also erase master encryption tokens and backup snapshots in `~/.sec`, pass `./uninstall.sh --purge`)*.
+
+_(To also erase master encryption tokens and backup snapshots in `~/.sec`, pass `./uninstall.sh --purge`)_.
 
 ### Option 3: Manual CLI & Finder Actions Removal
+
 If you only want to remove the CLI and Finder Quick Actions manually:
+
 ```bash
 # 1. Remove CLI binary / symlink
 rm -f /usr/local/bin/sec ~/.local/bin/sec /opt/homebrew/bin/sec
@@ -147,9 +172,10 @@ rm -rf "/Applications/Secret Manager.app"
 ## 🖱️ Finder Right-Click Usage
 
 Once installed:
+
 - **Lock a file**: Right-click `.env` (or any secret file) in macOS Finder ➡️ **Quick Actions / Services** ➡️ **Lock Secrets with Touch ID (sec)**.
 - **Unlock a file**: Right-click `.env.vault` (or an already locked file) ➡️ **Quick Actions / Services** ➡️ **Unlock Secrets with Touch ID (sec)**.  
-  *(Note: If you ever click "Lock" on an already locked file, `sec` automatically detects it and displays the **Unlock Secrets** option immediately instead of re-locking).*
+  _(Note: If you ever click "Lock" on an already locked file, `sec` automatically detects it and displays the **Unlock Secrets** option immediately instead of re-locking)._
 - **View secrets**: Right-click `.env.vault` (or `.env`) in Finder ➡️ **Quick Actions / Services** ➡️ **View Secrets with Touch ID (sec)**. Prompts Touch ID and prints formatted secrets in Terminal without leaving plaintext on disk.
 - **Edit a vault**: Right-click `.env.vault` in Finder ➡️ **Quick Actions / Services** ➡️ **Edit Secrets with Touch ID (sec)**.
 
@@ -160,28 +186,34 @@ A native macOS notification banner will confirm when your file is protected or r
 ## 💻 CLI Usage
 
 ### 1. Lock a Secret File
+
 ```bash
 sec lock .env
 ```
-* Encrypts `.env` into `.env.vault`.
-* Generates a dummy `.env` on disk:
+
+- Encrypts `.env` into `.env.vault`.
+- Generates a dummy `.env` on disk:
+
   ```env
   # 🔒 PROTECTED BY sec (Touch ID Secret Vault)
   # Real secrets are encrypted in .env.vault
   # Run commands: sec npm run dev   |   Edit secrets: sec edit
-  
+
   DATABASE_URL=locked_by_sec
   STRIPE_SECRET_KEY=locked_by_sec
   PORT=3000
   ```
-* Automatically adds `.env.vault` to `.gitignore`.
-* **Idempotent & Safe**: If `.env` is already locked (or if you right-click and lock it again in Finder), `sec` detects it immediately without prompting Touch ID, refuses to overwrite your vault with dummy placeholders, and displays a friendly notification.
-* To force re-lock with current file contents, use `sec lock --force .env`.
+
+- Automatically adds `.env.vault` to `.gitignore`.
+- **Idempotent & Safe**: If `.env` is already locked (or if you right-click and lock it again in Finder), `sec` detects it immediately without prompting Touch ID, refuses to overwrite your vault with dummy placeholders, and displays a friendly notification.
+- To force re-lock with current file contents, use `sec lock --force .env`.
 
 ---
 
 ### 2. Run Commands with Secrets Injected (In-Memory)
+
 Simply prefix any command with `sec`:
+
 ```bash
 sec npm run dev
 sec pnpm dev
@@ -189,37 +221,45 @@ sec cargo run
 sec python app.py
 sec docker compose up
 ```
-* Prompts Touch ID once.
-* Real secrets are injected into process memory (`process.env`).
-* Output and interactive terminal TTY features (colors, curses, Ctrl+C signals) work seamlessly.
-* Monorepo friendly: automatically searches parent directories if running inside a nested subpackage!
+
+- Prompts Touch ID once.
+- Real secrets are injected into process memory (`process.env`).
+- Output and interactive terminal TTY features (colors, curses, Ctrl+C signals) work seamlessly.
+- Monorepo friendly: automatically searches parent directories if running inside a nested subpackage!
 
 ---
 
 ### 3. Safely Edit Secrets
+
 ```bash
 sec edit .env
 ```
-* Prompts Touch ID.
-* Decrypts secrets into an ephemeral, secure temporary buffer (`0600` permissions).
-* Opens your `$EDITOR` (VS Code `--wait`, Cursor `--wait`, Nano, or Vim).
-* On save and close: automatically re-encrypts `.env.vault`, refreshes the placeholder `.env`, and securely shreds the temporary file.
+
+- Prompts Touch ID.
+- Decrypts secrets into an ephemeral, secure temporary buffer (`0600` permissions).
+- Opens your `$EDITOR` (VS Code `--wait`, Cursor `--wait`, Nano, or Vim).
+- On save and close: automatically re-encrypts `.env.vault`, refreshes the placeholder `.env`, and securely shreds the temporary file.
 
 ---
 
 ### 4. View Secrets in Terminal
+
 ```bash
 sec view .env
 ```
-* Prompts Touch ID and outputs decrypted key-value pairs to terminal stdout.
+
+- Prompts Touch ID and outputs decrypted key-value pairs to terminal stdout.
 
 ---
 
 ### 5. Check Vault & Session Status
+
 ```bash
 sec status
 ```
+
 Outputs:
+
 ```text
 === sec Status ===
 🔑 Keychain Master Key: ✅ Configured (Secure Enclave / Keychain)
@@ -229,6 +269,7 @@ Outputs:
 ```
 
 Inspect access policy:
+
 ```bash
 sec session
 ```
@@ -236,10 +277,13 @@ sec session
 ---
 
 ### 6. List & Audit Protected Vaults Across Your Mac
+
 ```bash
 sec list
 ```
+
 Outputs an aggregated overview of all locked vaults across your folders:
+
 ```text
 === 🔒 Protected Vaults Across Your Mac ===
 
@@ -256,16 +300,16 @@ Outputs an aggregated overview of all locked vaults across your folders:
    • Modified:  Sep 24, 2026, 04:15 PM
 ```
 
-* **Discover unindexed vaults**:
+- **Discover unindexed vaults**:
   ```bash
   sec list --scan             # Scans user home directory (skips caches & node_modules)
   sec list --scan ~/Developer # Scans a specific folder tree
   ```
-* **Clean up deleted/missing vaults**:
+- **Clean up deleted/missing vaults**:
   ```bash
   sec list --prune
   ```
-* **Scripting / JSON output**:
+- **Scripting / JSON output**:
   ```bash
   sec list --json
   ```
@@ -273,10 +317,12 @@ Outputs an aggregated overview of all locked vaults across your folders:
 ---
 
 ### 7. Permanently Unlock (Restore Plaintext to Disk)
+
 ```bash
 sec unlock .env
 ```
-* Prompts Touch ID, restores plaintext `.env` on disk, and removes `.env.vault`.
+
+- Prompts Touch ID, restores plaintext `.env` on disk, and removes `.env.vault`.
 
 ---
 
@@ -295,10 +341,13 @@ sec unlock .env
 ```bash
 make test
 ```
+
 Runs the XCTest suite validating encryption round-trips, `.env` parsing, and vault URL resolution.
 
 ## 🔄 In-App Updates
+
 Secret Manager includes a native, zero-dependency update checker:
+
 - **Menu Bar**: Click **Secret Manager** in the top macOS menu bar ➡️ **Check for Updates...**
 - **Settings**: Click the gear icon in the app header ➡️ **Check for Updates...**
 - When a new version is published on GitHub, a native update dialog provides release notes, a direct DMG download link, and a copy button for `brew upgrade secret-manager`.
@@ -315,6 +364,7 @@ git push origin v1.0.1
 ```
 
 The GitHub Actions workflow automatically:
+
 1. Compiles a native **Universal 2** binary supporting both Apple Silicon (M1/M2/M3/M4) and Intel Macs.
 2. Ad-hoc signs the application bundle.
 3. Packages a compressed DMG (`Secret-Manager-1.0.1.dmg`) with `/Applications` drag-and-drop installer.
@@ -329,4 +379,3 @@ See [docs/HOMEBREW_GUIDE.md](docs/HOMEBREW_GUIDE.md) for full Homebrew Tap hosti
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
