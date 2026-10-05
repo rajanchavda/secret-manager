@@ -106,13 +106,28 @@ To update at any time:
 brew upgrade secret-manager
 ```
 
-### Option 2: Download DMG Installer (Universal for Apple Silicon & Intel)
+### Option 2: One-Line Installer (No Homebrew)
+
+Downloads the latest release, verifies its SHA256 checksum, installs the app to `/Applications`, and links the `sec` CLI:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/rajanchavda/security-manager/main/install-app.sh | bash
+```
+
+> **Why no security warning?** Secret Manager is open source and not notarized with a paid Apple Developer certificate. Browsers tag downloaded files with a quarantine flag that makes macOS block un-notarized apps; `curl` and Homebrew don't, so the app opens normally. You are trusting the GitHub release and its checksum — review [`install-app.sh`](install-app.sh) before running it if you prefer.
+
+### Option 3: Download DMG Manually (Universal for Apple Silicon & Intel)
 
 1. Download the latest `Secret-Manager-X.Y.Z.dmg` from [GitHub Releases](https://github.com/rajanchavda/security-manager/releases).
 2. Open the `.dmg` and drag **Secret Manager** into `/Applications`.
-3. _Note for direct downloads_: Since this open-source project does not use a paid Apple Developer certificate, on first launch right-click the app in `/Applications` and select **Open** (or run `xattr -cr "/Applications/Secret Manager.app"`). _Using Homebrew bypasses this step automatically._
+3. On first launch macOS shows _"Apple could not verify 'Secret Manager' is free of malware"_. Click **Done** (not Move to Trash), then allow it with **one** of these:
+   - **System Settings → Privacy & Security**, scroll down, click **Open Anyway** next to Secret Manager, and confirm with your password / Touch ID. (On macOS 15 Sequoia and later, right-click → Open no longer works.)
+   - Or in Terminal:
+     ```bash
+     xattr -dr com.apple.quarantine "/Applications/Secret Manager.app"
+     ```
 
-### Option 3: Build & Install From Source
+### Option 4: Build & Install From Source
 
 From this repository directory:
 

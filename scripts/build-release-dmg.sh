@@ -175,9 +175,11 @@ echo "APPL????" > "$CONTENTS_DIR/PkgInfo"
 # ------------------------------------------------------------------------------
 echo "✍️  Ad-hoc code signing application..."
 if [[ -f "$MACOS_DIR/sec" ]]; then
-    codesign --force --sign - "$MACOS_DIR/sec" >/dev/null 2>&1 || true
+    codesign --force --sign - "$MACOS_DIR/sec"
 fi
-codesign --force --deep --sign - "$APP_BUNDLE" >/dev/null 2>&1 || true
+codesign --force --deep --sign - "$APP_BUNDLE"
+# Fail the build if the signature is missing or broken; unsigned apps show "damaged" on Apple Silicon
+codesign --verify --deep --strict --verbose=2 "$APP_BUNDLE"
 
 # Verify architecture slice
 echo "🔍 Binary architecture:"
