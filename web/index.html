@@ -2,17 +2,83 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secret Manager — Touch ID Secret Vault for macOS</title>
-    <meta name="description" content="Shield your .env and secret files from AI agents & background tools. Hardware-encrypted on Apple Silicon with Touch ID, injected directly into process memory during development.">
-    <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
-    <link rel="apple-touch-icon" href="assets/icon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     
-    <!-- Open Graph -->
-    <meta property="og:title" content="Secret Manager — Touch ID Secret Vault for macOS">
-    <meta property="og:description" content="Shield your .env from AI coding agents. Decoy on disk, real secrets hardware-encrypted in Apple Silicon Secure Enclave and injected into RAM on Touch ID tap.">
-    <meta property="og:image" content="assets/icon.png">
+    <!-- Primary SEO Meta Tags -->
+    <title>Secret Manager (sec) — Touch ID Secret Vault for macOS</title>
+    <meta name="title" content="Secret Manager (sec) — Touch ID Secret Vault for macOS">
+    <meta name="description" content="Shield your .env from AI coding agents (Cursor, Claude, Copilot). Hardware-encrypted with Apple Silicon Touch ID, decoy placeholders on disk, and zero plaintext leaks.">
+    <meta name="keywords" content="secret manager, sec, Touch ID, Apple Silicon, Secure Enclave, env vault, AI coding agents, Cursor security, Claude Desktop, macOS developer tools, dotenv vault">
+    <meta name="author" content="Rajan Chavda">
+    <meta name="robots" content="index, follow">
+
+    <!-- Theme & Viewport Color (Light & Dark Mode) -->
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#faf9f6">
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#090a0f">
+
+    <!-- Icons & PWA Manifest -->
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" type="image/svg+xml" href="assets/icon.svg">
+    <link rel="icon" type="image/png" sizes="512x512" href="assets/icon.png">
+    <link rel="apple-touch-icon" href="assets/icon.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Secret Manager">
+    
+    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Secret Manager (sec)">
+    <meta property="og:title" content="Secret Manager (sec) — Touch ID Secret Vault for macOS">
+    <meta property="og:description" content="Shield your .env from AI coding agents. Decoy on disk, real secrets hardware-encrypted in Apple Silicon Secure Enclave and injected into RAM on Touch ID tap.">
+    <meta property="og:image" content="assets/og-image.png?v=2">
+    <meta property="og:image:secure_url" content="assets/og-image.png?v=2">
+    <meta property="og:image:type" content="image/png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Secret Manager (sec) — AI coding agents are reading your .env. Shield secrets with Touch ID and Apple Silicon Secure Enclave.">
+    <meta property="og:locale" content="en_US">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Secret Manager (sec) — Touch ID Secret Vault for macOS">
+    <meta name="twitter:description" content="Shield your .env from AI coding agents. Decoy on disk, real secrets hardware-encrypted in Apple Silicon Secure Enclave and injected into RAM on Touch ID tap.">
+    <meta name="twitter:image" content="assets/og-image.png?v=2">
+    <meta name="twitter:image:alt" content="Secret Manager (sec) — AI coding agents are reading your .env. Shield secrets with Touch ID and Apple Silicon Secure Enclave.">
+
+    <!-- Schema.org JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Secret Manager",
+      "alternateName": "sec",
+      "operatingSystem": "macOS 14.0 or later",
+      "applicationCategory": "DeveloperApplication",
+      "applicationSubCategory": "SecurityApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "description": "Touch ID Secret Vault for macOS. Shields .env and credentials from AI coding agents with Apple Silicon Secure Enclave encryption and in-memory RAM injection.",
+      "url": "https://github.com/rajanchavda/file-sec",
+      "image": "assets/og-image.png",
+      "softwareVersion": "1.0.0",
+      "author": {
+        "@type": "Person",
+        "name": "Rajan Chavda",
+        "url": "https://github.com/rajanchavda"
+      },
+      "license": "https://opensource.org/licenses/MIT",
+      "featureList": [
+        "Apple Silicon Secure Enclave Hardware Key (P-256 + HKDF)",
+        "Touch ID In-Memory RAM Injection for dev servers",
+        "Sanitized Decoy Placeholders for static tools and linters",
+        "macOS Finder Right-Click Quick Actions",
+        "Stealth Preload Loaders defeating Darwin ps -E inspection"
+      ]
+    }
+    </script>
 
     <!-- Stylesheets -->
     <link rel="stylesheet" href="css/style.css">
