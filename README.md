@@ -9,9 +9,14 @@
 
 Watch a walkthrough video showing how Secret Manager protects your `.env` secrets with Apple Silicon Touch ID and injects them directly into running processes:
 
-<video src="docs/assets/introduction.mp4" poster="docs/assets/thumb.jpeg" controls="controls" width="100%" style="max-width: 840px; border-radius: 8px;">
-      Your browser or markdown viewer does not support the video tag. Please view or download the video directly at <a href="docs/assets/introduction.mp4">docs/assets/introduction.mp4</a>.
-    </video>
+<p align="center">
+  <a href="https://github.com/rajanchavda/file-sec/raw/main/docs/assets/introduction.mp4">
+    <img src="docs/assets/thumb-video.jpeg" alt="Secret Manager Walkthrough Demo" width="100%" style="max-width: 840px; border-radius: 10px;">
+  </a>
+</p>
+<p align="center">
+  <a href="https://github.com/rajanchavda/file-sec/raw/main/docs/assets/introduction.mp4"><b>▶ Click here to watch the full demo & walkthrough video (0:20 MP4)</b></a>
+</p>
 
 ---
 
