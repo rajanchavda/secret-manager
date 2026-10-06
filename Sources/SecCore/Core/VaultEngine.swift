@@ -204,8 +204,13 @@ public final class VaultEngine {
     }
     
     /// Decrypts vault file and returns dictionary of environment variables in memory
-    public func readDecryptedSecrets(vaultURL: URL) async throws -> [String: String] {
-        let plaintextData = try await readDecryptedData(vaultURL: vaultURL, promptReason: "sec requires Touch ID to decrypt secrets for command execution")
+    /// Pass the command being run so the Touch ID prompt shows exactly what is being authorized.
+    public func readDecryptedSecrets(vaultURL: URL, command: [String]? = nil) async throws -> [String: String] {
+        var promptReason = "sec requires Touch ID to decrypt secrets for command execution"
+        if let command = command, !command.isEmpty {
+            promptReason = "sec requires Touch ID to run '\(CallerInfo.displayCommand(command))' with secrets from '\(vaultURL.lastPathComponent)'"
+        }
+        let plaintextData = try await readDecryptedData(vaultURL: vaultURL, promptReason: promptReason)
         guard let plaintextString = String(data: plaintextData, encoding: .utf8) else {
             // Binary files have no text environment variables
             return [:]

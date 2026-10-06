@@ -141,8 +141,7 @@ public struct SnapshotPreviewModalView: View {
                     let contentToCopy = store.previewSnapshotRawText.isEmpty
                         ? store.previewSnapshotSecrets.map { "\($0.key)=\($0.value)" }.joined(separator: "\n")
                         : store.previewSnapshotRawText
-                    NSPasteboard.general.clearContents()
-                    NSPasteboard.general.setString(contentToCopy, forType: .string)
+                    SecureClipboard.copy(contentToCopy)
                     copiedFeedback = true
                     DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                         copiedFeedback = false
@@ -271,8 +270,7 @@ public struct SnapshotPreviewModalView: View {
                                 Spacer()
                                 
                                 Button(action: {
-                                    NSPasteboard.general.clearContents()
-                                    NSPasteboard.general.setString(secret.value, forType: .string)
+                                    SecureClipboard.copy(secret.value)
                                     store.showTemporaryStatus("Copied '\(secret.key)'")
                                 }) {
                                     Image(systemName: "doc.on.doc")

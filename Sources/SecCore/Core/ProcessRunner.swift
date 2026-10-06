@@ -40,7 +40,7 @@ public final class ProcessRunner {
             case .orphan(let orphanURL):
                 // Decoy plaintext file was removed or git-cleaned, but the encrypted vault is safe!
                 // Read decrypted secrets directly from the vault rather than destroying it.
-                secrets = try await VaultEngine.shared.readDecryptedSecrets(vaultURL: orphanURL)
+                secrets = try await VaultEngine.shared.readDecryptedSecrets(vaultURL: orphanURL, command: command)
                 sourceDescription = "\(orphanURL.lastPathComponent) (decoy missing)"
                 
             case .stale(let plainURL, _, _):
@@ -52,7 +52,7 @@ public final class ProcessRunner {
                 }
                 
             case .fresh:
-                secrets = try await VaultEngine.shared.readDecryptedSecrets(vaultURL: vault)
+                secrets = try await VaultEngine.shared.readDecryptedSecrets(vaultURL: vault, command: command)
                 sourceDescription = vault.lastPathComponent
                 
             case .missing:

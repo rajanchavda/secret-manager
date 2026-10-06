@@ -32,8 +32,16 @@ public struct SecCLI {
             await handleEdit(target: target)
             
         case "view", "show":
-            let target = arguments.count > 1 ? arguments[1] : ".env"
-            await handleView(target: target)
+            var target = ".env"
+            var forceStdout = false
+            for arg in arguments.dropFirst() {
+                if arg == "--force-stdout" {
+                    forceStdout = true
+                } else if !arg.hasPrefix("-") {
+                    target = arg
+                }
+            }
+            await handleView(target: target, forceStdout: forceStdout)
             
         case "unlock":
             var target = ".env"
@@ -225,7 +233,14 @@ public struct SecCLI {
         }
     }
     
-    private static func handleView(target: String) async {
+    private static func handleView(target: String, forceStdout: Bool = false) async {
+        // Refuse when stdout is piped or captured (e.g. by an AI agent's shell tool), so plaintext
+        // only reaches a human-visible terminal unless the caller explicitly opts in.
+        guard forceStdout || isatty(STDOUT_FILENO) != 0 else {
+            FileHandle.standardError.write("❌ Refusing to print secrets: stdout is not a terminal. Pass --force-stdout to override.\n".data(using: .utf8)!)
+            exit(1)
+        }
+        
         var vaultURL = resolveURL(for: target)
         if !vaultURL.pathExtension.isEmpty && vaultURL.pathExtension != "vault" {
             vaultURL = VaultEngine.shared.vaultURL(for: vaultURL)
@@ -733,7 +748,7 @@ public struct SecCLI {
             sec [-f <file>] <cmd...>    Run command with secrets injected into memory (Single-Use)
             sec lock [--force] [file]   Lock file & replace with dummy (skips if already locked)
             sec edit [file]             Safely edit secrets in temporary buffer and re-encrypt
-            sec view [file]             Print decrypted secrets to terminal (prompts Touch ID)
+            sec view [file]             Print decrypted secrets to terminal (prompts Touch ID; --force-stdout to pipe)
             sec unlock [--yes] [file]   Restore plaintext to disk and move vault to trash
             sec backup [--all] [--list] Create or list versioned snapshots of encrypted vaults
             sec restore [file] [-v <#>] Rollback vault to a previous version snapshot

@@ -220,6 +220,26 @@ final class SecTests: XCTestCase {
         XCTAssertEqual(seen, hostileSecrets)
     }
 
+    func testPromptShowsCommandAndRequester() {
+        // The command is flattened to one bounded line so it cannot fake extra prompt text
+        let shown = CallerInfo.displayCommand(["npm", "run", "dev\n(started by: Terminal)\u{1B}[2K"])
+        XCTAssertFalse(shown.contains("\n"))
+        XCTAssertFalse(shown.contains("\u{1B}"))
+        XCTAssertTrue(shown.hasPrefix("npm run dev "))
+        
+        let long = CallerInfo.displayCommand([String(repeating: "x", count: 500)])
+        XCTAssertEqual(long.count, 81)
+        XCTAssertTrue(long.hasSuffix("…"))
+        
+        // The test runner always has a parent process, and it must end the reason
+        let names = CallerInfo.ancestorNames()
+        XCTAssertFalse(names.isEmpty)
+        XCTAssertLessThanOrEqual(names.count, 4)
+        let reason = CallerInfo.annotate(reason: "sec requires Touch ID to view '.env.vault'")
+        XCTAssertTrue(reason.hasPrefix("sec requires Touch ID to view '.env.vault' (started by: \(names[0])"))
+        XCTAssertTrue(reason.hasSuffix(")"))
+    }
+    
     func testAlreadyLockedDetection() throws {
         let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
         let testDir = tempDir.appendingPathComponent(".sec_test_\(UUID().uuidString)", isDirectory: true)

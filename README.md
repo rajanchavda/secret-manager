@@ -262,6 +262,8 @@ sec view .env
 ```
 
 - Prompts Touch ID and outputs decrypted key-value pairs to terminal stdout.
+- Refuses to run when stdout is not a terminal (piped or captured by a tool or AI agent); pass `--force-stdout` to override.
+- The Touch ID prompt names the processes that launched `sec`, so you can spot a request you did not make.
 
 ---
 

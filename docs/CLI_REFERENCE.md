@@ -90,6 +90,10 @@ sec edit config.json
 ### 4. `sec view` (alias: `sec show`)
 Prompts for Touch ID biometric verification and prints decrypted secrets directly to the terminal standard output. If the file is JSON, it formats and color-indents the output automatically.
 
+Because the output is plaintext, `sec view` refuses to run when stdout is not a terminal (piped, redirected, or captured by a tool or AI agent). Pass `--force-stdout` to override deliberately.
+
+Every Touch ID prompt also names the processes that launched `sec` (for example `started by: zsh ← node ← Cursor Helper`), and `sec <command>` prompts show the exact command, so you can tell your own request from one issued by a tool.
+
 ```bash
 # View .env secrets
 sec view .env
@@ -97,6 +101,9 @@ sec view .env
 # View JSON secrets with automatic pretty-printing
 sec view config.json
 sec show credentials.json
+
+# Pipe the plaintext on purpose
+sec view .env --force-stdout | grep STRIPE
 ```
 
 ---
