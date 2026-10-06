@@ -240,6 +240,33 @@ final class SecTests: XCTestCase {
         XCTAssertTrue(reason.hasSuffix(")"))
     }
     
+    func testNotifierNeverSplicesTextIntoScript() {
+        let hostile = "x\\\" & (do shell script \"touch /tmp/pwned\") & \";.env"
+        let args = Notifier.shared.notificationArguments(title: hostile, message: hostile)
+        let separator = try! XCTUnwrap(args.firstIndex(of: "--"))
+        // Script source is constant; the text only appears after `--` as plain argv items
+        XCTAssertFalse(args[..<separator].contains(where: { $0.contains("pwned") }))
+        XCTAssertEqual(Array(args[(separator + 1)...]), [hostile, hostile])
+    }
+    
+    func testUnlockedPlaintextIsOwnerOnly() throws {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true).appendingPathComponent(".sec_test_\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        
+        // Replaces an existing world-readable decoy and ends up 0600 with no stray temp file
+        let target = dir.appendingPathComponent(".env")
+        try "API_KEY=locked_by_sec".write(to: target, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o644], ofItemAtPath: target.path)
+        
+        try VaultEngine.shared.writeOwnerOnly(Data("API_KEY=real".utf8), to: target)
+        
+        XCTAssertEqual(try String(contentsOf: target, encoding: .utf8), "API_KEY=real")
+        let perms = try XCTUnwrap(FileManager.default.attributesOfItem(atPath: target.path)[.posixPermissions] as? NSNumber)
+        XCTAssertEqual(perms.intValue, 0o600)
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: dir.path), [".env"])
+    }
+    
     func testAlreadyLockedDetection() throws {
         let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
         let testDir = tempDir.appendingPathComponent(".sec_test_\(UUID().uuidString)", isDirectory: true)

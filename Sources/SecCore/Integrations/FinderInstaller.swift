@@ -35,7 +35,9 @@ public final class FinderInstaller {
         try? refreshProcess.run()
     }
     
-    /// Installs macOS Quick Actions into ~/Library/Services for Finder right-click integration
+    /// Installs macOS Quick Actions into ~/Library/Services for Finder right-click integration.
+    /// File names and command output reach AppleScript only as `on run argv` items, and reach Terminal only
+    /// through `quoted form of`, so a crafted file name cannot inject AppleScript or shell commands.
     public func install() throws {
         let fm = FileManager.default
         let servicesDir = servicesDirectory
@@ -68,11 +70,10 @@ public final class FinderInstaller {
 
                 if [ "$is_locked" -eq 1 ]; then
                     base=$(basename "$f")
-                    res=$(osascript -e 'try' -e 'button returned of (display dialog "'"$base"' is already locked with Touch ID.\n\nWould you like to unlock it and restore plaintext to disk?" with title "sec: Already Locked" buttons {"Cancel", "Unlock Secrets"} default button "Unlock Secrets" with icon caution)' -e 'on error' -e 'return "Cancel"' -e 'end try' 2>&1)
+                    res=$(osascript -e 'on run argv' -e 'try' -e 'button returned of (display dialog ((item 1 of argv) & " is already locked with Touch ID.\n\nWould you like to unlock it and restore plaintext to disk?") with title "sec: Already Locked" buttons {"Cancel", "Unlock Secrets"} default button "Unlock Secrets" with icon caution)' -e 'on error' -e 'return "Cancel"' -e 'end try' -e 'end run' -- "$base" 2>&1)
                     if [ "$res" = "Unlock Secrets" ]; then
                         if ! output=$("$SEC_BIN" unlock --yes "$f" 2>&1); then
-                            escaped_output=$(echo "$output" | sed 's/"/\\"/g')
-                            osascript -e "display alert \"sec Unlock Failed\" message \"$escaped_output\" as critical"
+                            osascript -e 'on run argv' -e 'display alert "sec Unlock Failed" message (item 1 of argv) as critical' -e 'end run' -- "$output"
                             exit 1
                         fi
                     fi
@@ -80,8 +81,7 @@ public final class FinderInstaller {
                 fi
 
                 if ! output=$("$SEC_BIN" lock "$f" 2>&1); then
-                    escaped_output=$(echo "$output" | sed 's/"/\\"/g')
-                    osascript -e "display alert \"sec Lock Failed\" message \"$escaped_output\" as critical"
+                    osascript -e 'on run argv' -e 'display alert "sec Lock Failed" message (item 1 of argv) as critical' -e 'end run' -- "$output"
                     exit 1
                 fi
             done
@@ -105,8 +105,7 @@ public final class FinderInstaller {
 
             for f in "$@"; do
                 if ! output=$("$SEC_BIN" unlock --yes "$f" 2>&1); then
-                    escaped_output=$(echo "$output" | sed 's/"/\\"/g')
-                    osascript -e "display alert \"sec Unlock Failed\" message \"$escaped_output\" as critical"
+                    osascript -e 'on run argv' -e 'display alert "sec Unlock Failed" message (item 1 of argv) as critical' -e 'end run' -- "$output"
                     exit 1
                 fi
             done
@@ -129,8 +128,7 @@ public final class FinderInstaller {
             fi
 
             for f in "$@"; do
-                cmd="\"$SEC_BIN\" edit \"$f\""
-                osascript -e 'on run argv' -e 'tell application "Terminal"' -e 'activate' -e 'do script (item 1 of argv)' -e 'end tell' -e 'end run' "$cmd"
+                osascript -e 'on run argv' -e 'tell application "Terminal"' -e 'activate' -e 'do script (quoted form of (item 1 of argv)) & " edit " & (quoted form of (item 2 of argv))' -e 'end tell' -e 'end run' -- "$SEC_BIN" "$f"
             done
             """#,
             in: servicesDir
@@ -151,8 +149,7 @@ public final class FinderInstaller {
             fi
 
             for f in "$@"; do
-                cmd="\"$SEC_BIN\" view \"$f\""
-                osascript -e 'on run argv' -e 'tell application "Terminal"' -e 'activate' -e 'do script (item 1 of argv)' -e 'end tell' -e 'end run' "$cmd"
+                osascript -e 'on run argv' -e 'tell application "Terminal"' -e 'activate' -e 'do script (quoted form of (item 1 of argv)) & " view " & (quoted form of (item 2 of argv))' -e 'end tell' -e 'end run' -- "$SEC_BIN" "$f"
             done
             """#,
             in: servicesDir

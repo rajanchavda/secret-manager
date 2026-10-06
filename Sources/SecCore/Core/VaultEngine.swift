@@ -244,11 +244,7 @@ public final class VaultEngine {
         do {
             backupVault(at: vaultURL, trigger: .preUnlock, note: "Pre-unlock snapshot before restoring plaintext to disk")
             _ = try? await BackupEngine.shared.moveToTrash(vaultURL: vaultURL, reason: "Restored plaintext to disk")
-            try plaintextData.write(to: plainFile, options: .atomic)
-            let name = plainFile.lastPathComponent.lowercased()
-            if name.contains("rsa") || name.hasSuffix(".pem") || name.hasSuffix(".key") || name.contains("id_ed25519") || name.contains("id_ecdsa") {
-                try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: plainFile.path)
-            }
+            try writeOwnerOnly(plaintextData, to: plainFile)
             
             // Move vault to local .bak file instead of outright deleting it, ensuring user never loses secrets if plain file is damaged
             let localBak = vaultURL.appendingPathExtension("bak")
@@ -257,6 +253,30 @@ public final class VaultEngine {
             RegistryManager.shared.unregister(vaultURL: vaultURL)
         } catch {
             throw VaultError.writeFailed("Failed to restore plaintext file: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Atomically replaces a file with content that is owner-only (0600) from the moment it exists,
+    /// so restored plaintext is never briefly readable by other users.
+    func writeOwnerOnly(_ data: Data, to url: URL) throws {
+        let tempURL = url.deletingLastPathComponent().appendingPathComponent(".\(url.lastPathComponent).sec-\(UUID().uuidString)")
+        let fd = open(tempURL.path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0o600)
+        guard fd >= 0 else {
+            throw VaultError.writeFailed(String(cString: strerror(errno)))
+        }
+        let handle = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
+        do {
+            try handle.write(contentsOf: data)
+            try handle.close()
+        } catch {
+            try? handle.close()
+            try? FileManager.default.removeItem(at: tempURL)
+            throw error
+        }
+        guard rename(tempURL.path, url.path) == 0 else {
+            let reason = String(cString: strerror(errno))
+            try? FileManager.default.removeItem(at: tempURL)
+            throw VaultError.writeFailed(reason)
         }
     }
     
