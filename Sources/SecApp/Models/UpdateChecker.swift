@@ -39,7 +39,7 @@ public final class UpdateChecker: ObservableObject {
     public static let shared = UpdateChecker()
     
     public let repoOwner = "rajanchavda"
-    public let repoName = "security-manager"
+    public let repoName = "secret-manager"
     
     @Published public var isChecking: Bool = false
     @Published public var latestRelease: GitHubRelease?

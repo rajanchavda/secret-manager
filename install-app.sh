@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Installs the latest Secret Manager.app from GitHub Releases.
 # Files fetched with curl get no quarantine flag, so Gatekeeper does not block the app.
-# Usage: curl -fsSL https://raw.githubusercontent.com/rajanchavda/security-manager/main/install-app.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/rajanchavda/secret-manager/main/install-app.sh | bash
 set -euo pipefail
 
-REPO="rajanchavda/security-manager"
+REPO="rajanchavda/secret-manager"
 APP="Secret Manager.app"
 
 # /releases/latest redirects to /releases/tag/vX.Y.Z
