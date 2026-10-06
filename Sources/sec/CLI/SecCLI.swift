@@ -68,7 +68,7 @@ public struct SecCLI {
             handleInstallFinder()
             
         case "export-key", "backup-key":
-            handleExportKey()
+            await handleExportKey()
             
         case "import-key", "restore-key":
             let keyArg = arguments.count > 1 ? arguments[1] : ""
@@ -490,8 +490,16 @@ public struct SecCLI {
         }
     }
     
-    private static func handleExportKey() {
+    private static func handleExportKey() async {
+        // Refuse when stdout is piped or captured (e.g. by an AI agent's shell tool),
+        // so the key only ever reaches a human-visible terminal.
+        guard isatty(STDOUT_FILENO) != 0 else {
+            FileHandle.standardError.write("❌ Refusing to print the master key: stdout is not a terminal.\n".data(using: .utf8)!)
+            exit(1)
+        }
         do {
+            // Always prompt, even if a grace-period session is active.
+            try await BiometricAuth.shared.authenticate(reason: "export the sec master recovery key (grants access to ALL vaults)")
             let keyString = try KeychainManager.shared.exportRecoveryKey()
             print("🔑 === sec Master Recovery Key ===")
             print("Keep this key private and secure! You can use it to restore your vaults")

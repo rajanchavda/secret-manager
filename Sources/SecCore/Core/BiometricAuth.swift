@@ -26,10 +26,14 @@ public final class BiometricAuth {
     
     private init() {}
     
+    /// Skips the interactive prompt. Set only from the test suite via `@testable import`.
+    /// Never derive this from environment variables or runtime class lookups: any caller
+    /// could set those and bypass Touch ID.
+    internal var bypassForTesting = false
+    
     /// Requests Touch ID or Mac password authentication with a custom localized reason.
     public func authenticate(reason: String) async throws {
-        // Automatically bypass interactive Touch ID prompts when running under automated unit tests
-        if ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil || NSClassFromString("XCTestCase") != nil {
+        if bypassForTesting {
             return
         }
         
