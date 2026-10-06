@@ -10,6 +10,7 @@ public enum KeychainError: LocalizedError {
     case masterKeyMissingWithExistingVaults(Int)
     case invalidRecoveryKey
     case differentMasterKeyExists
+    case authenticationRequired
     
     public var errorDescription: String? {
         switch self {
@@ -27,6 +28,8 @@ public enum KeychainError: LocalizedError {
             return "The provided recovery key is invalid. It must be a valid Base64-encoded 256-bit (32-byte) key."
         case .differentMasterKeyExists:
             return "A different working master key already exists in ~/.sec. Importing would make vaults encrypted with it unreadable, so the import was refused."
+        case .authenticationRequired:
+            return "Touch ID or your Mac password is required to import a master key. Nothing was changed."
         }
     }
 }
@@ -172,6 +175,11 @@ public final class KeychainManager {
                 throw KeychainError.differentMasterKeyExists
             }
             return // Already the active key
+        }
+        // Installing a key needs a fresh Touch ID / password approval. Without it, a cancelled
+        // unseal prompt above would look like "no readable key" and let the import swap it out.
+        guard SessionManager.shared.authContext != nil else {
+            throw KeychainError.authenticationRequired
         }
         ensureSecDirectory()
         if SecureEnclave.isAvailable {

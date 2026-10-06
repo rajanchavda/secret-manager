@@ -72,7 +72,7 @@ public struct SecCLI {
             
         case "import-key", "restore-key":
             let keyArg = arguments.count > 1 ? arguments[1] : ""
-            handleImportKey(key: keyArg)
+            await handleImportKey(key: keyArg)
             
         case "backup":
             await handleBackup(arguments: Array(arguments.dropFirst()))
@@ -513,7 +513,7 @@ public struct SecCLI {
         }
     }
     
-    private static func handleImportKey(key: String) {
+    private static func handleImportKey(key: String) async {
         var keyToImport = key.trimmingCharacters(in: .whitespacesAndNewlines)
         if keyToImport.isEmpty {
             print("Enter master recovery key: ", terminator: "")
@@ -525,6 +525,9 @@ public struct SecCLI {
         }
         
         do {
+            // Always prompt: the imported key encrypts every future vault, so a background
+            // process must not be able to install one. Cancelling aborts with nothing changed.
+            try await BiometricAuth.shared.authenticate(reason: "import a sec master recovery key (used to encrypt ALL vaults)")
             try KeychainManager.shared.importRecoveryKey(base64String: keyToImport)
             print("✅ Master recovery key successfully imported!")
             print("   Your existing vaults can now be decrypted on this Mac.")
