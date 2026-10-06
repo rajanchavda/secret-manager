@@ -271,6 +271,83 @@ final class SecTests: XCTestCase {
         XCTAssertFalse(dummy.contains("sk_live_123"))
     }
     
+    func testDecoyNeverContainsFixtureSecrets() {
+        let secrets = [
+            "sk_live_COMMENTED_OUT", "hunter2_in_comment", "pg_pass_inline", "MIIEowIBAAKCAQEA0PEMBODY",
+            "c2VjcmV0VG9rZW5QYWRkZWQ", "it's_a_quote_trap", "tail_after_quote", "yaml_block_line_one",
+            "Proc-Type-Secret", "yaml_list_secret", "yaml_nested_item_secret", "yaml_plain_continuation",
+            "yaml_comment_secret", "yaml_quoted_continuation", "json_fragment_secret"
+        ]
+
+        let envContent = """
+        # prod key: sk_live_COMMENTED_OUT
+        #OLD_PASSWORD=hunter2_in_comment
+        DATABASE_URL=postgres://u:pg_pass_inline@localhost/db # pg_pass_inline
+        export RSA_KEY="-----BEGIN RSA PRIVATE KEY-----
+        MIIEowIBAAKCAQEA0PEMBODY
+        it's_a_quote_trap
+        tail_after_quote==
+        -----END RSA PRIVATE KEY-----"
+        c2VjcmV0VG9rZW5QYWRkZWQ=
+        EMPTY_VALUE=
+        "client_secret": "json_fragment_secret=",
+        """
+        let envDummy = EnvParser.shared.generateDummyTemplate(from: envContent, fileName: ".env")
+        for secret in secrets {
+            XCTAssertFalse(envDummy.contains(secret), "decoy .env leaked \(secret)")
+        }
+        XCTAssertTrue(envDummy.contains("DATABASE_URL=locked_by_sec"))
+        XCTAssertTrue(envDummy.contains("export RSA_KEY=locked_by_sec"))
+        XCTAssertTrue(envDummy.contains("EMPTY_VALUE=locked_by_sec"))
+        XCTAssertTrue(VaultEngine.shared.isDummyContent(envDummy))
+
+        let yamlContent = """
+        # rotate me: yaml_comment_secret
+        api_key: live_value # yaml_comment_secret
+        private_key: |
+          yaml_block_line_one
+          Proc-Type-Secret: 4,ENCRYPTED
+
+          yaml_block_line_one
+        description: start of value
+          yaml_plain_continuation
+        quoted: "first line
+        yaml_quoted_continuation: still inside"
+        tokens:
+          - yaml_list_secret
+          - name: yaml_nested_item_secret
+            port: 8080
+        defaults: &defaults
+          host: localhost
+        production:
+          <<: *defaults
+        """
+        let yamlDummy = EnvParser.shared.generateDummyTemplate(from: yamlContent, fileName: "config.yaml")
+        for secret in secrets {
+            XCTAssertFalse(yamlDummy.contains(secret), "decoy YAML leaked \(secret)")
+        }
+        XCTAssertTrue(yamlDummy.contains("api_key: \"locked_by_sec\""))
+        XCTAssertTrue(yamlDummy.contains("private_key: \"locked_by_sec\""))
+        XCTAssertTrue(yamlDummy.contains("tokens:\n  - \"locked_by_sec\"\n  - name: \"locked_by_sec\"\n    port: \"locked_by_sec\""))
+        XCTAssertTrue(yamlDummy.contains("defaults: &defaults\n  host: \"locked_by_sec\""))
+        XCTAssertTrue(yamlDummy.contains("production:\n  <<: *defaults"))
+        XCTAssertTrue(VaultEngine.shared.isDummyContent(yamlDummy))
+    }
+
+    func testDummyDetectionRequiresRealPlaceholder() {
+        // A real file that only mentions the placeholder must still be lockable
+        XCTAssertFalse(VaultEngine.shared.isDummyContent("NOTE=see locked_by_sec docs\nAPI_KEY=real_value"))
+        XCTAssertFalse(VaultEngine.shared.isDummyContent("API_KEY=real_value # was locked_by_sec"))
+        XCTAssertFalse(VaultEngine.shared.isDummyContent("{\"note\": \"PROTECTED BY sec, locked_by_sec\", \"key\": \"real\"}"))
+
+        // Every decoy shape sec has written is still recognised
+        XCTAssertTrue(VaultEngine.shared.isDummyContent("API_KEY=locked_by_sec"))
+        XCTAssertTrue(VaultEngine.shared.isDummyContent("API_KEY=locked_by_sec\nNEW_KEY=added_by_hand"))
+        XCTAssertTrue(VaultEngine.shared.isDummyContent("# 🔒 PROTECTED BY sec (Touch ID Secret Vault)\n# View or edit: sec edit id_rsa"))
+        XCTAssertTrue(VaultEngine.shared.isDummyContent("api_key: \"locked_by_sec\""))
+        XCTAssertTrue(VaultEngine.shared.isDummyContent("{\"a\": {\"b\": [\"locked_by_sec\"]}, \"flag\": false}"))
+    }
+
     func testRegistryManagerRegistrationAndPrune() {
         let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("sec-test-reg-\(UUID().uuidString)")
         try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)

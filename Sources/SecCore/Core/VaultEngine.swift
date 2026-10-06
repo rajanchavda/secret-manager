@@ -48,12 +48,17 @@ public final class VaultEngine {
         return vaultURL.deletingPathExtension()
     }
     
-    /// Checks if a file's content matches sec's dummy masked placeholder
+    /// Checks if a file's content matches sec's dummy masked placeholder.
+    /// Matches the decoy header comment or a value that is exactly a placeholder; a real file
+    /// that only mentions those words in passing is not treated as a decoy.
     public func isDummyContent(_ content: String) -> Bool {
-        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.contains("PROTECTED BY sec") ||
-               trimmed.contains("locked_by_sec") ||
-               trimmed.contains("_sec_locked")
+        for line in content.components(separatedBy: .newlines) {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("#") && trimmed.contains("PROTECTED BY sec") {
+                return true
+            }
+        }
+        return EnvParser.shared.containsPlaceholderValue(content)
     }
     
     /// Checks if a file is already locked or is itself a vault file

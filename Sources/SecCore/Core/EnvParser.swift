@@ -129,6 +129,96 @@ public final class EnvParser {
         return result
     }
     
+    private let placeholder = "locked_by_sec"
+    private let lockedMarker = "# [secret content locked by sec]"
+    
+    /// True when a value is a decoy placeholder written by sec
+    private func isPlaceholderValue(_ value: String) -> Bool {
+        return value == placeholder || value.hasSuffix("_sec_locked")
+    }
+    
+    private func jsonContainsPlaceholder(_ value: Any) -> Bool {
+        if let dict = value as? [String: Any] {
+            return dict.values.contains(where: { jsonContainsPlaceholder($0) })
+        } else if let arr = value as? [Any] {
+            return arr.contains(where: { jsonContainsPlaceholder($0) })
+        } else if let str = value as? String {
+            return isPlaceholderValue(str)
+        }
+        return false
+    }
+    
+    /// Checks whether any value in the content is exactly a decoy placeholder.
+    /// A file that merely mentions the placeholder inside a longer value or a comment does not count.
+    public func containsPlaceholderValue(_ content: String) -> Bool {
+        let trimmed = content.replacingOccurrences(of: "\u{FEFF}", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+        if (trimmed.hasPrefix("{") && trimmed.hasSuffix("}")) ||
+           (trimmed.hasPrefix("[") && trimmed.hasSuffix("]")),
+           let data = trimmed.data(using: .utf8),
+           let jsonObj = try? JSONSerialization.jsonObject(with: data, options: []) {
+            return jsonContainsPlaceholder(jsonObj)
+        }
+        return parse(content).values.contains(where: { isPlaceholderValue($0) })
+    }
+    
+    /// Appends a line unless it would repeat the previous one (keeps the decoy from mirroring the secret's line count)
+    private func appendCollapsing(_ line: String, to lines: inout [String]) {
+        if lines.last != line {
+            lines.append(line)
+        }
+    }
+    
+    /// A conventional variable name: letters, digits, `_`, `.`, `-`, not starting with a digit
+    private func isSafeEnvKey(_ key: String) -> Bool {
+        guard let first = key.first, first.isASCII, first.isLetter || first == "_" else { return false }
+        return key.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "_" || $0 == "." || $0 == "-") }
+    }
+    
+    /// Heuristic for a bare base64 line such as `c2VjcmV0dG9rZW4=`, which would otherwise be
+    /// read as a variable named after the secret with an empty value.
+    private func looksLikeEncodedData(key: String, value: String) -> Bool {
+        guard value.allSatisfy({ $0 == "=" }) else { return false }
+        return key.contains(where: { $0.isUppercase }) && key.contains(where: { $0.isLowercase })
+    }
+    
+    /// Splits `key: value` at the first colon that is followed by whitespace or the end of the line
+    private func splitYAMLKey(_ body: Substring) -> (key: String, value: String)? {
+        guard let first = body.first, first != "{", first != "[" else { return nil }
+        var idx = body.startIndex
+        if first == "\"" || first == "'" {
+            guard let close = body.dropFirst().firstIndex(of: first) else { return nil }
+            idx = body.index(after: close)
+        }
+        while idx < body.endIndex {
+            let next = body.index(after: idx)
+            if body[idx] == ":" && (next == body.endIndex || body[next] == " " || body[next] == "\t") {
+                let key = body[..<idx].trimmingCharacters(in: .whitespaces)
+                guard !key.isEmpty else { return nil }
+                return (key, body[next...].trimmingCharacters(in: .whitespaces))
+            }
+            idx = next
+        }
+        return nil
+    }
+    
+    /// Returns the text to keep after a YAML key when it carries no secret: nothing (a grouping key,
+    /// possibly with a trailing comment), a lone anchor, or a lone alias. Returns nil for a scalar value.
+    private func yamlStructuralValue(_ value: String) -> String? {
+        if value.isEmpty || value.hasPrefix("#") {
+            return ""
+        }
+        var token = value
+        if let commentIdx = value.range(of: " #")?.lowerBound {
+            token = String(value[..<commentIdx]).trimmingCharacters(in: .whitespaces)
+        }
+        if let first = token.first, first == "&" || first == "*",
+           token.dropFirst().allSatisfy({ $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "_" || $0 == "-") }),
+           token.count > 1 {
+            return token
+        }
+        return nil
+    }
+    
     /// Recursively masks all scalar values in a parsed JSON structure
     private func maskJSONValue(_ value: Any) -> Any {
         if let dict = value as? [String: Any] {
@@ -144,7 +234,7 @@ public final class EnvParser {
         } else if value is Bool {
             return false
         } else {
-            return "locked_by_sec"
+            return placeholder
         }
     }
     
@@ -177,26 +267,79 @@ public final class EnvParser {
             outputLines.append("# ====================================================================")
             
             let lines = cleanContent.components(separatedBy: .newlines)
+            var openQuote: Character? = nil
+            var skipDeeperThan: Int? = nil
             for rawLine in lines {
                 let trimmedLine = rawLine.trimmingCharacters(in: .whitespaces)
-                if trimmedLine.isEmpty || trimmedLine.hasPrefix("#") {
-                    outputLines.append(rawLine)
+                
+                // Continuation of a multi-line quoted scalar
+                if let quote = openQuote {
+                    if trimmedLine.contains(quote) {
+                        openQuote = nil
+                    }
                     continue
                 }
-                if let colonIdx = rawLine.firstIndex(of: ":") {
-                    let key = String(rawLine[..<colonIdx])
-                    let remainder = String(rawLine[rawLine.index(after: colonIdx)...]).trimmingCharacters(in: .whitespaces)
-                    if remainder.isEmpty {
-                        // Grouping / object key
-                        outputLines.append(rawLine)
+                
+                // Body of a block scalar (| or >) or continuation of a plain multi-line scalar
+                let indent = rawLine.prefix(while: { $0 == " " || $0 == "\t" }).count
+                if let limit = skipDeeperThan {
+                    if trimmedLine.isEmpty || indent > limit {
+                        continue
+                    }
+                    skipDeeperThan = nil
+                }
+                
+                if trimmedLine.isEmpty {
+                    appendCollapsing("", to: &outputLines)
+                    continue
+                }
+                // Comments are dropped: they routinely hold old keys and credential notes
+                if trimmedLine.hasPrefix("#") {
+                    continue
+                }
+                if trimmedLine == "---" || trimmedLine == "..." {
+                    outputLines.append(trimmedLine)
+                    continue
+                }
+                
+                // Peel list markers so `- key: value` and `- value` are both masked
+                var prefix = String(rawLine.prefix(indent))
+                var body = Substring(trimmedLine)
+                var keyColumn = indent
+                var isListItem = false
+                while body == "-" || body.hasPrefix("- ") {
+                    isListItem = true
+                    let rest = body.dropFirst().drop(while: { $0 == " " })
+                    keyColumn += body.count - rest.count
+                    prefix += "- "
+                    body = rest
+                }
+                if body.isEmpty || body.hasPrefix("#") {
+                    outputLines.append(String(rawLine.prefix(indent)) + prefix.dropFirst(indent).trimmingCharacters(in: .whitespaces))
+                    continue
+                }
+                
+                if let (key, value) = splitYAMLKey(body) {
+                    if let quote = value.first, (quote == "\"" || quote == "'"), !value.dropFirst().contains(quote) {
+                        openQuote = quote
+                    }
+                    let structural = yamlStructuralValue(value)
+                    if let structural = structural {
+                        // Grouping / object key (optionally carrying an anchor or alias)
+                        outputLines.append("\(prefix)\(key):\(structural.isEmpty ? "" : " \(structural)")")
                     } else {
                         // Scalar value
-                        let leadingSpaces = rawLine.prefix(while: { $0 == " " || $0 == "\t" })
-                        let cleanKey = key.trimmingCharacters(in: .whitespaces)
-                        outputLines.append("\(leadingSpaces)\(cleanKey): \"locked_by_sec\"")
+                        outputLines.append("\(prefix)\(key): \"\(placeholder)\"")
+                        skipDeeperThan = keyColumn
                     }
+                } else if isListItem {
+                    if let quote = body.first, (quote == "\"" || quote == "'"), !body.dropFirst().contains(quote) {
+                        openQuote = quote
+                    }
+                    outputLines.append("\(prefix)\"\(placeholder)\"")
+                    skipDeeperThan = indent
                 } else {
-                    outputLines.append(rawLine)
+                    appendCollapsing(lockedMarker, to: &outputLines)
                 }
             }
             return outputLines.joined(separator: "\n")
@@ -214,18 +357,24 @@ public final class EnvParser {
             outputLines.append("")
             
             let lines = cleanContent.components(separatedBy: .newlines)
-            var skippingMultiline = false
+            var openQuote: Character? = nil
             for rawLine in lines {
                 let trimmedLine = rawLine.trimmingCharacters(in: .whitespaces)
-                if skippingMultiline {
-                    if trimmedLine.hasSuffix("\"") || trimmedLine.hasSuffix("'") {
-                        skippingMultiline = false
+                
+                // Inside a multi-line quoted value: ends on the same quote that opened it (mirrors parse)
+                if let quote = openQuote {
+                    if rawLine.contains(quote) {
+                        openQuote = nil
                     }
                     continue
                 }
                 
-                if trimmedLine.isEmpty || trimmedLine.hasPrefix("#") {
-                    outputLines.append(rawLine)
+                if trimmedLine.isEmpty {
+                    appendCollapsing("", to: &outputLines)
+                    continue
+                }
+                // Comments are dropped: they routinely hold old keys and credential notes
+                if trimmedLine.hasPrefix("#") {
                     continue
                 }
                 
@@ -236,17 +385,24 @@ public final class EnvParser {
                     cleanLine = String(cleanLine.dropFirst(7)).trimmingCharacters(in: .whitespaces)
                 }
                 
-                if let equalIndex = cleanLine.firstIndex(of: "=") {
-                    let key = String(cleanLine[..<equalIndex]).trimmingCharacters(in: .whitespaces)
-                    let val = String(cleanLine[cleanLine.index(after: equalIndex)...]).trimmingCharacters(in: .whitespaces)
-                    
-                    if (val.hasPrefix("\"") && !val.dropFirst().contains("\"")) ||
-                       (val.hasPrefix("'") && !val.dropFirst().contains("'")) {
-                        skippingMultiline = true
-                    }
-                    outputLines.append("\(linePrefix)\(key)=locked_by_sec")
+                guard let equalIndex = cleanLine.firstIndex(of: "=") else {
+                    appendCollapsing(lockedMarker, to: &outputLines)
+                    continue
+                }
+                
+                let key = String(cleanLine[..<equalIndex]).trimmingCharacters(in: .whitespaces)
+                let val = String(cleanLine[cleanLine.index(after: equalIndex)...]).trimmingCharacters(in: .whitespaces)
+                
+                if let quote = val.first, (quote == "\"" || quote == "'"), !val.dropFirst().contains(quote) {
+                    openQuote = quote
+                }
+                
+                // Only a plain variable name is safe to echo. Anything else is secret material
+                // that happens to contain "=" (base64 padding, PEM bodies, JSON fragments).
+                if isSafeEnvKey(key) && !looksLikeEncodedData(key: key, value: val) {
+                    outputLines.append("\(linePrefix)\(key)=\(placeholder)")
                 } else {
-                    outputLines.append("# [secret content locked by sec]")
+                    appendCollapsing(lockedMarker, to: &outputLines)
                 }
             }
             return outputLines.joined(separator: "\n")
