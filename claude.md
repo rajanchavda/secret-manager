@@ -1,7 +1,7 @@
 # `sec` — Architecture, App Context & Developer Guidelines
 
 > **Touch ID Secret Vault for macOS**  
-> Hardware-encrypted credentials in Apple Silicon Secure Enclave, decoy generation for `.env`, direct in-memory RAM injection for development child processes, and real-time AI Agent Radar monitoring.
+> Hardware-encrypted credentials in Apple Silicon Secure Enclave, decoy generation for `.env`, direct in-memory RAM injection for development child processes, and a live vault Activity Log.
 
 ---
 
@@ -19,9 +19,9 @@ When `.env` files contain active API tokens (OpenAI, Anthropic, Stripe, AWS, dat
 1. **Zero Plaintext on Disk**: Real secrets are encrypted in `.env.vault` using **AES-256-GCM** with a hardware master key secured inside the **Apple Silicon Secure Enclave**.
 2. **Harmless Decoy File**: The disk `.env` file contains safe masked placeholders (e.g., `DATABASE_URL=locked_by_sec`, `STRIPE_KEY=locked_by_sec`). Linters, syntax highlighters, Prisma generators, and TypeScript compilers continue to function without crashing.
 3. **Pure In-Memory Injection**: When running `sec npm run dev` (or via Secret Manager Runner Studio), Touch ID prompts the developer once. Secrets are decrypted strictly into RAM (`process.env`) and passed to the child process. Plaintext is never written to disk.
-4. **Stealth Preload Loaders (Defeating `ps -E`)**: For Node.js and Python development, `sec` uses ephemeral self-destructing preload hooks rather than passing secrets through `execve` `envp`. AI agents running `ps -E` or inspecting Darwin's `KERN_PROCARGS2` cannot see plaintext secrets.
+4. **Preload Loaders (Node.js / Python)**: `sec` hands secrets over through an ephemeral, owner-only (`0600`) self-deleting preload file, so they are not in the environment of the launching shell. Once loaded they are ordinary environment variables that child processes inherit, so this is **not** a defense against a same-user `ps -E`. Do not claim otherwise in code, UI, or docs.
 5. **Strict Zero-Cache (Single-Use)**: By default, every command requires a physical Touch ID tap. No decrypted session tokens linger on disk for background agents to exploit.
-6. **AI Agent Radar**: Real-time macOS `FSEvents` monitoring intercepts and logs file access attempts by AI agents (Cursor, Claude, Copilot, terminals), proving that only decoy data was ingested while real keys stayed in the Secure Enclave.
+6. **Activity Log**: Records what Secret Manager itself does (locks, Touch ID unlocks, edits, runs, snapshots) and watches vault folders for writes, renames and deletes. macOS does not report file *reads* without the Endpoint Security entitlement, so the app cannot detect or name a tool that reads a file. Do not claim otherwise.
 
 ---
 
@@ -39,9 +39,9 @@ cool-meitner/
 │   │   ├── Core/
 │   │   │   ├── BiometricAuth.swift       # Apple LocalAuthentication (Touch ID / Apple Watch)
 │   │   │   ├── CryptoEngine.swift        # AES-256-GCM encryption & decryption via CryptoKit
-│   │   │   ├── EditorEngine.swift        # Safe editing via $EDITOR with 0600 temp file & byte shredding
+│   │   │   ├── EditorEngine.swift        # Safe editing via $EDITOR with a 0600 temp file in a private dir
 │   │   │   ├── EnvParser.swift           # Parsing, multiline, inline comments, decoy generation
-│   │   │   ├── FileWatcher.swift         # macOS FSEvents file monitor powering AI Agent Radar
+│   │   │   ├── FileWatcher.swift         # Directory change watcher (write/rename/delete) for the Activity Log
 │   │   │   ├── GitIgnoreManager.swift    # Auto-adding *.vault to .gitignore
 │   │   │   ├── KeychainManager.swift     # Secure Enclave P-256 hardware key agreement + HKDF
 │   │   │   ├── MemoryMonitor.swift       # Process memory footprint & RAM monitoring
@@ -92,7 +92,7 @@ cool-meitner/
 ### A. CLI Commands (`sec`)
 - `sec lock <file>`: Encrypts file to `<file>.vault`, writes decoy placeholders to `<file>`, adds to `.gitignore`, registers in `~/.sec/vaults.json`. Idempotent: detects if already locked to prevent overwriting.
 - `sec <command>` (or `sec run <cmd>`): Prompts Touch ID, decrypts secrets directly into memory, executes child process with stealth loaders.
-- `sec edit <file>`: Prompts Touch ID, opens `$EDITOR` with 0600 temp buffer, overwrites buffer with random bytes before shredding upon save.
+- `sec edit <file>`: Prompts Touch ID, opens `$EDITOR` (terminal editor by default) on a 0600 temp buffer in a private directory, re-encrypts on save and deletes the buffer. Unsaved edits are kept as an encrypted rescue copy, never plaintext.
 - `sec view <file>`: Prompts Touch ID, prints formatted secrets to terminal stdout without disk artifacts.
 - `sec list`: Displays all registered vaults. Supports `--scan <path>` to discover unindexed vaults, `--prune` to remove missing entries, and `--json` for automated scripts.
 - `sec status`: Reports Secure Enclave key health, active access policy, and current folder vault status.
@@ -102,7 +102,7 @@ cool-meitner/
 
 ### B. Secret Manager macOS Application
 - **Menubar Companion & Standalone Window**: Resides in macOS status bar for instant access or opens as a full dashboard window.
-- **AI Agent Radar**: Subscribes to `FSEvents` and process telemetry. When Cursor, Claude, Copilot, or terminal tools touch `.env` or `.env.vault`, Secret Manager records the event, displaying the agent name, timestamp, and verification that only decoy data was exposed.
+- **Activity Log**: A timestamped feed of Secret Manager's own actions (lock, unlock, edit, run, snapshot, restore) plus vault files changed or removed outside the app. It does not detect file reads or identify AI agents.
 - **Runner Studio**: Visual runner where developers select a vault, choose dev commands (e.g., `npm run dev`, `cargo run`), click **Run**, and watch live formatted logs while secrets are injected into RAM. Shows live PID and RAM usage.
 - **Deep Discovery Scanner**: Recursively scans folders (e.g. `~`, `~/Developer`) to find unshielded `.env` and `.env.local` files, providing 1-click shielding.
 - **Secret Inspector & Security Audit**: Evaluates key entropy, classifies sensitive tokens (Stripe `sk_live`, OpenAI `sk-`, AWS, Postgres credentials), calculates a 0–100 Security Score, and alerts on weak keys.
