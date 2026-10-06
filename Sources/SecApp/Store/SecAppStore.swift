@@ -101,7 +101,7 @@ public final class SecAppStore: ObservableObject {
         }
         SessionManager.shared.setSessionDuration(seconds: defaultDuration)
         
-        // Restore session if active on disk
+        // Restore session if still active in this process
         if SessionManager.shared.isSessionActive(),
            let remaining = SessionManager.shared.remainingTimeSeconds(), remaining > 0 {
             self.isGraceActive = true

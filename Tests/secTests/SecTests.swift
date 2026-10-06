@@ -1,4 +1,6 @@
 import XCTest
+import CryptoKit
+import LocalAuthentication
 @testable import SecCore
 @testable import sec
 
@@ -7,6 +9,31 @@ final class SecTests: XCTestCase {
     override class func setUp() {
         super.setUp()
         BiometricAuth.shared.bypassForTesting = true
+        // Never touch the developer's real master key from tests.
+        KeychainManager.shared.testMasterKey = Data(repeating: 7, count: 32)
+    }
+    
+    func testSealedMasterKeyRefusesUnauthenticatedUse() throws {
+        try XCTSkipUnless(SecureEnclave.isAvailable, "Requires a Secure Enclave")
+        let wrapped = try KeychainManager.seal(Data(repeating: 1, count: 32))
+        // An agent has the file but cannot satisfy Touch ID / password.
+        let context = LAContext()
+        context.interactionNotAllowed = true
+        XCTAssertThrowsError(try KeychainManager.open(wrapped, context: context))
+    }
+    
+    func testSessionRequiresAuthenticationAndIsNotPersisted() {
+        let session = SessionManager.shared
+        defer {
+            session.configuredSessionDuration = nil
+            session.clearSession()
+        }
+        session.setSessionDuration(minutes: 15)
+        session.clearSession()
+        session.startSession()
+        XCTAssertFalse(session.isSessionActive(), "Starting a session without Touch ID must not grant access")
+        let sessionFile = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".sec/session.json")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: sessionFile.path))
     }
     
     func testCryptoEngineRoundTrip() throws {
@@ -303,7 +330,8 @@ final class SecTests: XCTestCase {
         XCTAssertEqual(session.sessionDurationSeconds, 900)
         XCTAssertFalse(session.isZeroCacheMode)
         
-        // 2. Start session
+        // 2. Start session (after a successful authentication)
+        session.authContext = LAContext()
         session.startSession()
         XCTAssertTrue(session.isSessionActive())
         

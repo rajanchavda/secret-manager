@@ -178,7 +178,7 @@ rm -rf "/Applications/Secret Manager.app"
 ```
 
 > [!CAUTION]
-> **Warning regarding `~/.sec`**: Your Secure Enclave hardware master key token is stored at `~/.sec/enclave.token`. **Do NOT delete `~/.sec` if you still have encrypted `.vault` files**, or they will be permanently lost unless you exported your recovery key (`sec export-key`).
+> **Warning regarding `~/.sec`**: Your master key is stored at `~/.sec/master.wrapped`, sealed to a Secure Enclave key that only unlocks with Touch ID or your Mac password. **Do NOT delete `~/.sec` if you still have encrypted `.vault` files**, or they will be permanently lost unless you exported your recovery key (`sec export-key`).
 
 ---
 
