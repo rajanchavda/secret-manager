@@ -4,6 +4,11 @@ import XCTest
 
 final class SecTests: XCTestCase {
     
+    override class func setUp() {
+        super.setUp()
+        BiometricAuth.shared.bypassForTesting = true
+    }
+    
     func testCryptoEngineRoundTrip() throws {
         var keyBytes = [UInt8](repeating: 0, count: 32)
         for i in 0..<32 { keyBytes[i] = UInt8(i) }
