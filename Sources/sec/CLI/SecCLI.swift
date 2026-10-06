@@ -671,6 +671,7 @@ public struct SecCLI {
     private static func handleTrash(arguments: [String]) async {
         if arguments.contains("--empty") || arguments.contains("--purge-all") {
             do {
+                try await BiometricAuth.shared.authenticate(reason: "sec requires Touch ID to permanently delete ALL trashed vaults")
                 try BackupEngine.shared.purgeAllTrash()
                 print("✅ Emptied all soft-deleted vaults from trash.")
             } catch {
@@ -706,6 +707,7 @@ public struct SecCLI {
                 exit(1)
             }
             do {
+                try await BiometricAuth.shared.authenticate(reason: "sec requires Touch ID to permanently delete trashed vault '\(match.targetFileName)'")
                 try BackupEngine.shared.purgeTrashItem(trashId: match.id)
                 print("✅ Purged '\(match.targetFileName)' from trash.")
             } catch {

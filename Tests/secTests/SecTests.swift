@@ -834,6 +834,32 @@ final class SecTests: XCTestCase {
         try? BackupEngine.shared.deleteSnapshot(snapshotId: snap2.id)
     }
     
+    func testTamperedBackupIndexRecordsAreRejected() {
+        let uuidName = "\(UUID().uuidString).vault"
+        XCTAssertTrue(BackupEngine.isValidStoredFileName(uuidName))
+        for name in ["../../x.vault", "sub/\(uuidName)", "..", "x.vault", uuidName + "/..", ""] {
+            XCTAssertFalse(BackupEngine.isValidStoredFileName(name), name)
+        }
+        
+        XCTAssertTrue(BackupEngine.isValidProjectHash(BackupEngine.deterministicProjectHash(for: URL(fileURLWithPath: "/tmp/project"))))
+        for hash in ["../../../etc", "ABCDEF0123456789", "abc", "0123456789abcde/"] {
+            XCTAssertFalse(BackupEngine.isValidProjectHash(hash), hash)
+        }
+        
+        XCTAssertTrue(BackupEngine.isValidVaultPath("/Users/me/app/.env.vault"))
+        for path in ["/Users/me/.zshrc", "relative/.env.vault", "/Users/me/app/../../.ssh/x.vault"] {
+            XCTAssertFalse(BackupEngine.isValidVaultPath(path), path)
+        }
+        
+        func trash(_ vaultPath: String, _ plainPath: String, _ file: String) -> TrashRecord {
+            TrashRecord(vaultPath: vaultPath, plainPath: plainPath, projectName: "app", projectPath: "/Users/me/app", targetFileName: ".env", trashFileName: file)
+        }
+        XCTAssertTrue(BackupEngine.isValid(trash("/Users/me/app/.env.vault", "/Users/me/app/.env", uuidName)))
+        // Decoy target redirected away from the vault, or payload name escaping the trash directory
+        XCTAssertFalse(BackupEngine.isValid(trash("/Users/me/app/.env.vault", "/Users/me/.zshrc", uuidName)))
+        XCTAssertFalse(BackupEngine.isValid(trash("/Users/me/app/.env.vault", "/Users/me/app/.env", "../vaults.json")))
+    }
+    
     func testTrashSoftDeleteAndRestoration() async throws {
         let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true).appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)

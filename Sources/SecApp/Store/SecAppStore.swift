@@ -88,6 +88,7 @@ public final class SecAppStore: ObservableObject {
     
     private var timerCancellable: AnyCancellable?
     private var sleepObserver: NSObjectProtocol?
+    private var lockObservers: [NSObjectProtocol] = []
     
     public init() {
         // Configure SessionManager default duration for the App
@@ -415,13 +416,22 @@ public final class SecAppStore: ObservableObject {
         }
     }
     
+    /// Extending the unlocked window is itself a privileged action, so it needs a fresh Touch ID
     public func extendGracePeriod(minutes: Int) {
-        let additional = minutes * 60
-        SessionManager.shared.extendSession(additionalSeconds: Double(additional))
-        remainingGraceSeconds += additional
-        isGraceActive = true
-        playHapticFeedback()
-        showTemporaryStatus("Added +\(minutes)m to session timer")
+        Task {
+            do {
+                try await BiometricAuth.shared.authenticate(reason: "Authenticate with Touch ID to extend the Secret Manager session by \(minutes) minutes")
+            } catch {
+                showTemporaryStatus("Session not extended: \(error.localizedDescription)")
+                return
+            }
+            let additional = minutes * 60
+            SessionManager.shared.extendSession(additionalSeconds: Double(additional))
+            remainingGraceSeconds += additional
+            isGraceActive = true
+            playHapticFeedback()
+            showTemporaryStatus("Added +\(minutes)m to session timer")
+        }
     }
     
     public func unlockVaultSecrets(for vault: VaultItem, specificFile: String? = nil) async {
@@ -580,6 +590,11 @@ public final class SecAppStore: ObservableObject {
         let vaultURL = URL(fileURLWithPath: vault.directoryPath).appendingPathComponent(targetFile).appendingPathExtension("vault")
         
         do {
+            // Never overwrite a vault on an expired session
+            if !SessionManager.shared.isSessionActive() {
+                try await BiometricAuth.shared.authenticate(reason: "sec requires Touch ID to save and re-encrypt '\(targetFile)'")
+                SessionManager.shared.startSession()
+            }
             try await VaultEngine.shared.updateVault(vaultURL: vaultURL, plaintextData: data)
             self.originalRawEnv = currentRawEnv
             self.inRAMVaultPaths.insert(vault.directoryPath)
@@ -1119,7 +1134,9 @@ public final class SecAppStore: ObservableObject {
     }
     
     // MARK: - Actions & Helpers
-    public func lockAll() {
+    /// `stopRunner: false` keeps an already-running dev server alive (it holds its own copy of the
+    /// secrets), while still dropping the session and every decrypted value held by the app.
+    public func lockAll(stopRunner: Bool = true) {
         isGraceActive = false
         remainingGraceSeconds = 0
         isAppSessionAuthenticated = false
@@ -1132,7 +1149,9 @@ public final class SecAppStore: ObservableObject {
         SessionManager.shared.clearSession()
         
         // Stop any running child process
-        stopRunnerProcess()
+        if stopRunner {
+            stopRunnerProcess()
+        }
         
         // Mark all active RAM items back to protectedWithDecoy
         for i in 0..<vaults.count {
@@ -1385,6 +1404,23 @@ public final class SecAppStore: ObservableObject {
                 self?.lockAll()
             }
         }
+        
+        // Also lock when the screen locks or another user takes over the session:
+        // an unlocked vault must not outlive the user's presence at the Mac.
+        // A running dev server is left alone so locking the screen does not kill it.
+        let lockHandler: (Notification) -> Void = { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.lockAll(stopRunner: false)
+            }
+        }
+        lockObservers = [
+            DistributedNotificationCenter.default().addObserver(
+                forName: Notification.Name("com.apple.screenIsLocked"), object: nil, queue: .main, using: lockHandler
+            ),
+            NSWorkspace.shared.notificationCenter.addObserver(
+                forName: NSWorkspace.sessionDidResignActiveNotification, object: nil, queue: .main, using: lockHandler
+            )
+        ]
     }
     
     private func playHapticFeedback() {
