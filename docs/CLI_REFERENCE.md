@@ -46,10 +46,17 @@ sec run npm start
 sec -f .env.local npm run dev
 sec --file credentials.json python main.py
 sec --vault backend.vault go run main.go
+
+# Run a shell command line (pipes, &&, $VAR expansion)
+sec --shell 'npm run build && npm start'
 ```
 
 #### Options:
 - `-f, --file, --vault <file>`: Target a specific `.env`, JSON, or `.vault` file instead of the default `.env`.
+
+Arguments are passed to the command exactly as typed: spaces, quotes, `$`, `;` and `*` inside an argument are never re-interpreted by a shell. Use `--shell` when you want a shell command line.
+
+Without `-f`, `sec` looks for a vault in the current directory and then in parent directories, stopping at the root of the git repository. Outside a repository, parent directories are only searched for standard names (`.env.vault`, `.env.local.vault`, ...). When the vault comes from a parent directory, its path is printed.
 
 ---
 

@@ -10,7 +10,9 @@ public final class ProcessRunner {
     /// the launching shell's environment. Processes the app spawns still inherit them as ordinary environment
     /// variables, so this is not a defence against a same-user `ps -E`.
     @discardableResult
-    public func run(command: [String], vaultURL: URL?) async throws -> Int32 {
+    /// `viaShell` runs `command[0]` as a shell command line (pipes, `&&`, expansion). Otherwise the
+    /// arguments are passed through exactly as given, with no shell re-parsing.
+    public func run(command: [String], vaultURL: URL?, viaShell: Bool = false) async throws -> Int32 {
         guard !command.isEmpty else {
             print("Error: No command specified to run.")
             return 1
@@ -27,6 +29,11 @@ public final class ProcessRunner {
             targetVault = vaultURL
         } else {
             targetVault = VaultEngine.shared.findNearestVault()
+            // Make it visible when the secrets come from somewhere other than the current directory
+            let workingDir = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).standardizedFileURL.path
+            if let found = targetVault, found.deletingLastPathComponent().standardizedFileURL.path != workingDir {
+                fputs("ℹ️ [sec] Using vault from a parent directory: \(found.path)\n", stderr)
+            }
         }
         
         var secrets: [String: String] = [:]
@@ -74,9 +81,9 @@ public final class ProcessRunner {
             }
         }
         
-        let firstCmd = command[0].lowercased()
-        let isNodeCommand = ["npm", "pnpm", "yarn", "bun", "node", "npx", "next", "vite", "turbo", "tsx", "nodemon"].contains { firstCmd.contains($0) }
-        let isPythonCommand = ["python", "python3", "pytest", "flask", "uvicorn", "manage.py"].contains { firstCmd.contains($0) }
+        let runtime = Self.runtime(for: viaShell ? command[0].split(separator: " ").map(String.init) : command)
+        let isNodeCommand = runtime == .node
+        let isPythonCommand = runtime == .python
         
         var tempCleanupPaths: [String] = []
         defer {
@@ -132,15 +139,7 @@ public final class ProcessRunner {
         let shell = ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"
         process.executableURL = URL(fileURLWithPath: shell)
         
-        // Join command safely for shell execution
-        let joinedCommand = command.map { arg in
-            if arg.contains(" ") || arg.contains("\"") || arg.contains("$") || arg.contains("*") || arg.contains(";") {
-                return "\"\(arg.replacingOccurrences(of: "\"", with: "\\\""))\""
-            }
-            return arg
-        }.joined(separator: " ")
-        
-        process.arguments = ["-c", joinedCommand]
+        process.arguments = Self.shellArguments(for: command, viaShell: viaShell)
         
         // Trap SIGINT and SIGTERM and forward to child process
         let sigintSource = DispatchSource.makeSignalSource(signal: SIGINT, queue: .main)
@@ -173,6 +172,38 @@ public final class ProcessRunner {
             fputs("Error executing command: \(error.localizedDescription)\n", stderr)
             return 1
         }
+    }
+    
+    // MARK: - Command Helpers
+    
+    enum Runtime {
+        case node, python, other
+    }
+    
+    private static let nodeCommands: Set<String> = ["npm", "pnpm", "yarn", "bun", "bunx", "node", "npx", "next", "vite", "turbo", "tsx", "ts-node", "nodemon"]
+    private static let pythonCommands: Set<String> = ["pytest", "flask", "uvicorn", "gunicorn", "manage.py"]
+    
+    /// Classifies a command by the name of its executable. Matching the exact name (not a substring)
+    /// keeps commands such as `nodeenv` or a path containing "node" from getting the wrong loader.
+    static func runtime(for command: [String]) -> Runtime {
+        guard let first = command.first else { return .other }
+        let name = URL(fileURLWithPath: first).lastPathComponent.lowercased()
+        if nodeCommands.contains(name) {
+            return .node
+        }
+        if pythonCommands.contains(name) || name == "python" || name.hasPrefix("python3") || name.hasPrefix("python2") {
+            return .python
+        }
+        return .other
+    }
+    
+    /// Arguments for the user's shell. By default the command is handed over as positional parameters
+    /// and run with `"$@"`, so spaces, quotes, `$`, `;` and globs in arguments are never re-interpreted.
+    static func shellArguments(for command: [String], viaShell: Bool) -> [String] {
+        if viaShell {
+            return ["-c", command.joined(separator: " ")]
+        }
+        return ["-c", "\"$@\"", "sec"] + command
     }
     
     // MARK: - Preload Loader Helpers

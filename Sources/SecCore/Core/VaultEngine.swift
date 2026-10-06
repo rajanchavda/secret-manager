@@ -145,7 +145,8 @@ public final class VaultEngine {
             SessionManager.shared.startSession()
         }
         
-        backupVault(at: vault)
+        // Finish snapshotting any existing vault before it is overwritten below
+        await backupVaultAsync(at: vault)
         
         let masterKey = try KeychainManager.shared.getOrCreateMasterKey()
         let encryptedVaultData = try CryptoEngine.shared.encrypt(plaintext: plaintextData, keyData: masterKey)
@@ -156,6 +157,12 @@ public final class VaultEngine {
             try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: vault.path)
         } catch {
             throw VaultError.writeFailed("Could not write encrypted vault: \(error.localizedDescription)")
+        }
+        
+        // The plaintext is about to be replaced by the decoy, so the vault must be durable first:
+        // without this a crash or power loss could leave the decoy on disk and no readable vault.
+        guard flushToDisk(vault) else {
+            throw VaultError.writeFailed("Could not flush encrypted vault to disk; '\(fileURL.lastPathComponent)' was left untouched.")
         }
         
         // Generate dummy masked file for .env, JSON, YAML, or arbitrary/binary secret files
@@ -256,6 +263,20 @@ public final class VaultEngine {
         }
     }
     
+    /// Forces a file and its directory entry onto stable storage (F_FULLFSYNC)
+    func flushToDisk(_ url: URL) -> Bool {
+        func fullSync(_ path: String) -> Bool {
+            let fd = open(path, O_RDONLY)
+            guard fd >= 0 else { return false }
+            defer { close(fd) }
+            // Some volumes (network, FAT) do not support F_FULLFSYNC; fall back to fsync there
+            return fcntl(fd, F_FULLFSYNC) == 0 || fsync(fd) == 0
+        }
+        guard fullSync(url.path) else { return false }
+        _ = fullSync(url.deletingLastPathComponent().path)
+        return true
+    }
+    
     /// Atomically replaces a file with content that is owner-only (0600) from the moment it exists,
     /// so restored plaintext is never briefly readable by other users.
     func writeOwnerOnly(_ data: Data, to url: URL) throws {
@@ -345,6 +366,18 @@ public final class VaultEngine {
         var current = startDir.standardizedFileURL
         let homeDir = FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL
         
+        var insideGitRepo = false
+        var probe = current
+        while true {
+            if FileManager.default.fileExists(atPath: probe.appendingPathComponent(".git").path) {
+                insideGitRepo = true
+                break
+            }
+            let parent = probe.deletingLastPathComponent()
+            if parent.path == probe.path || probe.path == homeDir.path { break }
+            probe = parent
+        }
+        
         while true {
             let candidate = current.appendingPathComponent(targetName)
             if FileManager.default.fileExists(atPath: candidate.path) {
@@ -361,8 +394,11 @@ public final class VaultEngine {
                     }
                 }
                 
-                // If there is only one .vault file in the directory, use it automatically
-                if let files = try? FileManager.default.contentsOfDirectory(atPath: current.path) {
+                // If there is only one .vault file in the directory, use it automatically.
+                // Outside a git repository this only applies to the starting directory: a lone vault
+                // found further up probably belongs to a different project.
+                if (current.path == startDir.standardizedFileURL.path || insideGitRepo),
+                   let files = try? FileManager.default.contentsOfDirectory(atPath: current.path) {
                     let vaults = files.filter { $0.hasSuffix(".vault") }
                     if vaults.count == 1, let onlyVault = vaults.first {
                         return current.appendingPathComponent(onlyVault)
@@ -371,8 +407,10 @@ public final class VaultEngine {
             }
             
             // Boundary safety: stop upward traversal at .git root or user home directory
+            // The repository root is the last directory searched, including when the search starts there:
+            // a project never inherits secrets from whatever happens to sit above its own repository.
             let gitDir = current.appendingPathComponent(".git")
-            if FileManager.default.fileExists(atPath: gitDir.path) && current.path != startDir.standardizedFileURL.path {
+            if FileManager.default.fileExists(atPath: gitDir.path) {
                 break
             }
             if current.path == homeDir.path {

@@ -918,6 +918,66 @@ final class SecTests: XCTestCase {
         XCTAssertFalse(try String(contentsOf: envFile, encoding: .utf8).contains("by_editor"))
     }
     
+    func testVaultDiscoveryStaysInsideTheProject() throws {
+        let fm = FileManager.default
+        let root = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true).appendingPathComponent(".sec_test_\(UUID().uuidString)", isDirectory: true).resolvingSymlinksInPath()
+        defer { try? fm.removeItem(at: root) }
+        func mkdir(_ path: String) throws -> URL {
+            let url = root.appendingPathComponent(path, isDirectory: true)
+            try fm.createDirectory(at: url, withIntermediateDirectories: true)
+            return url
+        }
+        func touch(_ url: URL) throws { try "x".write(to: url, atomically: true, encoding: .utf8) }
+        
+        // workspace/ holds a lone odd-named vault; repo/ is a separate git repository below it
+        let workspace = try mkdir("workspace")
+        try touch(workspace.appendingPathComponent("other-project.yaml.vault"))
+        let repo = try mkdir("workspace/repo")
+        _ = try mkdir("workspace/repo/.git")
+        let package = try mkdir("workspace/repo/packages/backend")
+        
+        // From the repo root or below it, the unrelated vault above the repository is never picked up
+        XCTAssertNil(VaultEngine.shared.findNearestVault(startingAt: repo))
+        XCTAssertNil(VaultEngine.shared.findNearestVault(startingAt: package))
+        
+        // Monorepo traversal still finds the repository's own vault, standard or lone
+        try touch(repo.appendingPathComponent("secrets.json.vault"))
+        XCTAssertEqual(VaultEngine.shared.findNearestVault(startingAt: package)?.lastPathComponent, "secrets.json.vault")
+        try touch(repo.appendingPathComponent(".env.vault"))
+        XCTAssertEqual(VaultEngine.shared.findNearestVault(startingAt: package)?.path, repo.appendingPathComponent(".env.vault").path)
+        
+        // Outside any repository, a lone odd-named vault further up is ignored, a standard one is found
+        let loose = try mkdir("workspace/notes/drafts")
+        XCTAssertNil(VaultEngine.shared.findNearestVault(startingAt: loose))
+        try touch(workspace.appendingPathComponent(".env.vault"))
+        XCTAssertEqual(VaultEngine.shared.findNearestVault(startingAt: loose)?.path, workspace.appendingPathComponent(".env.vault").path)
+    }
+    
+    func testRunnerPassesArgumentsVerbatimAndClassifiesByName() throws {
+        // Arguments that the old quoting re-interpreted (expansion, command separators, quotes, globs)
+        let hostile = ["a b", "say \"hi\"", "$HOME", "`id`", "$(id)", "x; echo pwned", "*", "back\\slash", "it's"]
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+        process.arguments = ProcessRunner.shellArguments(for: ["/usr/bin/printf", "%s\\n"] + hostile, viaShell: false)
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        try process.run()
+        let output = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+        process.waitUntilExit()
+        XCTAssertEqual(output, hostile.joined(separator: "\n") + "\n")
+        
+        XCTAssertEqual(ProcessRunner.shellArguments(for: ["npm run build && npm start"], viaShell: true), ["-c", "npm run build && npm start"])
+        
+        XCTAssertEqual(ProcessRunner.runtime(for: ["npm", "run", "dev"]), .node)
+        XCTAssertEqual(ProcessRunner.runtime(for: ["/opt/homebrew/bin/node", "server.js"]), .node)
+        XCTAssertEqual(ProcessRunner.runtime(for: ["python3.12", "app.py"]), .python)
+        XCTAssertEqual(ProcessRunner.runtime(for: ["./manage.py", "runserver"]), .python)
+        // Substring matches that used to get the wrong loader
+        XCTAssertEqual(ProcessRunner.runtime(for: ["nodeenv"]), .other)
+        XCTAssertEqual(ProcessRunner.runtime(for: ["/Users/me/node_modules/.bin/eslint"]), .other)
+        XCTAssertEqual(ProcessRunner.runtime(for: ["cargo", "run"]), .other)
+    }
+    
     func testTrashSoftDeleteAndRestoration() async throws {
         let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true).appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)

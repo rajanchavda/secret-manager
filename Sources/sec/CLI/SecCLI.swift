@@ -179,6 +179,13 @@ public struct SecCLI {
     private static func handleRun(command: [String]) async {
         var remainingArgs = command
         var targetVault: URL? = nil
+        var viaShell = false
+        
+        // --shell: treat the command as a shell command line (pipes, &&, variable expansion)
+        if remainingArgs.first == "--shell" {
+            viaShell = true
+            remainingArgs.removeFirst()
+        }
         
         // Check for -f <file>, --file <file>, or --vault <file> flags
         if remainingArgs.count >= 2 && (remainingArgs[0] == "-f" || remainingArgs[0] == "--file" || remainingArgs[0] == "--vault") {
@@ -194,6 +201,11 @@ public struct SecCLI {
             targetVault = resolved
         }
         
+        if remainingArgs.first == "--shell" {
+            viaShell = true
+            remainingArgs.removeFirst()
+        }
+        
         guard !remainingArgs.isEmpty else {
             print("Error: No command specified to run.")
             print("Usage: sec [-f <file>] <command...> (e.g. sec npm run dev, sec -f .env.local npm start)")
@@ -201,7 +213,7 @@ public struct SecCLI {
         }
         
         do {
-            let exitCode = try await ProcessRunner.shared.run(command: remainingArgs, vaultURL: targetVault)
+            let exitCode = try await ProcessRunner.shared.run(command: remainingArgs, vaultURL: targetVault, viaShell: viaShell)
             exit(exitCode)
         } catch {
             print("❌ Error: \(error.localizedDescription)")
@@ -748,6 +760,7 @@ public struct SecCLI {
 
         USAGE:
             sec [-f <file>] <cmd...>    Run command with secrets injected into memory (Single-Use)
+            sec --shell '<cmd line>'    Same, but run a shell command line (pipes, &&, $VAR expansion)
             sec lock [--force] [file]   Lock file & replace with dummy (skips if already locked)
             sec edit [file]             Safely edit secrets in temporary buffer and re-encrypt
             sec view [file]             Print decrypted secrets to terminal (prompts Touch ID; --force-stdout to pipe)
