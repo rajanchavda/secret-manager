@@ -28,7 +28,7 @@ If a utility decrypts `.env` to plaintext on disk while your dev server runs (`n
 2. **Sanitized Placeholder**: The `.env` file on disk is replaced with masked dummy values (e.g. `API_KEY=locked_by_sec`) so project linters, syntax highlighters, and static tools never break.
 3. **In-Memory Injection**: When you run `sec npm run dev`, Touch ID prompts once, decrypts secrets directly into RAM (`process.env`), and passes them to the child process. AI agents reading the filesystem only ever see dummy placeholders.
 4. **Strict Zero-Cache (Single-Use)**: Every command execution requires a physical Touch ID tap. Decrypted secrets live exclusively in the child process memory and are destroyed when the command exits. No session tokens linger on disk for AI agents to piggyback on.
-5. **Stealth In-Memory Loaders (Defeats `ps -E` Process Inspection)**: For Node.js/Python development (`npm run dev`, `pnpm`, `bun`, `yarn`, `python`), secrets are injected via ephemeral, self-destructing preload hooks rather than passing plaintext through `execve` `envp`. AI agents running `ps -E` or querying Darwin's `KERN_PROCARGS2` see zero secrets.
+5. **Preload Loaders for Node.js/Python**: For `npm run dev`, `pnpm`, `bun`, `yarn`, `python` and similar, secrets are handed over by a short-lived, owner-only (`0600`) preload file that deletes itself as soon as the runtime loads it, so they are not in the environment of the launching shell. **Limitation:** once loaded they are ordinary environment variables, and every process your app spawns inherits them. A same-user process running `ps -E` can read them while your app is running, as with any env-var-based setup.
 6. **Finder Right-Click Quick Actions**: Right-click any secret file in Finder to lock or edit it with Touch ID.
 
 ## 💡 How It Works (In Plain English)
@@ -251,7 +251,7 @@ sec edit .env
 - Prompts Touch ID.
 - Decrypts secrets into an ephemeral, secure temporary buffer (`0600` permissions).
 - Opens your `$EDITOR` (VS Code `--wait`, Cursor `--wait`, Nano, or Vim).
-- On save and close: automatically re-encrypts `.env.vault`, refreshes the placeholder `.env`, and securely shreds the temporary file.
+- On save and close: automatically re-encrypts `.env.vault`, refreshes the placeholder `.env`, and deletes the temporary file.
 
 ---
 
@@ -345,7 +345,7 @@ sec unlock .env
 - **Key Storage**: Hardware-backed master key generated and stored inside the Apple Silicon Secure Enclave (`CryptoKit.SecureEnclave.P256.KeyAgreement` + HKDF), eliminating `login.keychain` password popups.
 - **Biometrics**: Apple `LocalAuthentication` (`LAPolicy.deviceOwnerAuthenticationWithBiometrics`) with automatic fallback to Mac login password if the MacBook lid is closed or docked.
 - **Zero Third-Party Dependencies**: Pure native Swift utilizing Apple system frameworks (`CryptoKit`, `Security`, `LocalAuthentication`, `Foundation`).
-- **Memory Safety**: No plaintext ever written to disk during `sec run`. Temporary edit buffers are shredded with random bytes before deletion.
+- **Disk Exposure**: `sec run` never writes a plaintext `.env`. Node.js/Python commands use an owner-only (`0600`) preload file that deletes itself on load; `sec edit` uses an owner-only temporary buffer that is deleted after saving. Overwrite-shredding is not reliable on APFS/SSD storage and is not claimed.
 
 ---
 

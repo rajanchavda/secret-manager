@@ -876,7 +876,7 @@ public final class SecAppStore: ObservableObject {
             do {
                 let secrets = try await VaultEngine.shared.readDecryptedSecrets(vaultURL: vaultURL)
                 appendLog("[sec] Touch ID verified. Decrypted \(secrets.count) secrets directly into memory.", isError: false)
-                appendLog("[sec] In-Memory Stealth Injection active (0 plaintext on disk, hidden from ps -E).", isError: false)
+                appendLog("[sec] Secrets injected into the child process environment (no plaintext .env on disk).", isError: false)
                 appendLog("────────────────────────────────────────────────────────", isError: false)
                 
                 await self.launchChildProcess(commandString: self.runnerCommand, workingDir: vault.directoryPath, secrets: secrets)
@@ -1144,7 +1144,7 @@ public final class SecAppStore: ObservableObject {
         addRadarEvent(
             agent: "sec Master Lock",
             action: "All sessions revoked & caches wiped",
-            detail: "RAM zeroized • Touch ID required for all commands",
+            detail: "Touch ID required for all commands",
             severity: .warning
         )
         

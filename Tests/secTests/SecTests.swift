@@ -166,6 +166,60 @@ final class SecTests: XCTestCase {
         XCTAssertFalse(FileManager.default.fileExists(atPath: loaderURL.path))
     }
     
+    /// Runs a generated loader in the real interpreter and returns the values it placed in the environment
+    private func runLoader(source: String, fileName: String, interpreter: String, script: String, envKey: String, envValue: (URL) -> String) throws -> [String: String] {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true).appendingPathComponent(".sec_test_\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let loaderURL = dir.appendingPathComponent(fileName)
+        try source.write(to: loaderURL, atomically: true, encoding: .utf8)
+
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/env")
+        process.arguments = [interpreter, "-c", script]
+        if interpreter == "node" { process.arguments = [interpreter, "-e", script] }
+        var env = ProcessInfo.processInfo.environment
+        env[envKey] = envValue(loaderURL)
+        process.environment = env
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = Pipe()
+        do {
+            try process.run()
+        } catch {
+            throw XCTSkip("\(interpreter) is not available")
+        }
+        let output = pipe.fileHandleForReading.readDataToEndOfFile()
+        process.waitUntilExit()
+        if process.terminationStatus == 127 { throw XCTSkip("\(interpreter) is not available") }
+        XCTAssertEqual(process.terminationStatus, 0)
+        XCTAssertFalse(FileManager.default.fileExists(atPath: loaderURL.path), "loader must delete itself")
+        return (try JSONSerialization.jsonObject(with: output) as? [String: String]) ?? [:]
+    }
+
+    private let hostileSecrets = [
+        "SEC_T_QUOTES": "a'''+str(1336+1)+'''b \"\"\" `${1+1}`",
+        "SEC_T_PEM": "-----BEGIN KEY-----\nline1\nline2\n-----END KEY-----",
+        "SEC_T_BACKSLASH": "C:\\new\\table \\u0041 \\",
+        "SEC_T_UNICODE": "pässwörd 🔐 </script>"
+    ]
+
+    func testPythonLoaderRoundTripsHostileValues() throws {
+        let source = try XCTUnwrap(ProcessRunner.shared.pythonLoaderSource(secrets: hostileSecrets))
+        let script = "import os, json, sys; sys.stdout.write(json.dumps({k: v for k, v in os.environ.items() if k.startswith('SEC_T_')}))"
+        let seen = try runLoader(source: source, fileName: "sitecustomize.py", interpreter: "python3", script: script,
+                                 envKey: "PYTHONPATH", envValue: { $0.deletingLastPathComponent().path })
+        XCTAssertEqual(seen, hostileSecrets)
+    }
+
+    func testNodeLoaderRoundTripsHostileValues() throws {
+        let source = try XCTUnwrap(ProcessRunner.shared.nodeLoaderSource(secrets: hostileSecrets))
+        let script = "process.stdout.write(JSON.stringify(Object.fromEntries(Object.entries(process.env).filter(([k]) => k.startsWith('SEC_T_')))))"
+        let seen = try runLoader(source: source, fileName: "loader.cjs", interpreter: "node", script: script,
+                                 envKey: "NODE_OPTIONS", envValue: { "--require \"\($0.path)\"" })
+        XCTAssertEqual(seen, hostileSecrets)
+    }
+
     func testAlreadyLockedDetection() throws {
         let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
         let testDir = tempDir.appendingPathComponent(".sec_test_\(UUID().uuidString)", isDirectory: true)

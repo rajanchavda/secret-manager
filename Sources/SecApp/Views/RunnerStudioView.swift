@@ -156,7 +156,7 @@ public struct RunnerStudioView: View {
                 HStack(spacing: 4) {
                     Image(systemName: "memorychip.fill")
                         .font(.scaled(size: 10))
-                    Text("In-Memory Injection Active • Plaintext never on disk • Hidden from ps -E")
+                    Text("In-Memory Injection Active • No plaintext .env on disk")
                         .font(.scaled(size: 10, weight: .medium))
                 }
                 .foregroundColor(.secondary)

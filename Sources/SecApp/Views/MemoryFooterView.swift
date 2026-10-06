@@ -170,7 +170,7 @@ public struct MemoryDetailsPopoverView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 6))
                 }
                 .buttonStyle(.plain)
-                .help("Immediately revoke session tokens and zeroize in-memory secrets")
+                .help("Immediately revoke sessions and drop decrypted secrets held by the app")
             }
         }
         .padding(14)

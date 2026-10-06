@@ -75,7 +75,7 @@
         "Touch ID In-Memory RAM Injection for dev servers",
         "Sanitized Decoy Placeholders for static tools and linters",
         "macOS Finder Right-Click Quick Actions",
-        "Stealth Preload Loaders defeating Darwin ps -E inspection"
+        "Self-deleting preload loaders for Node.js and Python"
       ]
     }
     </script>
@@ -471,8 +471,8 @@
                         <div class="bento-icon-wrap" style="background: rgba(168, 85, 247, 0.12); color: #7c3aed;">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                         </div>
-                        <h3>Stealth RAM Loaders</h3>
-                        <p>Defeats <code>ps -E</code> and Darwin's <code>KERN_PROCARGS2</code> inspection via ephemeral preload hooks rather than exposing plaintext arguments.</p>
+                        <h3>Preload Loaders</h3>
+                        <p>Node.js and Python receive secrets through a self-deleting, owner-only preload hook. Once loaded they are regular environment variables of your app and its child processes.</p>
                     </div>
 
                     <!-- Bento 4: Runner Studio & Menubar Companion -->
