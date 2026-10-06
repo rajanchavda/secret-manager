@@ -146,6 +146,8 @@ public struct SecCLI {
         
         do {
             print("🔒 Locking '\(fileName)' with Touch ID...")
+            // Checked before locking: afterwards the working copy is the decoy, but history is unchanged
+            let wasCommitted = GitIgnoreManager.shared.wasEverCommitted(fileURL)
             let keys = try await VaultEngine.shared.lock(fileURL: fileURL, force: force)
             print("✅ Successfully locked '\(fileName)'!")
             print("   📁 Encrypted vault: \(fileName).vault (AES-256-GCM)")
@@ -157,6 +159,14 @@ public struct SecCLI {
                 print("   🛡️  Shielded \(keys.count) key\(keys.count == 1 ? "" : "s"): \(keys.joined(separator: ", "))")
                 Notifier.shared.notify(title: "sec: File Locked", message: "Shielded \(keys.count) secrets in '\(fileName)' from AI agents.")
             }
+            if wasCommitted {
+                print("")
+                print("⚠️  '\(fileName)' has been committed to this git repository before.")
+                print("   The old plaintext is still in the git history (and on any remote). Rotate these secrets.")
+            }
+            print("")
+            print("ℹ️  Locking protects the file from now on. Copies of the old plaintext can remain in Time Machine,")
+            print("   APFS snapshots and editor history, so rotate any secret that may already have been exposed.")
         } catch VaultError.alreadyLocked(let name) {
             print("ℹ️ '\(name)' is already locked and protected by sec.")
             print("   (To force re-lock with current file contents, run: sec lock --force \(name))")

@@ -30,7 +30,7 @@
 ## 1. Core Operations
 
 ### 1. `sec <command...>` / `sec run`
-Run any child process with real secrets decrypted and injected directly into RAM (`process.env`). Plaintext never touches your storage drive, and secrets self-destruct as soon as the process terminates.
+Run any child process with real secrets decrypted and injected into its environment (`process.env`). No plaintext `.env` is written, and the secrets are gone when the process exits. Node.js and Python commands receive them through a short-lived owner-only loader file that deletes itself on load.
 
 ```bash
 # Shorthand usage (any unknown subcommand is forwarded to run)

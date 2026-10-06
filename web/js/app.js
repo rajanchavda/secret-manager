@@ -328,39 +328,39 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 5. Interactive AI Agent Radar Simulator
+    // 5. Interactive Vault Activity Log Simulator
     const btnSimulateRadar = document.getElementById('btnSimulateRadar');
     const radarFeed = document.getElementById('radarFeed');
     let simulatedAttempts = 14;
 
     const simulatedEvents = [
         {
-            agent: 'Antigravity Agent',
+            agent: 'Secret Manager',
             badgeClass: 'badge-cursor',
             icon: '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>',
-            action: 'Attempted tool call: <code>view_file(.env)</code>',
-            shield: '✔ Served Decoy'
+            action: 'Unlocked <code>.env.vault</code> for inspection',
+            shield: '✔ Touch ID'
         },
         {
-            agent: 'Claude 3.7 Sonnet',
+            agent: 'Secret Manager Editor',
             badgeClass: 'badge-claude',
             icon: '<circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/>',
-            action: 'Invoked bash command <code>cat .env | grep STRIPE</code>',
-            shield: '✔ Masked Decoy'
+            action: 'Updated vault and refreshed decoy <code>.env</code>',
+            shield: '✔ Re-encrypted'
         },
         {
-            agent: 'Cursor Composer',
+            agent: 'Secret Manager',
             badgeClass: 'badge-cursor',
             icon: '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>',
-            action: 'Background indexer crawled workspace configuration',
-            shield: '✔ 0 Secrets Read'
+            action: 'Created snapshot v4 of <code>.env.vault</code>',
+            shield: '✔ Backed up'
         },
         {
-            agent: 'Local LLM (Ollama)',
+            agent: 'Runner Studio',
             badgeClass: 'badge-copilot',
             icon: '<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>',
-            action: 'Searched directory tree for <code>OPENAI_API_KEY</code>',
-            shield: '✔ Blocked (Decoy)'
+            action: 'Running <code>cargo run</code> with 8 secrets injected',
+            shield: '✔ Touch ID'
         }
     ];
 
@@ -393,7 +393,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Update stats summary in header
             const statsStrong = document.querySelector('.radar-stats-summary strong');
             if (statsStrong) {
-                statsStrong.textContent = `${simulatedAttempts} attempts`;
+                statsStrong.textContent = `${simulatedAttempts} events`;
             }
 
             // Keep max 5 items in demo

@@ -775,6 +775,42 @@ final class SecTests: XCTestCase {
         XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: dir.path), ["master.key"])
     }
     
+    func testDetectsFilePreviouslyCommittedToGit() throws {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true).appendingPathComponent(".sec_test_\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        
+        func git(_ args: String...) throws -> Int32 {
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+            process.arguments = ["-C", dir.path, "-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false"] + args
+            process.standardOutput = Pipe()
+            process.standardError = Pipe()
+            try process.run()
+            process.waitUntilExit()
+            return process.terminationStatus
+        }
+        
+        let committed = dir.appendingPathComponent(".env")
+        let neverCommitted = dir.appendingPathComponent(".env.local")
+        try "API_KEY=leaked".write(to: committed, atomically: true, encoding: .utf8)
+        try "API_KEY=local".write(to: neverCommitted, atomically: true, encoding: .utf8)
+        
+        // Not a repository yet: nothing to report
+        XCTAssertFalse(GitIgnoreManager.shared.wasEverCommitted(committed))
+        
+        guard try git("init", "-q") == 0, try git("add", ".env") == 0, try git("commit", "-q", "-m", "add env") == 0 else {
+            throw XCTSkip("git is not usable in this environment")
+        }
+        XCTAssertTrue(GitIgnoreManager.shared.wasEverCommitted(committed))
+        XCTAssertFalse(GitIgnoreManager.shared.wasEverCommitted(neverCommitted))
+        
+        // Still reported after the file is removed from the tree in a later commit
+        _ = try git("rm", "-q", "--cached", ".env")
+        _ = try git("commit", "-q", "-m", "untrack env")
+        XCTAssertTrue(GitIgnoreManager.shared.wasEverCommitted(committed))
+    }
+    
     func testUnlockToDiskCreatesLocalBackup() async throws {
         let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("sec-test-unlock-bak-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)

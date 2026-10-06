@@ -72,7 +72,7 @@ public struct AgentRadarView: View {
                             .font(.scaled(size: 20))
                             .foregroundColor(.secondary.opacity(0.5))
                             .accessibilityHidden(true)
-                        Text("Monitoring decoy accesses & honeytokens")
+                        Text("Watching vault folders for changes")
                             .font(.scaled(size: 12))
                             .foregroundColor(.secondary)
                     }

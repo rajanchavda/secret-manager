@@ -1355,7 +1355,7 @@ public final class SecAppStore: ObservableObject {
     
     public func clearRadarEvents() {
         radarEvents.removeAll()
-        showTemporaryStatus("Radar feed cleared")
+        showTemporaryStatus("Activity log cleared")
     }
     
     public func addRadarEvent(agent: String, action: String, detail: String, severity: EventSeverity) {

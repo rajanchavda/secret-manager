@@ -353,6 +353,16 @@ sec unlock .env
 
 ---
 
+## ⚠️ Limitations
+
+`sec` keeps secrets out of the files AI agents and tools read. It does not make a compromised user account safe:
+
+- **Environment variables are visible to same-user processes.** Once your app is running, its secrets are ordinary environment variables. A process running as you can read them with `ps -E`.
+- **File reads are not detected.** macOS only reports writes, renames and deletes to ordinary apps. The Activity Log records what Secret Manager does and changes to vault files, not which tool read a file.
+- **Old plaintext can outlive a lock.** A `.env` that sat on disk before `sec lock` (or after `sec unlock`) may still exist in Time Machine backups, APFS local snapshots, editor local history and Spotlight's index. If the file was ever committed, it is in git history too; `sec lock` warns about that. Rotate secrets that may already have been exposed.
+- **Editing uses a temporary plaintext file.** `sec edit` writes an owner-only buffer while your editor is open. Prefer a terminal editor; AI-enabled IDEs can index it.
+- **Approving a prompt approves the request.** Touch ID prompts name the command and the processes that launched it. Read them before tapping.
+
 ## 🧪 Running Tests
 
 ```bash
