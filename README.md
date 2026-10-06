@@ -111,14 +111,14 @@ brew upgrade secret-manager
 Downloads the latest release, verifies its SHA256 checksum, installs the app to `/Applications`, and links the `sec` CLI:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/rajanchavda/security-manager/main/install-app.sh | bash
+curl -fsSL https://raw.githubusercontent.com/rajanchavda/secret-manager/main/install-app.sh | bash
 ```
 
 > **Why no security warning?** Secret Manager is open source and not notarized with a paid Apple Developer certificate. Browsers tag downloaded files with a quarantine flag that makes macOS block un-notarized apps; `curl` and Homebrew don't, so the app opens normally. You are trusting the GitHub release and its checksum — review [`install-app.sh`](install-app.sh) before running it if you prefer.
 
 ### Option 3: Download DMG Manually (Universal for Apple Silicon & Intel)
 
-1. Download the latest `Secret-Manager-X.Y.Z.dmg` from [GitHub Releases](https://github.com/rajanchavda/security-manager/releases).
+1. Download the latest `Secret-Manager-X.Y.Z.dmg` from [GitHub Releases](https://github.com/rajanchavda/secret-manager/releases).
 2. Open the `.dmg` and drag **Secret Manager** into `/Applications`.
 3. On first launch macOS shows _"Apple could not verify 'Secret Manager' is free of malware"_. Click **Done** (not Move to Trash), then allow it with **one** of these:
    - **System Settings → Privacy & Security**, scroll down, click **Open Anyway** next to Secret Manager, and confirm with your password / Touch ID. (On macOS 15 Sequoia and later, right-click → Open no longer works.)
