@@ -736,6 +736,45 @@ final class SecTests: XCTestCase {
         XCTAssertThrowsError(try KeychainManager.shared.importRecoveryKey(base64String: "not-a-key"))
     }
     
+    func testNoPlaintextMasterKeyWithoutSecureEnclave() throws {
+        let manager = KeychainManager.shared
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true).appendingPathComponent(".sec_test_\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let savedKey = manager.testMasterKey
+        let savedContext = SessionManager.shared.authContext
+        manager.testMasterKey = nil
+        manager.secDirectoryOverride = dir
+        manager.enclaveAvailableOverride = false
+        SessionManager.shared.authContext = LAContext()
+        defer {
+            manager.testMasterKey = savedKey
+            manager.secDirectoryOverride = nil
+            manager.enclaveAvailableOverride = nil
+            SessionManager.shared.authContext = savedContext
+            try? FileManager.default.removeItem(at: dir)
+        }
+        
+        func assertEnclaveRequired(_ body: @autoclosure () throws -> Void, line: UInt = #line) {
+            XCTAssertThrowsError(try body(), line: line) { error in
+                guard case KeychainError.hardwareEnclaveUnavailable = error else {
+                    return XCTFail("expected hardwareEnclaveUnavailable, got \(error)", line: line)
+                }
+            }
+        }
+        
+        // Neither creating nor importing a key may leave any key material on disk
+        assertEnclaveRequired(_ = try manager.getOrCreateMasterKey())
+        assertEnclaveRequired(try manager.importRecoveryKey(base64String: Data(repeating: 7, count: 32).base64EncodedString()))
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: dir.path), [])
+        
+        // A plaintext key left by an older version is still readable, so existing vaults keep working
+        let legacyKey = Data(repeating: 3, count: 32)
+        try legacyKey.write(to: dir.appendingPathComponent("master.key"))
+        XCTAssertEqual(try manager.getOrCreateMasterKey(), legacyKey)
+        XCTAssertEqual(try manager.getMasterKey(), legacyKey)
+        XCTAssertEqual(try FileManager.default.contentsOfDirectory(atPath: dir.path), ["master.key"])
+    }
+    
     func testUnlockToDiskCreatesLocalBackup() async throws {
         let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("sec-test-unlock-bak-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)

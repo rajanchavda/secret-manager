@@ -17,7 +17,7 @@ public enum KeychainError: LocalizedError {
         case .itemNotFound:
             return "Hardware master key not found. Run 'sec lock' to initialize."
         case .hardwareEnclaveUnavailable:
-            return "Secure Enclave hardware is not available on this machine."
+            return "This Mac has no Secure Enclave (Apple Silicon or an Intel Mac with a T2 chip is required), so a master key cannot be stored safely. sec does not store master keys in plaintext. Nothing was changed."
         case .generationFailed(let msg):
             return "Failed to generate Secure Enclave hardware key: \(msg)"
         case .derivationFailed(let msg):
@@ -54,7 +54,18 @@ public final class KeychainManager {
     /// Replaces the real master key. Set only from the test suite via `@testable import`.
     internal var testMasterKey: Data?
     
+    /// Test-only overrides (via `@testable import`): key directory, and pretending there is no enclave.
+    internal var secDirectoryOverride: URL?
+    internal var enclaveAvailableOverride: Bool?
+    
+    private var enclaveAvailable: Bool {
+        return enclaveAvailableOverride ?? SecureEnclave.isAvailable
+    }
+    
     private var secDirectory: URL {
+        if let override = secDirectoryOverride {
+            return override
+        }
         let home = FileManager.default.homeDirectoryForCurrentUser
         return home.appendingPathComponent(".sec", isDirectory: true)
     }
@@ -68,7 +79,8 @@ public final class KeychainManager {
         return secDirectory.appendingPathComponent("enclave.token")
     }
     
-    /// Plaintext key: Intel fallback, or legacy import. Migrated to `master.wrapped` when an enclave exists.
+    /// Plaintext key written by older versions (Macs without an enclave, or legacy import). Still read so
+    /// existing vaults stay decryptable; migrated to `master.wrapped` when an enclave exists. Never written.
     private var fallbackKeyURL: URL {
         return secDirectory.appendingPathComponent("master.key")
     }
@@ -100,6 +112,11 @@ public final class KeychainManager {
             return try getMasterKey()
         }
         
+        // A new key is only ever stored sealed to the Secure Enclave, never as a plaintext file
+        guard enclaveAvailable else {
+            throw KeychainError.hardwareEnclaveUnavailable
+        }
+        
         // Prevent silent key generation if existing vaults exist on disk
         let records = RegistryManager.shared.loadRegistry().records
         let existingVaults = records.filter { FileManager.default.fileExists(atPath: $0.vaultPath) }
@@ -115,13 +132,7 @@ public final class KeychainManager {
         }
         let keyData = Data(keyBytes)
         
-        if SecureEnclave.isAvailable {
-            try storeWrapped(keyData)
-        } else {
-            // Software fallback for Intel machines without Secure Enclave
-            try keyData.write(to: fallbackKeyURL, options: .atomic)
-            try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: fallbackKeyURL.path)
-        }
+        try storeWrapped(keyData)
         return keyData
     }
     
@@ -146,8 +157,9 @@ public final class KeychainManager {
         guard let legacyKey = try legacyMasterKey() else {
             throw KeychainError.itemNotFound
         }
-        // ponytail: Intel Macs keep the plaintext master.key (no enclave to seal to).
-        guard SecureEnclave.isAvailable else {
+        // Macs without an enclave that already have a plaintext master.key from an older version keep
+        // reading it, so their vaults stay decryptable. No new plaintext key is ever written.
+        guard enclaveAvailable else {
             return legacyKey
         }
         // One-time migration: re-seal the same key so vaults, snapshots and recovery keys keep
@@ -181,15 +193,13 @@ public final class KeychainManager {
         guard SessionManager.shared.authContext != nil else {
             throw KeychainError.authenticationRequired
         }
-        ensureSecDirectory()
-        if SecureEnclave.isAvailable {
-            preserveExisting(wrappedKeyURL)
-            try storeWrapped(keyData)
-        } else {
-            preserveExisting(fallbackKeyURL)
-            try keyData.write(to: fallbackKeyURL, options: .atomic)
-            try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: fallbackKeyURL.path)
+        // An imported key is only ever stored sealed to the Secure Enclave, never as a plaintext file
+        guard enclaveAvailable else {
+            throw KeychainError.hardwareEnclaveUnavailable
         }
+        ensureSecDirectory()
+        preserveExisting(wrappedKeyURL)
+        try storeWrapped(keyData)
     }
 
     /// Seals the master key to a new Secure Enclave key that requires user presence for every use.

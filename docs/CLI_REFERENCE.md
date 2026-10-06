@@ -276,12 +276,14 @@ sec export-key
 Imports a master recovery key onto a new or wiped Mac, allowing all your existing `.vault` files to be decrypted immediately with Touch ID on the new hardware.
 
 ```bash
-# Pass key as an argument
-sec import-key "BASE64_KEY_STRING..."
-
-# Or enter interactively
+# Enter the key at a hidden prompt (requires Touch ID)
 sec import-key
+
+# Or pipe it in, e.g. from a password manager CLI
+op read "op://Private/sec recovery key/password" | sec import-key
 ```
+
+The key is not accepted as a command-line argument: it would be visible to other processes through `ps` and saved in your shell history. A master key is only ever stored sealed to the Secure Enclave, so importing (and creating a key in the first place) requires Apple Silicon or an Intel Mac with a T2 chip.
 
 ---
 

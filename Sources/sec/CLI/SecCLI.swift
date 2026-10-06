@@ -79,8 +79,7 @@ public struct SecCLI {
             await handleExportKey()
             
         case "import-key", "restore-key":
-            let keyArg = arguments.count > 1 ? arguments[1] : ""
-            await handleImportKey(key: keyArg)
+            await handleImportKey(hasKeyArgument: arguments.count > 1)
             
         case "backup":
             await handleBackup(arguments: Array(arguments.dropFirst()))
@@ -533,22 +532,35 @@ public struct SecCLI {
             print("if you migrate to a new Mac or reinstall macOS:\n")
             print(keyString)
             print("\nTo restore on another Mac, run:")
-            print("   sec import-key <key>")
+            print("   sec import-key        (then enter the key at the hidden prompt)")
         } catch {
             print("❌ Failed to export recovery key: \(error.localizedDescription)")
             exit(1)
         }
     }
     
-    private static func handleImportKey(key: String) async {
-        var keyToImport = key.trimmingCharacters(in: .whitespacesAndNewlines)
-        if keyToImport.isEmpty {
-            print("Enter master recovery key: ", terminator: "")
-            guard let entered = readLine()?.trimmingCharacters(in: .whitespacesAndNewlines), !entered.isEmpty else {
-                print("❌ No key entered. Aborting.")
-                exit(1)
-            }
-            keyToImport = entered
+    /// Reads the recovery key without echoing it. Accepts piped stdin (e.g. from a password manager CLI).
+    private static func readRecoveryKey() -> String? {
+        guard isatty(STDIN_FILENO) != 0 else {
+            return readLine()
+        }
+        var buffer = [CChar](repeating: 0, count: 512)
+        defer { memset_s(&buffer, buffer.count, 0, buffer.count) }
+        guard readpassphrase("Enter master recovery key (input hidden): ", &buffer, buffer.count, RPP_REQUIRE_TTY) != nil else {
+            return nil
+        }
+        return String(cString: buffer)
+    }
+    
+    private static func handleImportKey(hasKeyArgument: Bool) async {
+        // A key on the command line is visible to every process (`ps`) and lands in shell history
+        guard !hasKeyArgument else {
+            FileHandle.standardError.write("❌ Do not pass the recovery key as an argument: it would be visible in `ps` and saved to your shell history.\n   Run 'sec import-key' and enter it at the hidden prompt, or pipe it in on stdin.\n".data(using: .utf8)!)
+            exit(1)
+        }
+        guard let keyToImport = readRecoveryKey()?.trimmingCharacters(in: .whitespacesAndNewlines), !keyToImport.isEmpty else {
+            print("❌ No key entered. Aborting.")
+            exit(1)
         }
         
         do {
@@ -771,7 +783,7 @@ public struct SecCLI {
             sec list [--scan] [--prune] List all locked secret vaults across your Mac
             sec scan [dir]              Discover and register existing vaults across folders
             sec export-key              Export master key for disaster recovery or Mac migration
-            sec import-key [key]        Import master recovery key on a new or wiped Mac
+            sec import-key              Import master recovery key on a new or wiped Mac (hidden prompt)
             sec status                  Show keychain, zero-cache policy, and project vault status
             sec session                 Inspect access policy (Zero-Cache by default)
             sec install-finder          Install macOS Finder right-click Quick Actions
@@ -799,7 +811,7 @@ public struct SecCLI {
 
             # 5. Export / Import master recovery key
             sec export-key
-            sec import-key <key>
+            sec import-key
 
             # 6. Run your app with secrets injected in memory (never written to disk)
             sec npm run dev

@@ -118,6 +118,8 @@ curl -fsSL https://raw.githubusercontent.com/rajanchavda/secret-manager/main/ins
 
 ### Option 3: Download DMG Manually (Universal for Apple Silicon & Intel)
 
+> **Requires a Secure Enclave**: Apple Silicon, or an Intel Mac with a T2 chip. On older Intel Macs `sec` refuses to create or import a master key rather than store it in plaintext.
+
 1. Download the latest `Secret-Manager-X.Y.Z.dmg` from [GitHub Releases](https://github.com/rajanchavda/secret-manager/releases).
 2. Open the `.dmg` and drag **Secret Manager** into `/Applications`.
 3. On first launch macOS shows _"Apple could not verify 'Secret Manager' is free of malware"_. Click **Done** (not Move to Trash), then allow it with **one** of these:
