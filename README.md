@@ -249,8 +249,8 @@ sec edit .env
 ```
 
 - Prompts Touch ID.
-- Decrypts secrets into an ephemeral, secure temporary buffer (`0600` permissions).
-- Opens your `$EDITOR` (VS Code `--wait`, Cursor `--wait`, Nano, or Vim).
+- Decrypts secrets into a temporary buffer (`0600`, inside an owner-only directory). It is plaintext on disk while the editor is open.
+- Opens your `$EDITOR`, or `nano`/`vim` in the terminal when none is set. AI-enabled IDEs (VS Code, Cursor, Windsurf, Zed) work but trigger a warning, because they can index the buffer and keep it in local history.
 - On save and close: automatically re-encrypts `.env.vault`, refreshes the placeholder `.env`, and deletes the temporary file.
 
 ---

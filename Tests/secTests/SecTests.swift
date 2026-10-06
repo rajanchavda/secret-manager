@@ -860,6 +860,64 @@ final class SecTests: XCTestCase {
         XCTAssertFalse(BackupEngine.isValid(trash("/Users/me/app/.env.vault", "/Users/me/app/.env", "../vaults.json")))
     }
     
+    func testEditorSelectionAvoidsAIEditorsByDefault() {
+        // No $EDITOR in a terminal: a terminal editor, never an IDE picked implicitly
+        let terminalDefault = EditorEngine.shared.resolveEditor(environment: [:], hasTerminal: true)
+        XCTAssertTrue(["nano", "vim"].contains(terminalDefault))
+        XCTAssertFalse(EditorEngine.isAIEnabledEditor(terminalDefault))
+        
+        // An explicit choice is honoured, gets a wait flag when needed, and is flagged as AI-enabled
+        XCTAssertEqual(EditorEngine.shared.resolveEditor(environment: ["EDITOR": "cursor"], hasTerminal: true), "cursor --wait")
+        XCTAssertEqual(EditorEngine.shared.resolveEditor(environment: ["EDITOR": "/opt/homebrew/bin/code -w"], hasTerminal: true), "/opt/homebrew/bin/code -w")
+        XCTAssertEqual(EditorEngine.shared.resolveEditor(environment: ["VISUAL": "vim"], hasTerminal: false), "vim")
+        XCTAssertTrue(EditorEngine.isAIEnabledEditor("cursor --wait"))
+        XCTAssertTrue(EditorEngine.isAIEnabledEditor("/opt/homebrew/bin/code -w"))
+        XCTAssertFalse(EditorEngine.isAIEnabledEditor("vim"))
+        XCTAssertFalse(EditorEngine.isAIEnabledEditor("/usr/bin/nano"))
+    }
+    
+    func testEditBufferIsPrivateAndRemoved() async throws {
+        let dir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true).appendingPathComponent(".sec_test_\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        
+        let envFile = dir.appendingPathComponent("config.env")
+        try "API_KEY=before_edit".write(to: envFile, atomically: true, encoding: .utf8)
+        _ = try await VaultEngine.shared.lock(fileURL: envFile)
+        let vaultFile = dir.appendingPathComponent("config.env.vault")
+        
+        // A scripted "editor" that records what it was given, then appends a secret
+        let report = dir.appendingPathComponent("report.txt")
+        let editor = dir.appendingPathComponent("fake-editor.sh")
+        try """
+        #!/bin/sh
+        { stat -f '%Lp' "$1"; stat -f '%Lp' "$(dirname "$1")"; echo "$1"; } > '\(report.path)'
+        printf '\\nADDED=by_editor\\n' >> "$1"
+        """.write(to: editor, atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o700], ofItemAtPath: editor.path)
+        
+        let previousEditor = ProcessInfo.processInfo.environment["EDITOR"]
+        setenv("EDITOR", editor.path, 1)
+        defer {
+            if let previous = previousEditor { setenv("EDITOR", previous, 1) } else { unsetenv("EDITOR") }
+        }
+        
+        try await EditorEngine.shared.edit(vaultURL: vaultFile)
+        
+        let lines = try String(contentsOf: report, encoding: .utf8).split(separator: "\n").map(String.init)
+        XCTAssertEqual(lines.count, 3)
+        XCTAssertEqual(lines[0], "600", "buffer must be owner-only")
+        XCTAssertEqual(lines[1], "700", "buffer directory must be owner-only")
+        XCTAssertTrue(lines[2].hasSuffix("/config.env"), "buffer keeps the real file name")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: lines[2]), "buffer must be deleted")
+        XCTAssertFalse(FileManager.default.fileExists(atPath: URL(fileURLWithPath: lines[2]).deletingLastPathComponent().path))
+        
+        let secrets = try await VaultEngine.shared.readDecryptedSecrets(vaultURL: vaultFile)
+        XCTAssertEqual(secrets["API_KEY"], "before_edit")
+        XCTAssertEqual(secrets["ADDED"], "by_editor")
+        XCTAssertFalse(try String(contentsOf: envFile, encoding: .utf8).contains("by_editor"))
+    }
+    
     func testTrashSoftDeleteAndRestoration() async throws {
         let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true).appendingPathComponent(UUID().uuidString)
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)

@@ -74,7 +74,11 @@ sec lock --force .env
 ---
 
 ### 3. `sec edit`
-Safely decrypts the vault into a secure, ephemeral in-memory temporary file with strict `0600` POSIX permissions, and opens it in your default `$EDITOR` (VS Code `--wait`, Cursor `--wait`, Nano, or Vim). Upon closing, the file is automatically re-encrypted, the disk decoy is refreshed, and the buffer is securely wiped.
+Decrypts the vault into a temporary file (`0600`, inside an owner-only `0700` directory) and opens it in your `$EDITOR`. Upon closing, the content is re-encrypted, the disk decoy is refreshed, and the temporary file is deleted.
+
+The buffer is plaintext on disk while the editor is open. Without `$EDITOR` set, `sec edit` uses `nano` (or `vim`) in the terminal. If `$EDITOR` is an AI-enabled IDE (VS Code, Cursor, Windsurf, Zed), `sec` warns first: such editors can index the buffer, send it to their AI features, and keep it in local file history.
+
+If the vault cannot be written after editing, your edits are kept as an encrypted rescue copy in `~/.sec/rescue/`, readable with `sec view <path>`.
 
 ```bash
 # Edit default .env.vault
