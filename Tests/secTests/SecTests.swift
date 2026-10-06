@@ -53,6 +53,25 @@ final class SecTests: XCTestCase {
         XCTAssertEqual(decryptedString, originalSecret)
     }
     
+    /// Backward compatibility: a v1 vault written by an already-released build must keep
+    /// decrypting. If this fails, the vault format changed and existing users are locked out.
+    func testDecryptsVaultFromReleasedV1Format() throws {
+        let keyData = Data((0..<32).map { UInt8($0) })
+        let releasedVault = """
+        {
+          "cipher" : "aes-256-gcm",
+          "ciphertext" : "p0g1cg6OW4IRDtinYgm0gUGeaiSnvQYuoX5J9QvMB2ShTGjQ2hgjfTPzZ6llEuyKMzQiKg==",
+          "createdAt" : "2026-01-01T00:00:00Z",
+          "nonce" : "oKGio6Slpqeoqaqr",
+          "tag" : "Qggm6iMPclGqccua+qOTwg==",
+          "version" : 1
+        }
+        """.data(using: .utf8)!
+
+        let decrypted = try CryptoEngine.shared.decrypt(vaultData: releasedVault, keyData: keyData)
+        XCTAssertEqual(String(data: decrypted, encoding: .utf8), "API_KEY=sk_test_12345\nDB=postgres://u:p@localhost/db")
+    }
+
     func testEnvParser() {
         let envContent = """
         # Database config

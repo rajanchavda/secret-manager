@@ -175,13 +175,15 @@ public final class KeychainManager {
         }
         ensureSecDirectory()
         if SecureEnclave.isAvailable {
+            preserveExisting(wrappedKeyURL)
             try storeWrapped(keyData)
         } else {
+            preserveExisting(fallbackKeyURL)
             try keyData.write(to: fallbackKeyURL, options: .atomic)
             try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: fallbackKeyURL.path)
         }
     }
-    
+
     /// Seals the master key to a new Secure Enclave key that requires user presence for every use.
     /// Only the enclave's public key is needed here, so sealing never prompts.
     static func seal(_ masterKey: Data) throws -> WrappedMasterKey {
@@ -281,9 +283,24 @@ public final class KeychainManager {
     /// Legacy files let any process derive the key without Touch ID. Delete them once the
     /// sealed copy is proven to hold the same key; keep them if they differ, to avoid data loss.
     private func removeLegacyKeyFiles(ifMatching key: Data) {
-        guard let legacy = try? legacyMasterKey(), legacy == key else { return }
-        try? FileManager.default.removeItem(at: tokenFileURL)
-        try? FileManager.default.removeItem(at: fallbackKeyURL)
+        // Each file is checked on its own: a master.key holding a different key than
+        // enclave.token may still be the only copy able to decrypt some older vault.
+        if let tokenData = try? Data(contentsOf: tokenFileURL),
+           let enclaveKey = try? SecureEnclave.P256.KeyAgreement.PrivateKey(dataRepresentation: tokenData),
+           let derived = try? deriveSymmetricKey(from: enclaveKey), derived == key {
+            try? FileManager.default.removeItem(at: tokenFileURL)
+        }
+        if let plainKey = try? Data(contentsOf: fallbackKeyURL), plainKey == key {
+            try? FileManager.default.removeItem(at: fallbackKeyURL)
+        }
+    }
+
+    /// Moves a key file aside instead of overwriting it, so key material that could not be
+    /// read right now (cancelled prompt, other Mac) is never destroyed.
+    private func preserveExisting(_ url: URL) {
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+        let stamp = Int(Date().timeIntervalSince1970)
+        try? FileManager.default.moveItem(at: url, to: url.appendingPathExtension("replaced-\(stamp)"))
     }
     
     /// Derives a 256-bit symmetric AES key from a legacy Secure Enclave token using HKDF
