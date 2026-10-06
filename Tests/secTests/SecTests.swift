@@ -527,14 +527,16 @@ final class SecTests: XCTestCase {
         }
     }
     
-    func testRecoveryKeyExportAndImport() throws {
+    func testRecoveryKeyImportNeverReplacesWorkingKey() throws {
+        // Runs against the in-memory test key; must not write anything to ~/.sec.
         let exported = try KeychainManager.shared.exportRecoveryKey()
         XCTAssertFalse(exported.isEmpty)
+        try KeychainManager.shared.importRecoveryKey(base64String: exported) // same key: no-op
+        XCTAssertEqual(try KeychainManager.shared.exportRecoveryKey(), exported)
         
-        // Re-import exported key
-        try KeychainManager.shared.importRecoveryKey(base64String: exported)
-        let reExported = try KeychainManager.shared.exportRecoveryKey()
-        XCTAssertEqual(exported, reExported)
+        let otherKey = Data(repeating: 9, count: 32).base64EncodedString()
+        XCTAssertThrowsError(try KeychainManager.shared.importRecoveryKey(base64String: otherKey))
+        XCTAssertThrowsError(try KeychainManager.shared.importRecoveryKey(base64String: "not-a-key"))
     }
     
     func testUnlockToDiskCreatesLocalBackup() async throws {

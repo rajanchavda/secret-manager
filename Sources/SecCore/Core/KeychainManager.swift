@@ -9,6 +9,7 @@ public enum KeychainError: LocalizedError {
     case derivationFailed(String)
     case masterKeyMissingWithExistingVaults(Int)
     case invalidRecoveryKey
+    case differentMasterKeyExists
     
     public var errorDescription: String? {
         switch self {
@@ -24,6 +25,8 @@ public enum KeychainError: LocalizedError {
             return "Master key not found in ~/.sec, but \(count) existing encrypted vault(s) were found on this system. Creating a new key would permanently prevent decrypting those vaults. Restore your ~/.sec/master.wrapped or run 'sec import-key' with your recovery key."
         case .invalidRecoveryKey:
             return "The provided recovery key is invalid. It must be a valid Base64-encoded 256-bit (32-byte) key."
+        case .differentMasterKeyExists:
+            return "A different working master key already exists in ~/.sec. Importing would make vaults encrypted with it unreadable, so the import was refused."
         }
     }
 }
@@ -162,12 +165,17 @@ public final class KeychainManager {
               keyData.count == 32 else {
             throw KeychainError.invalidRecoveryKey
         }
+        // Never replace a working key: vaults encrypted with it would become unreadable.
+        // Old key files are left in place; getMasterKey removes them only if they match.
+        if hasMasterKey() || testMasterKey != nil, let currentKey = try? getMasterKey() {
+            guard currentKey == keyData else {
+                throw KeychainError.differentMasterKeyExists
+            }
+            return // Already the active key
+        }
         ensureSecDirectory()
         if SecureEnclave.isAvailable {
             try storeWrapped(keyData)
-            // The imported key replaces any previous one.
-            try? FileManager.default.removeItem(at: tokenFileURL)
-            try? FileManager.default.removeItem(at: fallbackKeyURL)
         } else {
             try keyData.write(to: fallbackKeyURL, options: .atomic)
             try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: fallbackKeyURL.path)
