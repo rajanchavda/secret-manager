@@ -1043,6 +1043,12 @@ final class SecTests: XCTestCase {
         
         XCTAssertEqual(ProcessRunner.shellArguments(for: ["npm run build && npm start"], viaShell: true), ["-c", "npm run build && npm start"])
         
+        // "$@" is POSIX syntax: a fish or nushell login shell must not be handed it
+        XCTAssertEqual(ProcessRunner.shellPath(userShell: "/opt/homebrew/bin/fish", viaShell: false), "/bin/zsh")
+        XCTAssertEqual(ProcessRunner.shellPath(userShell: "/opt/homebrew/bin/fish", viaShell: true), "/opt/homebrew/bin/fish")
+        XCTAssertEqual(ProcessRunner.shellPath(userShell: "/bin/bash", viaShell: false), "/bin/bash")
+        XCTAssertEqual(ProcessRunner.shellPath(userShell: nil, viaShell: false), "/bin/zsh")
+        
         XCTAssertEqual(ProcessRunner.runtime(for: ["npm", "run", "dev"]), .node)
         XCTAssertEqual(ProcessRunner.runtime(for: ["/opt/homebrew/bin/node", "server.js"]), .node)
         XCTAssertEqual(ProcessRunner.runtime(for: ["python3.12", "app.py"]), .python)

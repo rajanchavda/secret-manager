@@ -136,7 +136,7 @@ public final class ProcessRunner {
         process.standardError = FileHandle.standardError
         
         // Execute through user's default shell (zsh) to ensure full PATH, aliases, and nvm/fnm resolution
-        let shell = ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"
+        let shell = Self.shellPath(userShell: ProcessInfo.processInfo.environment["SHELL"], viaShell: viaShell)
         process.executableURL = URL(fileURLWithPath: shell)
         
         process.arguments = Self.shellArguments(for: command, viaShell: viaShell)
@@ -195,6 +195,17 @@ public final class ProcessRunner {
             return .python
         }
         return .other
+    }
+    
+    /// The shell that launches the command. `"$@"` is POSIX syntax, so a non-POSIX login shell
+    /// (fish, nushell, ...) is only used for `--shell`, where the user writes that shell's own syntax.
+    static func shellPath(userShell: String?, viaShell: Bool) -> String {
+        let shell = (userShell?.isEmpty == false) ? userShell! : "/bin/zsh"
+        if viaShell {
+            return shell
+        }
+        let posixShells: Set<String> = ["zsh", "bash", "sh", "dash", "ksh"]
+        return posixShells.contains(URL(fileURLWithPath: shell).lastPathComponent) ? shell : "/bin/zsh"
     }
     
     /// Arguments for the user's shell. By default the command is handed over as positional parameters

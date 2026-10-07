@@ -1408,7 +1408,7 @@ public final class SecAppStore: ObservableObject {
         // Also lock when the screen locks or another user takes over the session:
         // an unlocked vault must not outlive the user's presence at the Mac.
         // A running dev server is left alone so locking the screen does not kill it.
-        let lockHandler: (Notification) -> Void = { [weak self] _ in
+        let lockHandler: @Sendable (Notification) -> Void = { [weak self] _ in
             Task { @MainActor [weak self] in
                 self?.lockAll(stopRunner: false)
             }
