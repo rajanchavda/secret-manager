@@ -6,7 +6,7 @@ public final class EditorEngine {
     private init() {}
     
     private var rescueDirectory: URL {
-        return FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".sec/rescue", isDirectory: true)
+        return SecPaths.dataDirectory.appendingPathComponent("rescue", isDirectory: true)
     }
     
     /// Edits a vault's contents in a temporary buffer and re-encrypts on save.

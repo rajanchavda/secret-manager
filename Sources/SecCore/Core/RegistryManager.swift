@@ -40,8 +40,7 @@ public final class RegistryManager {
     public static let shared = RegistryManager()
     
     private var secDirectory: URL {
-        let home = FileManager.default.homeDirectoryForCurrentUser
-        return home.appendingPathComponent(".sec", isDirectory: true)
+        return SecPaths.dataDirectory
     }
     
     private var registryFileURL: URL {

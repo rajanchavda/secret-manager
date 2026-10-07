@@ -6,11 +6,31 @@ import LocalAuthentication
 
 final class SecTests: XCTestCase {
     
+    /// Stand-in for `~/.sec`. Named `.sec` because the registry recognises its own files by that path component.
+    private static let testDataDirectory = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        .appendingPathComponent("sec-tests-\(UUID().uuidString)", isDirectory: true)
+        .appendingPathComponent(".sec", isDirectory: true)
+    
     override class func setUp() {
         super.setUp()
+        // Never touch the developer's real ~/.sec (registry, backups, trash, master key) from tests.
+        // Set before any SecCore singleton is created, since they create their directories on init.
+        try? FileManager.default.createDirectory(at: testDataDirectory, withIntermediateDirectories: true, attributes: [.posixPermissions: 0o700])
+        SecPaths.overrideForTesting = testDataDirectory
         BiometricAuth.shared.bypassForTesting = true
-        // Never touch the developer's real master key from tests.
         KeychainManager.shared.testMasterKey = Data(repeating: 7, count: 32)
+    }
+    
+    override class func tearDown() {
+        try? FileManager.default.removeItem(at: testDataDirectory.deletingLastPathComponent())
+        super.tearDown()
+    }
+    
+    func testSuiteNeverUsesTheRealDataDirectory() {
+        let realDirectory = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".sec").standardizedFileURL.path
+        XCTAssertNotEqual(SecPaths.dataDirectory.standardizedFileURL.path, realDirectory)
+        XCTAssertFalse(BackupEngine.shared.backupsDirectory.path.hasPrefix(realDirectory + "/"))
+        XCTAssertFalse(BackupEngine.shared.trashDirectory.path.hasPrefix(realDirectory + "/"))
     }
     
     func testSealedMasterKeyRefusesUnauthenticatedUse() throws {
@@ -32,7 +52,7 @@ final class SecTests: XCTestCase {
         session.clearSession()
         session.startSession()
         XCTAssertFalse(session.isSessionActive(), "Starting a session without Touch ID must not grant access")
-        let sessionFile = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".sec/session.json")
+        let sessionFile = SecPaths.dataDirectory.appendingPathComponent("session.json")
         XCTAssertFalse(FileManager.default.fileExists(atPath: sessionFile.path))
     }
     
@@ -742,13 +762,14 @@ final class SecTests: XCTestCase {
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         let savedKey = manager.testMasterKey
         let savedContext = SessionManager.shared.authContext
+        let savedDataDirectory = SecPaths.overrideForTesting
         manager.testMasterKey = nil
-        manager.secDirectoryOverride = dir
+        SecPaths.overrideForTesting = dir
         manager.enclaveAvailableOverride = false
         SessionManager.shared.authContext = LAContext()
         defer {
             manager.testMasterKey = savedKey
-            manager.secDirectoryOverride = nil
+            SecPaths.overrideForTesting = savedDataDirectory
             manager.enclaveAvailableOverride = nil
             SessionManager.shared.authContext = savedContext
             try? FileManager.default.removeItem(at: dir)

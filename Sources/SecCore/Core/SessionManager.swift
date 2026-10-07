@@ -35,7 +35,7 @@ public final class SessionManager {
 
     private init() {
         // Older versions kept a forgeable session file on disk; make sure none is left behind.
-        let legacyFile = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".sec/session.json")
+        let legacyFile = SecPaths.dataDirectory.appendingPathComponent("session.json")
         try? FileManager.default.removeItem(at: legacyFile)
     }
 

@@ -54,8 +54,7 @@ public final class KeychainManager {
     /// Replaces the real master key. Set only from the test suite via `@testable import`.
     internal var testMasterKey: Data?
     
-    /// Test-only overrides (via `@testable import`): key directory, and pretending there is no enclave.
-    internal var secDirectoryOverride: URL?
+    /// Test-only override (via `@testable import`): pretend there is no Secure Enclave.
     internal var enclaveAvailableOverride: Bool?
     
     private var enclaveAvailable: Bool {
@@ -63,11 +62,7 @@ public final class KeychainManager {
     }
     
     private var secDirectory: URL {
-        if let override = secDirectoryOverride {
-            return override
-        }
-        let home = FileManager.default.homeDirectoryForCurrentUser
-        return home.appendingPathComponent(".sec", isDirectory: true)
+        return SecPaths.dataDirectory
     }
     
     private var wrappedKeyURL: URL {

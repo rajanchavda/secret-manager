@@ -151,8 +151,7 @@ public final class BackupEngine {
     private let fm = FileManager.default
     
     private var baseDir: URL {
-        let home = fm.homeDirectoryForCurrentUser
-        return home.appendingPathComponent(".sec", isDirectory: true)
+        return SecPaths.dataDirectory
     }
     
     public var backupsDirectory: URL {
