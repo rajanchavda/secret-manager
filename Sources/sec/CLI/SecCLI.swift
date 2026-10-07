@@ -32,8 +32,16 @@ public struct SecCLI {
             await handleEdit(target: target)
             
         case "view", "show":
-            let target = arguments.count > 1 ? arguments[1] : ".env"
-            await handleView(target: target)
+            var target = ".env"
+            var forceStdout = false
+            for arg in arguments.dropFirst() {
+                if arg == "--force-stdout" {
+                    forceStdout = true
+                } else if !arg.hasPrefix("-") {
+                    target = arg
+                }
+            }
+            await handleView(target: target, forceStdout: forceStdout)
             
         case "unlock":
             var target = ".env"
@@ -71,8 +79,7 @@ public struct SecCLI {
             await handleExportKey()
             
         case "import-key", "restore-key":
-            let keyArg = arguments.count > 1 ? arguments[1] : ""
-            handleImportKey(key: keyArg)
+            await handleImportKey(hasKeyArgument: arguments.count > 1)
             
         case "backup":
             await handleBackup(arguments: Array(arguments.dropFirst()))
@@ -139,6 +146,8 @@ public struct SecCLI {
         
         do {
             print("🔒 Locking '\(fileName)' with Touch ID...")
+            // Checked before locking: afterwards the working copy is the decoy, but history is unchanged
+            let wasCommitted = GitIgnoreManager.shared.wasEverCommitted(fileURL)
             let keys = try await VaultEngine.shared.lock(fileURL: fileURL, force: force)
             print("✅ Successfully locked '\(fileName)'!")
             print("   📁 Encrypted vault: \(fileName).vault (AES-256-GCM)")
@@ -150,6 +159,14 @@ public struct SecCLI {
                 print("   🛡️  Shielded \(keys.count) key\(keys.count == 1 ? "" : "s"): \(keys.joined(separator: ", "))")
                 Notifier.shared.notify(title: "sec: File Locked", message: "Shielded \(keys.count) secrets in '\(fileName)' from AI agents.")
             }
+            if wasCommitted {
+                print("")
+                print("⚠️  '\(fileName)' has been committed to this git repository before.")
+                print("   The old plaintext is still in the git history (and on any remote). Rotate these secrets.")
+            }
+            print("")
+            print("ℹ️  Locking protects the file from now on. Copies of the old plaintext can remain in Time Machine,")
+            print("   APFS snapshots and editor history, so rotate any secret that may already have been exposed.")
         } catch VaultError.alreadyLocked(let name) {
             print("ℹ️ '\(name)' is already locked and protected by sec.")
             print("   (To force re-lock with current file contents, run: sec lock --force \(name))")
@@ -171,6 +188,13 @@ public struct SecCLI {
     private static func handleRun(command: [String]) async {
         var remainingArgs = command
         var targetVault: URL? = nil
+        var viaShell = false
+        
+        // --shell: treat the command as a shell command line (pipes, &&, variable expansion)
+        if remainingArgs.first == "--shell" {
+            viaShell = true
+            remainingArgs.removeFirst()
+        }
         
         // Check for -f <file>, --file <file>, or --vault <file> flags
         if remainingArgs.count >= 2 && (remainingArgs[0] == "-f" || remainingArgs[0] == "--file" || remainingArgs[0] == "--vault") {
@@ -186,6 +210,11 @@ public struct SecCLI {
             targetVault = resolved
         }
         
+        if remainingArgs.first == "--shell" {
+            viaShell = true
+            remainingArgs.removeFirst()
+        }
+        
         guard !remainingArgs.isEmpty else {
             print("Error: No command specified to run.")
             print("Usage: sec [-f <file>] <command...> (e.g. sec npm run dev, sec -f .env.local npm start)")
@@ -193,7 +222,7 @@ public struct SecCLI {
         }
         
         do {
-            let exitCode = try await ProcessRunner.shared.run(command: remainingArgs, vaultURL: targetVault)
+            let exitCode = try await ProcessRunner.shared.run(command: remainingArgs, vaultURL: targetVault, viaShell: viaShell)
             exit(exitCode)
         } catch {
             print("❌ Error: \(error.localizedDescription)")
@@ -225,7 +254,14 @@ public struct SecCLI {
         }
     }
     
-    private static func handleView(target: String) async {
+    private static func handleView(target: String, forceStdout: Bool = false) async {
+        // Refuse when stdout is piped or captured (e.g. by an AI agent's shell tool), so plaintext
+        // only reaches a human-visible terminal unless the caller explicitly opts in.
+        guard forceStdout || isatty(STDOUT_FILENO) != 0 else {
+            FileHandle.standardError.write("❌ Refusing to print secrets: stdout is not a terminal. Pass --force-stdout to override.\n".data(using: .utf8)!)
+            exit(1)
+        }
+        
         var vaultURL = resolveURL(for: target)
         if !vaultURL.pathExtension.isEmpty && vaultURL.pathExtension != "vault" {
             vaultURL = VaultEngine.shared.vaultURL(for: vaultURL)
@@ -506,25 +542,41 @@ public struct SecCLI {
             print("if you migrate to a new Mac or reinstall macOS:\n")
             print(keyString)
             print("\nTo restore on another Mac, run:")
-            print("   sec import-key <key>")
+            print("   sec import-key        (then enter the key at the hidden prompt)")
         } catch {
             print("❌ Failed to export recovery key: \(error.localizedDescription)")
             exit(1)
         }
     }
     
-    private static func handleImportKey(key: String) {
-        var keyToImport = key.trimmingCharacters(in: .whitespacesAndNewlines)
-        if keyToImport.isEmpty {
-            print("Enter master recovery key: ", terminator: "")
-            guard let entered = readLine()?.trimmingCharacters(in: .whitespacesAndNewlines), !entered.isEmpty else {
-                print("❌ No key entered. Aborting.")
-                exit(1)
-            }
-            keyToImport = entered
+    /// Reads the recovery key without echoing it. Accepts piped stdin (e.g. from a password manager CLI).
+    private static func readRecoveryKey() -> String? {
+        guard isatty(STDIN_FILENO) != 0 else {
+            return readLine()
+        }
+        var buffer = [CChar](repeating: 0, count: 512)
+        defer { memset_s(&buffer, buffer.count, 0, buffer.count) }
+        guard readpassphrase("Enter master recovery key (input hidden): ", &buffer, buffer.count, RPP_REQUIRE_TTY) != nil else {
+            return nil
+        }
+        return String(cString: buffer)
+    }
+    
+    private static func handleImportKey(hasKeyArgument: Bool) async {
+        // A key on the command line is visible to every process (`ps`) and lands in shell history
+        guard !hasKeyArgument else {
+            FileHandle.standardError.write("❌ Do not pass the recovery key as an argument: it would be visible in `ps` and saved to your shell history.\n   Run 'sec import-key' and enter it at the hidden prompt, or pipe it in on stdin.\n".data(using: .utf8)!)
+            exit(1)
+        }
+        guard let keyToImport = readRecoveryKey()?.trimmingCharacters(in: .whitespacesAndNewlines), !keyToImport.isEmpty else {
+            print("❌ No key entered. Aborting.")
+            exit(1)
         }
         
         do {
+            // Always prompt: the imported key encrypts every future vault, so a background
+            // process must not be able to install one. Cancelling aborts with nothing changed.
+            try await BiometricAuth.shared.authenticate(reason: "import a sec master recovery key (used to encrypt ALL vaults)")
             try KeychainManager.shared.importRecoveryKey(base64String: keyToImport)
             print("✅ Master recovery key successfully imported!")
             print("   Your existing vaults can now be decrypted on this Mac.")
@@ -653,6 +705,7 @@ public struct SecCLI {
     private static func handleTrash(arguments: [String]) async {
         if arguments.contains("--empty") || arguments.contains("--purge-all") {
             do {
+                try await BiometricAuth.shared.authenticate(reason: "sec requires Touch ID to permanently delete ALL trashed vaults")
                 try BackupEngine.shared.purgeAllTrash()
                 print("✅ Emptied all soft-deleted vaults from trash.")
             } catch {
@@ -688,6 +741,7 @@ public struct SecCLI {
                 exit(1)
             }
             do {
+                try await BiometricAuth.shared.authenticate(reason: "sec requires Touch ID to permanently delete trashed vault '\(match.targetFileName)'")
                 try BackupEngine.shared.purgeTrashItem(trashId: match.id)
                 print("✅ Purged '\(match.targetFileName)' from trash.")
             } catch {
@@ -728,9 +782,10 @@ public struct SecCLI {
 
         USAGE:
             sec [-f <file>] <cmd...>    Run command with secrets injected into memory (Single-Use)
+            sec --shell '<cmd line>'    Same, but run a shell command line (pipes, &&, $VAR expansion)
             sec lock [--force] [file]   Lock file & replace with dummy (skips if already locked)
             sec edit [file]             Safely edit secrets in temporary buffer and re-encrypt
-            sec view [file]             Print decrypted secrets to terminal (prompts Touch ID)
+            sec view [file]             Print decrypted secrets to terminal (prompts Touch ID; --force-stdout to pipe)
             sec unlock [--yes] [file]   Restore plaintext to disk and move vault to trash
             sec backup [--all] [--list] Create or list versioned snapshots of encrypted vaults
             sec restore [file] [-v <#>] Rollback vault to a previous version snapshot
@@ -738,7 +793,7 @@ public struct SecCLI {
             sec list [--scan] [--prune] List all locked secret vaults across your Mac
             sec scan [dir]              Discover and register existing vaults across folders
             sec export-key              Export master key for disaster recovery or Mac migration
-            sec import-key [key]        Import master recovery key on a new or wiped Mac
+            sec import-key              Import master recovery key on a new or wiped Mac (hidden prompt)
             sec status                  Show keychain, zero-cache policy, and project vault status
             sec session                 Inspect access policy (Zero-Cache by default)
             sec install-finder          Install macOS Finder right-click Quick Actions
@@ -766,7 +821,7 @@ public struct SecCLI {
 
             # 5. Export / Import master recovery key
             sec export-key
-            sec import-key <key>
+            sec import-key
 
             # 6. Run your app with secrets injected in memory (never written to disk)
             sec npm run dev

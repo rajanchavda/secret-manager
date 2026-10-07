@@ -30,7 +30,7 @@
 ## 1. Core Operations
 
 ### 1. `sec <command...>` / `sec run`
-Run any child process with real secrets decrypted and injected directly into RAM (`process.env`). Plaintext never touches your storage drive, and secrets self-destruct as soon as the process terminates.
+Run any child process with real secrets decrypted and injected into its environment (`process.env`). No plaintext `.env` is written, and the secrets are gone when the process exits. Node.js and Python commands receive them through a short-lived owner-only loader file that deletes itself on load.
 
 ```bash
 # Shorthand usage (any unknown subcommand is forwarded to run)
@@ -46,10 +46,17 @@ sec run npm start
 sec -f .env.local npm run dev
 sec --file credentials.json python main.py
 sec --vault backend.vault go run main.go
+
+# Run a shell command line (pipes, &&, $VAR expansion)
+sec --shell 'npm run build && npm start'
 ```
 
 #### Options:
 - `-f, --file, --vault <file>`: Target a specific `.env`, JSON, or `.vault` file instead of the default `.env`.
+
+Arguments are passed to the command exactly as typed: spaces, quotes, `$`, `;` and `*` inside an argument are never re-interpreted by a shell. Use `--shell` when you want a shell command line.
+
+Without `-f`, `sec` looks for a vault in the current directory and then in parent directories, stopping at the root of the git repository. Outside a repository, parent directories are only searched for standard names (`.env.vault`, `.env.local.vault`, ...). When the vault comes from a parent directory, its path is printed.
 
 ---
 
@@ -74,7 +81,11 @@ sec lock --force .env
 ---
 
 ### 3. `sec edit`
-Safely decrypts the vault into a secure, ephemeral in-memory temporary file with strict `0600` POSIX permissions, and opens it in your default `$EDITOR` (VS Code `--wait`, Cursor `--wait`, Nano, or Vim). Upon closing, the file is automatically re-encrypted, the disk decoy is refreshed, and the buffer is securely wiped.
+Decrypts the vault into a temporary file (`0600`, inside an owner-only `0700` directory) and opens it in your `$EDITOR`. Upon closing, the content is re-encrypted, the disk decoy is refreshed, and the temporary file is deleted.
+
+The buffer is plaintext on disk while the editor is open. Without `$EDITOR` set, `sec edit` uses `nano` (or `vim`) in the terminal. If `$EDITOR` is an AI-enabled IDE (VS Code, Cursor, Windsurf, Zed), `sec` warns first: such editors can index the buffer, send it to their AI features, and keep it in local file history.
+
+If the vault cannot be written after editing, your edits are kept as an encrypted rescue copy in `~/.sec/rescue/`, readable with `sec view <path>`.
 
 ```bash
 # Edit default .env.vault
@@ -90,6 +101,10 @@ sec edit config.json
 ### 4. `sec view` (alias: `sec show`)
 Prompts for Touch ID biometric verification and prints decrypted secrets directly to the terminal standard output. If the file is JSON, it formats and color-indents the output automatically.
 
+Because the output is plaintext, `sec view` refuses to run when stdout is not a terminal (piped, redirected, or captured by a tool or AI agent). Pass `--force-stdout` to override deliberately.
+
+Every Touch ID prompt also names the processes that launched `sec` (for example `started by: zsh ← node ← Cursor Helper`), and `sec <command>` prompts show the exact command, so you can tell your own request from one issued by a tool.
+
 ```bash
 # View .env secrets
 sec view .env
@@ -97,6 +112,9 @@ sec view .env
 # View JSON secrets with automatic pretty-printing
 sec view config.json
 sec show credentials.json
+
+# Pipe the plaintext on purpose
+sec view .env --force-stdout | grep STRIPE
 ```
 
 ---
@@ -258,12 +276,14 @@ sec export-key
 Imports a master recovery key onto a new or wiped Mac, allowing all your existing `.vault` files to be decrypted immediately with Touch ID on the new hardware.
 
 ```bash
-# Pass key as an argument
-sec import-key "BASE64_KEY_STRING..."
-
-# Or enter interactively
+# Enter the key at a hidden prompt (requires Touch ID)
 sec import-key
+
+# Or pipe it in, e.g. from a password manager CLI
+op read "op://Private/sec recovery key/password" | sec import-key
 ```
+
+The key is not accepted as a command-line argument: it would be visible to other processes through `ps` and saved in your shell history. A master key is only ever stored sealed to the Secure Enclave, so importing (and creating a key in the first place) requires Apple Silicon or an Intel Mac with a T2 chip.
 
 ---
 

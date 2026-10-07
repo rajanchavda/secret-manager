@@ -324,8 +324,7 @@ public struct SecretTableView: View {
                                             store.toggleSecretVisibility(id: secret.id)
                                         },
                                         onCopy: {
-                                            NSPasteboard.general.clearContents()
-                                            NSPasteboard.general.setString(secret.value, forType: .string)
+                                            SecureClipboard.copy(secret.value)
                                             copiedKeyId = secret.id
                                             DispatchQueue.main.asyncAfter(deadline: .now() + 1.8) {
                                                 if copiedKeyId == secret.id {

@@ -48,12 +48,17 @@ public final class VaultEngine {
         return vaultURL.deletingPathExtension()
     }
     
-    /// Checks if a file's content matches sec's dummy masked placeholder
+    /// Checks if a file's content matches sec's dummy masked placeholder.
+    /// Matches the decoy header comment or a value that is exactly a placeholder; a real file
+    /// that only mentions those words in passing is not treated as a decoy.
     public func isDummyContent(_ content: String) -> Bool {
-        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.contains("PROTECTED BY sec") ||
-               trimmed.contains("locked_by_sec") ||
-               trimmed.contains("_sec_locked")
+        for line in content.components(separatedBy: .newlines) {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("#") && trimmed.contains("PROTECTED BY sec") {
+                return true
+            }
+        }
+        return EnvParser.shared.containsPlaceholderValue(content)
     }
     
     /// Checks if a file is already locked or is itself a vault file
@@ -140,7 +145,8 @@ public final class VaultEngine {
             SessionManager.shared.startSession()
         }
         
-        backupVault(at: vault)
+        // Finish snapshotting any existing vault before it is overwritten below
+        await backupVaultAsync(at: vault)
         
         let masterKey = try KeychainManager.shared.getOrCreateMasterKey()
         let encryptedVaultData = try CryptoEngine.shared.encrypt(plaintext: plaintextData, keyData: masterKey)
@@ -151,6 +157,12 @@ public final class VaultEngine {
             try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: vault.path)
         } catch {
             throw VaultError.writeFailed("Could not write encrypted vault: \(error.localizedDescription)")
+        }
+        
+        // The plaintext is about to be replaced by the decoy, so the vault must be durable first:
+        // without this a crash or power loss could leave the decoy on disk and no readable vault.
+        guard flushToDisk(vault) else {
+            throw VaultError.writeFailed("Could not flush encrypted vault to disk; '\(fileURL.lastPathComponent)' was left untouched.")
         }
         
         // Generate dummy masked file for .env, JSON, YAML, or arbitrary/binary secret files
@@ -199,8 +211,13 @@ public final class VaultEngine {
     }
     
     /// Decrypts vault file and returns dictionary of environment variables in memory
-    public func readDecryptedSecrets(vaultURL: URL) async throws -> [String: String] {
-        let plaintextData = try await readDecryptedData(vaultURL: vaultURL, promptReason: "sec requires Touch ID to decrypt secrets for command execution")
+    /// Pass the command being run so the Touch ID prompt shows exactly what is being authorized.
+    public func readDecryptedSecrets(vaultURL: URL, command: [String]? = nil) async throws -> [String: String] {
+        var promptReason = "sec requires Touch ID to decrypt secrets for command execution"
+        if let command = command, !command.isEmpty {
+            promptReason = "sec requires Touch ID to run '\(CallerInfo.displayCommand(command))' with secrets from '\(vaultURL.lastPathComponent)'"
+        }
+        let plaintextData = try await readDecryptedData(vaultURL: vaultURL, promptReason: promptReason)
         guard let plaintextString = String(data: plaintextData, encoding: .utf8) else {
             // Binary files have no text environment variables
             return [:]
@@ -234,11 +251,7 @@ public final class VaultEngine {
         do {
             backupVault(at: vaultURL, trigger: .preUnlock, note: "Pre-unlock snapshot before restoring plaintext to disk")
             _ = try? await BackupEngine.shared.moveToTrash(vaultURL: vaultURL, reason: "Restored plaintext to disk")
-            try plaintextData.write(to: plainFile, options: .atomic)
-            let name = plainFile.lastPathComponent.lowercased()
-            if name.contains("rsa") || name.hasSuffix(".pem") || name.hasSuffix(".key") || name.contains("id_ed25519") || name.contains("id_ecdsa") {
-                try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: plainFile.path)
-            }
+            try writeOwnerOnly(plaintextData, to: plainFile)
             
             // Move vault to local .bak file instead of outright deleting it, ensuring user never loses secrets if plain file is damaged
             let localBak = vaultURL.appendingPathExtension("bak")
@@ -247,6 +260,44 @@ public final class VaultEngine {
             RegistryManager.shared.unregister(vaultURL: vaultURL)
         } catch {
             throw VaultError.writeFailed("Failed to restore plaintext file: \(error.localizedDescription)")
+        }
+    }
+    
+    /// Forces a file and its directory entry onto stable storage (F_FULLFSYNC)
+    func flushToDisk(_ url: URL) -> Bool {
+        func fullSync(_ path: String) -> Bool {
+            let fd = open(path, O_RDONLY)
+            guard fd >= 0 else { return false }
+            defer { close(fd) }
+            // Some volumes (network, FAT) do not support F_FULLFSYNC; fall back to fsync there
+            return fcntl(fd, F_FULLFSYNC) == 0 || fsync(fd) == 0
+        }
+        guard fullSync(url.path) else { return false }
+        _ = fullSync(url.deletingLastPathComponent().path)
+        return true
+    }
+    
+    /// Atomically replaces a file with content that is owner-only (0600) from the moment it exists,
+    /// so restored plaintext is never briefly readable by other users.
+    func writeOwnerOnly(_ data: Data, to url: URL) throws {
+        let tempURL = url.deletingLastPathComponent().appendingPathComponent(".\(url.lastPathComponent).sec-\(UUID().uuidString)")
+        let fd = open(tempURL.path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0o600)
+        guard fd >= 0 else {
+            throw VaultError.writeFailed(String(cString: strerror(errno)))
+        }
+        let handle = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
+        do {
+            try handle.write(contentsOf: data)
+            try handle.close()
+        } catch {
+            try? handle.close()
+            try? FileManager.default.removeItem(at: tempURL)
+            throw error
+        }
+        guard rename(tempURL.path, url.path) == 0 else {
+            let reason = String(cString: strerror(errno))
+            try? FileManager.default.removeItem(at: tempURL)
+            throw VaultError.writeFailed(reason)
         }
     }
     
@@ -315,6 +366,18 @@ public final class VaultEngine {
         var current = startDir.standardizedFileURL
         let homeDir = FileManager.default.homeDirectoryForCurrentUser.standardizedFileURL
         
+        var insideGitRepo = false
+        var probe = current
+        while true {
+            if FileManager.default.fileExists(atPath: probe.appendingPathComponent(".git").path) {
+                insideGitRepo = true
+                break
+            }
+            let parent = probe.deletingLastPathComponent()
+            if parent.path == probe.path || probe.path == homeDir.path { break }
+            probe = parent
+        }
+        
         while true {
             let candidate = current.appendingPathComponent(targetName)
             if FileManager.default.fileExists(atPath: candidate.path) {
@@ -331,8 +394,11 @@ public final class VaultEngine {
                     }
                 }
                 
-                // If there is only one .vault file in the directory, use it automatically
-                if let files = try? FileManager.default.contentsOfDirectory(atPath: current.path) {
+                // If there is only one .vault file in the directory, use it automatically.
+                // Outside a git repository this only applies to the starting directory: a lone vault
+                // found further up probably belongs to a different project.
+                if (current.path == startDir.standardizedFileURL.path || insideGitRepo),
+                   let files = try? FileManager.default.contentsOfDirectory(atPath: current.path) {
                     let vaults = files.filter { $0.hasSuffix(".vault") }
                     if vaults.count == 1, let onlyVault = vaults.first {
                         return current.appendingPathComponent(onlyVault)
@@ -341,8 +407,10 @@ public final class VaultEngine {
             }
             
             // Boundary safety: stop upward traversal at .git root or user home directory
+            // The repository root is the last directory searched, including when the search starts there:
+            // a project never inherits secrets from whatever happens to sit above its own repository.
             let gitDir = current.appendingPathComponent(".git")
-            if FileManager.default.fileExists(atPath: gitDir.path) && current.path != startDir.standardizedFileURL.path {
+            if FileManager.default.fileExists(atPath: gitDir.path) {
                 break
             }
             if current.path == homeDir.path {

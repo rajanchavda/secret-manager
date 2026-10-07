@@ -129,7 +129,7 @@ public struct HeaderView: View {
                     .clipShape(Circle())
             }
             .buttonStyle(.plain)
-            .help("Panic Lock: Revoke all active sessions and zeroize memory")
+            .help("Panic Lock: Revoke all active sessions and drop decrypted secrets")
             .accessibilityLabel("Panic lock all vaults")
             
             // Settings Toggle

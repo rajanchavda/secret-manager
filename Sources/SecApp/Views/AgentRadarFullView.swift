@@ -15,7 +15,7 @@ public struct AgentRadarFullView: View {
                     Text("Activity Log")
                         .font(.scaled(size: 19, weight: .bold, design: .rounded))
                         .foregroundColor(.primary)
-                    Text("Recent access to your protected files by AI coding agents and processes")
+                    Text("What Secret Manager did with your vaults, and changes to vault files on disk")
                         .font(.scaled(size: 13))
                         .foregroundColor(.secondary)
                 }
@@ -58,7 +58,7 @@ public struct AgentRadarFullView: View {
                     Text("No Activity Recorded Yet")
                         .font(.scaled(size: 15, weight: .medium))
                         .foregroundColor(.secondary)
-                    Text("When an AI agent inspects a protected .env file or a dev server starts, events appear here.")
+                    Text("Locks, Touch ID unlocks, edits, dev-server runs and vault file changes appear here. macOS does not report file reads, so reads by other tools are not shown.")
                         .font(.scaled(size: 13))
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
