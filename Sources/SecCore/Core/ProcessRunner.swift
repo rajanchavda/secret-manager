@@ -6,9 +6,13 @@ public final class ProcessRunner {
     private init() {}
     
     /// Executes a command with decrypted secrets injected directly into process memory.
-    /// Employs stealth in-memory loaders for Node.js/Python to completely hide secrets from `ps -E` and process tables.
+    /// Node.js/Python commands receive them through a self-deleting preload loader, which keeps secrets out of
+    /// the launching shell's environment. Processes the app spawns still inherit them as ordinary environment
+    /// variables, so this is not a defence against a same-user `ps -E`.
     @discardableResult
-    public func run(command: [String], vaultURL: URL?) async throws -> Int32 {
+    /// `viaShell` runs `command[0]` as a shell command line (pipes, `&&`, expansion). Otherwise the
+    /// arguments are passed through exactly as given, with no shell re-parsing.
+    public func run(command: [String], vaultURL: URL?, viaShell: Bool = false) async throws -> Int32 {
         guard !command.isEmpty else {
             print("Error: No command specified to run.")
             return 1
@@ -25,6 +29,11 @@ public final class ProcessRunner {
             targetVault = vaultURL
         } else {
             targetVault = VaultEngine.shared.findNearestVault()
+            // Make it visible when the secrets come from somewhere other than the current directory
+            let workingDir = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).standardizedFileURL.path
+            if let found = targetVault, found.deletingLastPathComponent().standardizedFileURL.path != workingDir {
+                fputs("ℹ️ [sec] Using vault from a parent directory: \(found.path)\n", stderr)
+            }
         }
         
         var secrets: [String: String] = [:]
@@ -38,7 +47,7 @@ public final class ProcessRunner {
             case .orphan(let orphanURL):
                 // Decoy plaintext file was removed or git-cleaned, but the encrypted vault is safe!
                 // Read decrypted secrets directly from the vault rather than destroying it.
-                secrets = try await VaultEngine.shared.readDecryptedSecrets(vaultURL: orphanURL)
+                secrets = try await VaultEngine.shared.readDecryptedSecrets(vaultURL: orphanURL, command: command)
                 sourceDescription = "\(orphanURL.lastPathComponent) (decoy missing)"
                 
             case .stale(let plainURL, _, _):
@@ -50,7 +59,7 @@ public final class ProcessRunner {
                 }
                 
             case .fresh:
-                secrets = try await VaultEngine.shared.readDecryptedSecrets(vaultURL: vault)
+                secrets = try await VaultEngine.shared.readDecryptedSecrets(vaultURL: vault, command: command)
                 sourceDescription = vault.lastPathComponent
                 
             case .missing:
@@ -72,9 +81,9 @@ public final class ProcessRunner {
             }
         }
         
-        let firstCmd = command[0].lowercased()
-        let isNodeCommand = ["npm", "pnpm", "yarn", "bun", "node", "npx", "next", "vite", "turbo", "tsx", "nodemon"].contains { firstCmd.contains($0) }
-        let isPythonCommand = ["python", "python3", "pytest", "flask", "uvicorn", "manage.py"].contains { firstCmd.contains($0) }
+        let runtime = Self.runtime(for: viaShell ? command[0].split(separator: " ").map(String.init) : command)
+        let isNodeCommand = runtime == .node
+        let isPythonCommand = runtime == .python
         
         var tempCleanupPaths: [String] = []
         defer {
@@ -84,11 +93,10 @@ public final class ProcessRunner {
         }
         
         if !secrets.isEmpty {
-            if isNodeCommand {
-                // STEALTH MODE FOR NODE:
-                // Inject via an ephemeral, self-destructing preload script.
-                // Secrets are NEVER passed in `execve` `envp`, making them 100% invisible to `ps -E`.
-                let loaderPath = createNodeStealthLoader(secrets: secrets)
+            if isNodeCommand, let loaderPath = createNodeStealthLoader(secrets: secrets) {
+                // PRELOAD MODE FOR NODE:
+                // Inject via an ephemeral, self-deleting preload script, so secrets are not in the `envp`
+                // of the shell or the first Node process. Node's own children inherit them via `envp`.
                 tempCleanupPaths.append(loaderPath)
                 
                 let existingNodeOptions = injectedEnv["NODE_OPTIONS"] ?? ""
@@ -98,11 +106,10 @@ public final class ProcessRunner {
                     injectedEnv["NODE_OPTIONS"] = "--require \"\(loaderPath)\" \(existingNodeOptions)"
                 }
                 
-                fputs("🔒 [sec] Injected \(secrets.count) secret\(secrets.count == 1 ? "" : "s") from '\(sourceDescription)' via stealth loader (hidden from ps -E & process table)\n", stderr)
-            } else if isPythonCommand {
-                // STEALTH MODE FOR PYTHON:
+                fputs("🔒 [sec] Injected \(secrets.count) secret\(secrets.count == 1 ? "" : "s") from '\(sourceDescription)' via preload loader\n", stderr)
+            } else if isPythonCommand, let pyDir = createPythonStealthLoader(secrets: secrets) {
+                // PRELOAD MODE FOR PYTHON:
                 // Inject via an ephemeral sitecustomize.py in a private directory.
-                let (pyDir, _) = createPythonStealthLoader(secrets: secrets)
                 tempCleanupPaths.append(pyDir)
                 
                 let existingPyPath = injectedEnv["PYTHONPATH"] ?? ""
@@ -112,9 +119,9 @@ public final class ProcessRunner {
                     injectedEnv["PYTHONPATH"] = "\(pyDir):\(existingPyPath)"
                 }
                 
-                fputs("🔒 [sec] Injected \(secrets.count) secret\(secrets.count == 1 ? "" : "s") from '\(sourceDescription)' via stealth loader (hidden from ps -E & process table)\n", stderr)
+                fputs("🔒 [sec] Injected \(secrets.count) secret\(secrets.count == 1 ? "" : "s") from '\(sourceDescription)' via preload loader\n", stderr)
             } else {
-                // Generic command: Direct memory injection into environment
+                // Generic command (or the loader could not be written): inject into the child environment
                 for (key, val) in secrets {
                     injectedEnv[key] = val
                 }
@@ -129,18 +136,10 @@ public final class ProcessRunner {
         process.standardError = FileHandle.standardError
         
         // Execute through user's default shell (zsh) to ensure full PATH, aliases, and nvm/fnm resolution
-        let shell = ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"
+        let shell = Self.shellPath(userShell: ProcessInfo.processInfo.environment["SHELL"], viaShell: viaShell)
         process.executableURL = URL(fileURLWithPath: shell)
         
-        // Join command safely for shell execution
-        let joinedCommand = command.map { arg in
-            if arg.contains(" ") || arg.contains("\"") || arg.contains("$") || arg.contains("*") || arg.contains(";") {
-                return "\"\(arg.replacingOccurrences(of: "\"", with: "\\\""))\""
-            }
-            return arg
-        }.joined(separator: " ")
-        
-        process.arguments = ["-c", joinedCommand]
+        process.arguments = Self.shellArguments(for: command, viaShell: viaShell)
         
         // Trap SIGINT and SIGTERM and forward to child process
         let sigintSource = DispatchSource.makeSignalSource(signal: SIGINT, queue: .main)
@@ -175,61 +174,135 @@ public final class ProcessRunner {
         }
     }
     
-    // MARK: - Stealth Helpers
+    // MARK: - Command Helpers
     
-    /// Creates a self-destructing Node.js CommonJS preload module
-    private func createNodeStealthLoader(secrets: [String: String]) -> String {
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-        let loaderURL = tempDir.appendingPathComponent(".sec_node_\(UUID().uuidString).cjs")
-        
-        guard let jsonData = try? JSONSerialization.data(withJSONObject: secrets, options: []),
-              let jsonString = String(data: jsonData, encoding: .utf8) else {
-            return ""
+    enum Runtime {
+        case node, python, other
+    }
+    
+    private static let nodeCommands: Set<String> = ["npm", "pnpm", "yarn", "bun", "bunx", "node", "npx", "next", "vite", "turbo", "tsx", "ts-node", "nodemon"]
+    private static let pythonCommands: Set<String> = ["pytest", "flask", "uvicorn", "gunicorn", "manage.py"]
+    
+    /// Classifies a command by the name of its executable. Matching the exact name (not a substring)
+    /// keeps commands such as `nodeenv` or a path containing "node" from getting the wrong loader.
+    static func runtime(for command: [String]) -> Runtime {
+        guard let first = command.first else { return .other }
+        let name = URL(fileURLWithPath: first).lastPathComponent.lowercased()
+        if nodeCommands.contains(name) {
+            return .node
         }
-        
-        let content = """
+        if pythonCommands.contains(name) || name == "python" || name.hasPrefix("python3") || name.hasPrefix("python2") {
+            return .python
+        }
+        return .other
+    }
+    
+    /// The shell that launches the command. `"$@"` is POSIX syntax, so a non-POSIX login shell
+    /// (fish, nushell, ...) is only used for `--shell`, where the user writes that shell's own syntax.
+    static func shellPath(userShell: String?, viaShell: Bool) -> String {
+        let shell = (userShell?.isEmpty == false) ? userShell! : "/bin/zsh"
+        if viaShell {
+            return shell
+        }
+        let posixShells: Set<String> = ["zsh", "bash", "sh", "dash", "ksh"]
+        return posixShells.contains(URL(fileURLWithPath: shell).lastPathComponent) ? shell : "/bin/zsh"
+    }
+    
+    /// Arguments for the user's shell. By default the command is handed over as positional parameters
+    /// and run with `"$@"`, so spaces, quotes, `$`, `;` and globs in arguments are never re-interpreted.
+    static func shellArguments(for command: [String], viaShell: Bool) -> [String] {
+        if viaShell {
+            return ["-c", command.joined(separator: " ")]
+        }
+        return ["-c", "\"$@\"", "sec"] + command
+    }
+    
+    // MARK: - Preload Loader Helpers
+    
+    /// Base64 of the secrets as JSON. Embedding base64 means no secret value (quotes, newlines,
+    /// backslashes) can alter or break out of the generated loader source.
+    private func encodedSecrets(_ secrets: [String: String]) -> String? {
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: secrets, options: []) else {
+            return nil
+        }
+        return jsonData.base64EncodedString()
+    }
+    
+    /// Source of the self-deleting Node.js CommonJS preload module
+    func nodeLoaderSource(secrets: [String: String]) -> String? {
+        guard let encoded = encodedSecrets(secrets) else { return nil }
+        return """
         // Generated ephemerally by sec
         const fs = require('fs');
-        const secrets = \(jsonString);
+        const secrets = JSON.parse(Buffer.from("\(encoded)", "base64").toString("utf8"));
         for (const [k, v] of Object.entries(secrets)) {
             process.env[k] = v;
         }
         delete process.env.NODE_OPTIONS;
         try { fs.unlinkSync(__filename); } catch (_) {}
         """
-        
-        try? content.write(to: loaderURL, atomically: true, encoding: .utf8)
-        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: loaderURL.path)
-        return loaderURL.path
     }
     
-    /// Creates a self-destructing Python sitecustomize module in a private directory
-    private func createPythonStealthLoader(secrets: [String: String]) -> (dir: String, file: String) {
-        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-        let stealthDir = tempDir.appendingPathComponent(".sec_py_\(UUID().uuidString)", isDirectory: true)
-        try? FileManager.default.createDirectory(at: stealthDir, withIntermediateDirectories: true, attributes: [
-            .posixPermissions: 0o700
-        ])
-        
-        let loaderURL = stealthDir.appendingPathComponent("sitecustomize.py")
-        
-        guard let jsonData = try? JSONSerialization.data(withJSONObject: secrets, options: []),
-              let jsonString = String(data: jsonData, encoding: .utf8) else {
-            return (stealthDir.path, loaderURL.path)
-        }
-        
-        let content = """
-        import os, json
-        secrets = json.loads('''\(jsonString)''')
+    /// Source of the self-deleting Python sitecustomize module
+    func pythonLoaderSource(secrets: [String: String]) -> String? {
+        guard let encoded = encodedSecrets(secrets) else { return nil }
+        return """
+        import os, json, base64
+        secrets = json.loads(base64.b64decode("\(encoded)").decode("utf-8"))
         os.environ.update(secrets)
         try:
             os.remove(__file__)
         except Exception:
             pass
         """
+    }
+    
+    /// Creates the file already restricted to the owner (0600), so the content is never readable
+    /// by others, and refuses to follow or reuse an existing path.
+    private func writePrivateFile(_ content: String, to url: URL) -> Bool {
+        let fd = open(url.path, O_WRONLY | O_CREAT | O_EXCL | O_NOFOLLOW, 0o600)
+        guard fd >= 0 else { return false }
+        let handle = FileHandle(fileDescriptor: fd, closeOnDealloc: true)
+        do {
+            try handle.write(contentsOf: Data(content.utf8))
+            try handle.close()
+            return true
+        } catch {
+            try? handle.close()
+            try? FileManager.default.removeItem(at: url)
+            return false
+        }
+    }
+    
+    /// Creates a self-deleting Node.js CommonJS preload module. Returns nil if it could not be written.
+    private func createNodeStealthLoader(secrets: [String: String]) -> String? {
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        let loaderURL = tempDir.appendingPathComponent(".sec_node_\(UUID().uuidString).cjs")
         
-        try? content.write(to: loaderURL, atomically: true, encoding: .utf8)
-        try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: loaderURL.path)
-        return (stealthDir.path, loaderURL.path)
+        guard let content = nodeLoaderSource(secrets: secrets),
+              writePrivateFile(content, to: loaderURL) else {
+            return nil
+        }
+        return loaderURL.path
+    }
+    
+    /// Creates a self-deleting Python sitecustomize module in a private directory.
+    /// Returns the directory to put on PYTHONPATH, or nil if it could not be written.
+    private func createPythonStealthLoader(secrets: [String: String]) -> String? {
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        let stealthDir = tempDir.appendingPathComponent(".sec_py_\(UUID().uuidString)", isDirectory: true)
+        let loaderURL = stealthDir.appendingPathComponent("sitecustomize.py")
+        
+        guard let content = pythonLoaderSource(secrets: secrets),
+              (try? FileManager.default.createDirectory(at: stealthDir, withIntermediateDirectories: false, attributes: [
+                  .posixPermissions: 0o700
+              ])) != nil else {
+            return nil
+        }
+        guard writePrivateFile(content, to: loaderURL) else {
+            try? FileManager.default.removeItem(at: stealthDir)
+            return nil
+        }
+        return stealthDir.path
     }
 }

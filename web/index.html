@@ -75,7 +75,7 @@
         "Touch ID In-Memory RAM Injection for dev servers",
         "Sanitized Decoy Placeholders for static tools and linters",
         "macOS Finder Right-Click Quick Actions",
-        "Stealth Preload Loaders defeating Darwin ps -E inspection"
+        "Self-deleting preload loaders for Node.js and Python"
       ]
     }
     </script>
@@ -254,20 +254,20 @@
                             </div>
                             <div class="window-title">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                                <span class="title-full">Secret Manager — Security Dashboard &amp; Activity Interceptor</span>
+                                <span class="title-full">Secret Manager — Security Dashboard &amp; Activity Log</span>
                                 <span class="title-mobile">Secret Manager — Active</span>
                             </div>
                             <div class="window-status-pill">
                                 <span class="status-live-dot"></span>
-                                <span>Radar Live</span>
+                                <span>Log Live</span>
                             </div>
                         </div>
 
                         <!-- Segmented Tab Switcher (2 High-Impact Tabs) -->
                         <div class="term-tabs">
                             <button class="term-tab active" data-target="pane-radar">
-                                <span class="tab-label-full">🤖 AI Agent Radar</span>
-                                <span class="tab-label-mobile">🤖 Radar</span>
+                                <span class="tab-label-full">📋 Vault Activity Log</span>
+                                <span class="tab-label-mobile">📋 Activity</span>
                                 <span class="tab-badge badge-warning">Live Feed</span>
                             </button>
                             <button class="term-tab" data-target="pane-runner">
@@ -288,12 +288,12 @@
                                                 <div class="radar-blip-pulse"></div>
                                                 <div class="radar-blip-dot"></div>
                                             </div>
-                                            <span>FSEvents Active · Intercepting Agent File Reads</span>
+                                            <span>Watching vault folders · Logging vault activity</span>
                                         </div>
                                         <div class="radar-stats-summary">
-                                            <span>Intercepted: <strong>14 attempts</strong></span>
-                                            <span>Exposed to Agents: <strong>0 secrets</strong></span>
-                                            <span>Containment: <strong>100%</strong></span>
+                                            <span>Logged: <strong>14 events</strong></span>
+                                            <span>Plaintext .env on disk: <strong>0 files</strong></span>
+                                            <span>Decrypts without Touch ID: <strong>0</strong></span>
                                         </div>
                                     </div>
 
@@ -302,12 +302,12 @@
                                             <div class="radar-feed-left">
                                                 <span class="radar-agent-badge badge-cursor">
                                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-                                                    Cursor IDE
+                                                    Secret Manager
                                                 </span>
-                                                <span class="radar-action-text">Parsed workspace <code>.env</code> during code generation</span>
+                                                <span class="radar-action-text">Locked <code>.env</code> and wrote masked decoy to disk</span>
                                             </div>
                                             <div class="radar-feed-right">
-                                                <span class="radar-shield-tag">✔ Served Decoy</span>
+                                                <span class="radar-shield-tag">✔ Touch ID</span>
                                                 <span class="radar-time">just now</span>
                                             </div>
                                         </div>
@@ -316,12 +316,12 @@
                                             <div class="radar-feed-left">
                                                 <span class="radar-agent-badge badge-claude">
                                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
-                                                    Claude Desktop
+                                                    Runner Studio
                                                 </span>
-                                                <span class="radar-action-text">Executed <code>cat .env</code> via terminal tool call</span>
+                                                <span class="radar-action-text">Running <code>npm run dev</code> with 12 secrets injected</span>
                                             </div>
                                             <div class="radar-feed-right">
-                                                <span class="radar-shield-tag">✔ Decoy Only</span>
+                                                <span class="radar-shield-tag">✔ Touch ID</span>
                                                 <span class="radar-time">18s ago</span>
                                             </div>
                                         </div>
@@ -330,12 +330,12 @@
                                             <div class="radar-feed-left">
                                                 <span class="radar-agent-badge badge-copilot">
                                                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
-                                                    GitHub Copilot
+                                                    Folder Watch
                                                 </span>
-                                                <span class="radar-action-text">Scanned folder tree with <code>ripgrep API_KEY</code></span>
+                                                <span class="radar-action-text">Vault file removed in Finder, registry cleaned up</span>
                                             </div>
                                             <div class="radar-feed-right">
-                                                <span class="radar-shield-tag">✔ 0 Leaks</span>
+                                                <span class="radar-shield-tag">✔ Synced</span>
                                                 <span class="radar-time">42s ago</span>
                                             </div>
                                         </div>
@@ -344,9 +344,9 @@
                                     <div class="radar-action-footer">
                                         <button class="btn-radar-sim" id="btnSimulateRadar">
                                             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/></svg>
-                                            Simulate AI Agent Tool Call
+                                            Simulate Vault Activity
                                         </button>
-                                        <span class="t-comment" style="font-size: 11px;">Real secrets remain uncrackable in Apple Silicon Secure Enclave.</span>
+                                        <span class="t-comment" style="font-size: 11px;">Every decrypt needs Touch ID, enforced by the Secure Enclave.</span>
                                     </div>
                                 </div>
                             </div>
@@ -422,7 +422,7 @@
                         <span class="step-number">Step 03</span>
                         <h3>In-Memory Execution</h3>
                         <p>
-                            Secrets are injected directly into child process RAM (<code>process.env</code>). Plaintext never touches your storage drive, and secrets self-destruct as soon as the process exits.
+                            Secrets are injected into the child process environment (<code>process.env</code>) and are gone when it exits. No plaintext <code>.env</code> is written; Node.js and Python use a short-lived owner-only loader file that deletes itself on load.
                         </p>
                         <div class="step-snippet">
                             <code>RAM Only · Zero-Cache</code>
@@ -442,18 +442,18 @@
                 </p>
 
                 <div class="bento-grid">
-                    <!-- Bento 1 (Featured Wide): AI Agent Radar -->
+                    <!-- Bento 1 (Featured Wide): Vault Activity Log -->
                     <div class="bento-card bento-wide reveal">
                         <div class="bento-icon-wrap" style="background: rgba(56, 189, 248, 0.12); color: #0284c7;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10"/><path d="M12 6a6 6 0 0 1 6 6"/><path d="M12 10a2 2 0 0 1 2 2"/></svg>
                         </div>
-                        <h3>Real-Time AI Agent Radar</h3>
+                        <h3>Live Vault Activity Log</h3>
                         <p>
-                            Active macOS <code>FSEvents</code> daemon monitors every file access attempt. Watch Cursor, Claude Desktop, and Copilot inspect your workspace and receive safe dummy labels while real keys remain uncrackable in the Secure Enclave.
+                            A live, timestamped record of everything Secret Manager does with your vaults: locks, Touch ID unlocks, edits, dev-server runs, snapshots and restores. Vault folders are watched so files moved or deleted outside the app are picked up immediately.
                         </p>
                         <ul class="bento-features-list" style="margin-top: 14px;">
-                            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Intercepts Cursor, Claude Desktop, Copilot &amp; terminal tools</li>
-                            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> 100% Decoy containment verification with timestamps</li>
+                            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Every decrypt, edit and run logged with a timestamp</li>
+                            <li><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Detects vault files changed or removed outside the app</li>
                         </ul>
                     </div>
 
@@ -471,8 +471,8 @@
                         <div class="bento-icon-wrap" style="background: rgba(168, 85, 247, 0.12); color: #7c3aed;">
                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                         </div>
-                        <h3>Stealth RAM Loaders</h3>
-                        <p>Defeats <code>ps -E</code> and Darwin's <code>KERN_PROCARGS2</code> inspection via ephemeral preload hooks rather than exposing plaintext arguments.</p>
+                        <h3>Preload Loaders</h3>
+                        <p>Node.js and Python receive secrets through a self-deleting, owner-only preload hook. Once loaded they are regular environment variables of your app and its child processes.</p>
                     </div>
 
                     <!-- Bento 4: Runner Studio & Menubar Companion -->
@@ -631,7 +631,7 @@
                                 </button>
                             </div>
                             <p class="cli-cmd-desc">
-                                Executes dev servers or scripts with decrypted secrets injected straight into process RAM. Plaintext never touches your storage drive, defeating disk scrapers and AI agents.
+                                Executes dev servers or scripts with decrypted secrets injected into the process environment. No plaintext <code>.env</code> is written to disk, so tools and AI agents reading your project files only find the decoy.
                             </p>
                             <div class="cli-flags-row">
                                 <div class="cli-flag-item">
@@ -983,7 +983,7 @@
                             <div class="cli-card-header">
                                 <div class="cli-card-title-group">
                                     <span class="cli-cmd-badge badge-security">Security</span>
-                                    <span class="cli-cmd-syntax">sec import-key [key] &nbsp;<span style="font-size:12px; font-weight:normal; color:var(--text-faint);">(alias: restore-key)</span></span>
+                                    <span class="cli-cmd-syntax">sec import-key &nbsp;<span style="font-size:12px; font-weight:normal; color:var(--text-faint);">(alias: restore-key)</span></span>
                                 </div>
                                 <button class="copy-btn" data-copy="sec import-key" aria-label="Copy import-key command">
                                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
@@ -1112,9 +1112,9 @@
                     </details>
 
                     <details>
-                        <summary>How does the AI Agent Radar detect agents like Cursor or Claude?</summary>
+                        <summary>Can Secret Manager see when an AI agent reads my .env?</summary>
                         <p>
-                            <code>Secret Manager</code> connects directly to macOS <code>FSEvents</code> and process telemetry. When an AI tool (such as Cursor's background indexer, Claude Desktop's bash tools, or GitHub Copilot) reads your project's <code>.env</code> file, the radar intercepts the notification and logs the agent name, timestamp, and target file. It gives you instant verification that the agent only received the decoy placeholders (<code>locked_by_sec</code>) while real keys remained safe inside Apple's Secure Enclave.
+                            No. macOS only tells ordinary apps when files are written, renamed or deleted, not when they are read, so Secret Manager cannot see or name the tool that opens a file. It does not need to: the <code>.env</code> on disk holds only decoy placeholders (<code>locked_by_sec</code>), so whatever reads it gets no secrets. The Activity Log records what Secret Manager itself does (locks, Touch ID unlocks, edits, runs) and changes to your vault files. Each Touch ID prompt also names the processes that launched the request, so you can refuse one you did not start.
                         </p>
                     </details>
 

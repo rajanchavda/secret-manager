@@ -32,8 +32,12 @@ public final class BiometricAuth {
     internal var bypassForTesting = false
     
     /// Requests Touch ID or Mac password authentication with a custom localized reason.
-    public func authenticate(reason: String) async throws {
+    /// The prompt also names the processes that launched sec, so a request coming from a tool
+    /// or AI agent can be told apart from one the user typed.
+    public func authenticate(reason baseReason: String) async throws {
+        let reason = CallerInfo.annotate(reason: baseReason)
         if bypassForTesting {
+            SessionManager.shared.authContext = LAContext()
             return
         }
         
@@ -58,6 +62,8 @@ public final class BiometricAuth {
         return try await withCheckedThrowingContinuation { continuation in
             context.evaluatePolicy(policy, localizedReason: reason) { success, error in
                 if success {
+                    // Hand the authenticated context to the Secure Enclave unseal step (no second prompt)
+                    SessionManager.shared.authContext = context
                     continuation.resume()
                 } else if let error = error as? LAError {
                     if error.code == .userCancel || error.code == .appCancel {
@@ -69,6 +75,7 @@ public final class BiometricAuth {
                             fallbackContext.localizedCancelTitle = "Cancel"
                             fallbackContext.evaluatePolicy(.deviceOwnerAuthentication, localizedReason: reason) { fbSuccess, fbError in
                                 if fbSuccess {
+                                    SessionManager.shared.authContext = fallbackContext
                                     continuation.resume()
                                 } else if let fbError = fbError as? LAError, fbError.code == .userCancel || fbError.code == .appCancel {
                                     continuation.resume(throwing: AuthError.userCancelled)

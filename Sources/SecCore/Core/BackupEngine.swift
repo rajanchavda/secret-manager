@@ -151,8 +151,7 @@ public final class BackupEngine {
     private let fm = FileManager.default
     
     private var baseDir: URL {
-        let home = fm.homeDirectoryForCurrentUser
-        return home.appendingPathComponent(".sec", isDirectory: true)
+        return SecPaths.dataDirectory
     }
     
     public var backupsDirectory: URL {
@@ -194,15 +193,55 @@ public final class BackupEngine {
         return projectBackupDirectory(for: projectURL).appendingPathComponent("snapshots.json")
     }
     
-    // MARK: - Index Management
-    public func loadSnapshots(for projectURL: URL) -> [SnapshotRecord] {
-        let indexFile = snapshotsIndexURL(for: projectURL)
+    // MARK: - Index Validation
+    // The index files are plain JSON that any same-user process can edit, so every field that is
+    // turned into a path is checked before use. Records that fail are ignored.
+    
+    /// A stored payload name is always `<UUID>.vault`, which rules out separators and `..`
+    static func isValidStoredFileName(_ name: String) -> Bool {
+        guard name.hasSuffix(".vault") else { return false }
+        return UUID(uuidString: String(name.dropLast(".vault".count))) != nil
+    }
+    
+    /// Project hashes are 16 lowercase hex characters (see `deterministicProjectHash`)
+    static func isValidProjectHash(_ hash: String) -> Bool {
+        return hash.count == 16 && hash.allSatisfy { $0.isASCII && ($0.isNumber || ("a"..."f").contains($0)) }
+    }
+    
+    /// A restore target must be an absolute `.vault` path with no `..` components
+    static func isValidVaultPath(_ path: String) -> Bool {
+        let url = URL(fileURLWithPath: path)
+        return path.hasPrefix("/") && url.pathExtension == "vault" && !url.pathComponents.contains("..")
+    }
+    
+    static func isValid(_ record: SnapshotRecord) -> Bool {
+        return isValidStoredFileName(record.snapshotFileName) &&
+               isValidProjectHash(record.projectHash) &&
+               isValidVaultPath(record.vaultPath)
+    }
+    
+    static func isValid(_ record: TrashRecord) -> Bool {
+        // The decoy is always written next to the vault, at the vault path minus `.vault`
+        return isValidStoredFileName(record.trashFileName) &&
+               isValidVaultPath(record.vaultPath) &&
+               record.plainPath == String(record.vaultPath.dropLast(".vault".count))
+    }
+    
+    private func decodeSnapshots(at indexFile: URL) -> [SnapshotRecord] {
         guard let data = try? Data(contentsOf: indexFile) else {
             return []
         }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return (try? decoder.decode([SnapshotRecord].self, from: data)) ?? []
+        let records = (try? decoder.decode([SnapshotRecord].self, from: data)) ?? []
+        // A record must also belong to the project directory its index lives in
+        let directoryHash = indexFile.deletingLastPathComponent().lastPathComponent
+        return records.filter { Self.isValid($0) && $0.projectHash == directoryHash }
+    }
+    
+    // MARK: - Index Management
+    public func loadSnapshots(for projectURL: URL) -> [SnapshotRecord] {
+        return decodeSnapshots(at: snapshotsIndexURL(for: projectURL))
     }
     
     private func saveSnapshots(_ list: [SnapshotRecord], for projectURL: URL) {
@@ -324,14 +363,7 @@ public final class BackupEngine {
             return []
         }
         for dir in subdirs {
-            let indexFile = dir.appendingPathComponent("snapshots.json")
-            if let data = try? Data(contentsOf: indexFile) {
-                let decoder = JSONDecoder()
-                decoder.dateDecodingStrategy = .iso8601
-                if let records = try? decoder.decode([SnapshotRecord].self, from: data) {
-                    all.append(contentsOf: records)
-                }
-            }
+            all.append(contentsOf: decodeSnapshots(at: dir.appendingPathComponent("snapshots.json")))
         }
         return all.sorted { $0.timestamp > $1.timestamp }
     }
@@ -360,6 +392,13 @@ public final class BackupEngine {
         let targetVaultURL = destinationURL ?? URL(fileURLWithPath: snapshot.vaultPath)
         let plainURL = VaultEngine.shared.plainFileURL(for: targetVaultURL)
         
+        // Decrypt the snapshot before touching the live vault. This is the Touch ID gate for a rollback,
+        // and it proves the snapshot is readable with the current master key before anything is replaced.
+        let restoredPlaintext = try await VaultEngine.shared.readDecryptedData(
+            vaultURL: snapshotSourceURL,
+            promptReason: "sec requires Touch ID to roll back '\(snapshot.targetFileName)' to snapshot v\(snapshot.version)"
+        )
+        
         // Before overwriting current vault, create a pre-rollback snapshot of whatever is currently on disk
         if fm.fileExists(atPath: targetVaultURL.path) {
             _ = try? await createSnapshot(for: targetVaultURL, trigger: .autoSnapshot, note: "Auto-backup before rollback to v\(snapshot.version)")
@@ -370,14 +409,9 @@ public final class BackupEngine {
         try snapshotData.write(to: targetVaultURL, options: .atomic)
         try? fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: targetVaultURL.path)
         
-        // Read secrets from the restored snapshot to refresh the masked decoy file on disk
-        if let decryptedSecrets = try? await VaultEngine.shared.readDecryptedSecrets(vaultURL: targetVaultURL) {
-            var lines = ["# Managed by Secret Manager (Restored from Snapshot v\(snapshot.version))"]
-            for k in decryptedSecrets.keys.sorted() {
-                lines.append("\(k)=\(decryptedSecrets[k] ?? "")")
-            }
-            let rawContent = lines.joined(separator: "\n")
-            let dummy = EnvParser.shared.generateDummyTemplate(from: rawContent, fileName: plainURL.lastPathComponent)
+        // Refresh the masked decoy file on disk from the restored content
+        if let restoredText = String(data: restoredPlaintext, encoding: .utf8) {
+            let dummy = EnvParser.shared.generateDummyTemplate(from: restoredText, fileName: plainURL.lastPathComponent)
             try? dummy.write(to: plainURL, atomically: true, encoding: .utf8)
         }
         
@@ -406,7 +440,7 @@ public final class BackupEngine {
         }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return (try? decoder.decode([TrashRecord].self, from: data)) ?? []
+        return ((try? decoder.decode([TrashRecord].self, from: data)) ?? []).filter { Self.isValid($0) }
     }
     
     private func saveTrash(_ list: [TrashRecord]) {
@@ -491,6 +525,12 @@ public final class BackupEngine {
         let plainURL = URL(fileURLWithPath: record.plainPath)
         let parentDir = targetVaultURL.deletingLastPathComponent()
         
+        // Decrypt the trashed vault before replacing anything (Touch ID gate, and proof it is readable)
+        let restoredPlaintext = try await VaultEngine.shared.readDecryptedData(
+            vaultURL: trashVaultURL,
+            promptReason: "sec requires Touch ID to restore '\(record.targetFileName)' from trash"
+        )
+        
         // Ensure parent directory exists
         try? fm.createDirectory(at: parentDir, withIntermediateDirectories: true)
         
@@ -500,13 +540,8 @@ public final class BackupEngine {
         try? fm.setAttributes([.posixPermissions: 0o600], ofItemAtPath: targetVaultURL.path)
         
         // Refresh decoy file on disk
-        if let decryptedSecrets = try? await VaultEngine.shared.readDecryptedSecrets(vaultURL: targetVaultURL) {
-            var lines = ["# Managed by Secret Manager (Restored from Trash)"]
-            for k in decryptedSecrets.keys.sorted() {
-                lines.append("\(k)=\(decryptedSecrets[k] ?? "")")
-            }
-            let raw = lines.joined(separator: "\n")
-            let dummy = EnvParser.shared.generateDummyTemplate(from: raw, fileName: plainURL.lastPathComponent)
+        if let restoredText = String(data: restoredPlaintext, encoding: .utf8) {
+            let dummy = EnvParser.shared.generateDummyTemplate(from: restoredText, fileName: plainURL.lastPathComponent)
             try? dummy.write(to: plainURL, atomically: true, encoding: .utf8)
         }
         
