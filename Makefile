@@ -1,4 +1,4 @@
-.PHONY: all build release test clean install uninstall app run-app runapp dmg tag
+.PHONY: all build release test clean install uninstall app run-app runapp dmg tag hooks
 
 all: build
 
@@ -25,6 +25,10 @@ runapp: run-app
 
 test:
 	swift test
+
+# Run the test suite before every git push (CI does not run tests)
+hooks:
+	git config core.hooksPath .githooks
 
 install:
 	./install.sh

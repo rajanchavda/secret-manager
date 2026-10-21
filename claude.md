@@ -117,6 +117,9 @@ cool-meitner/
 > [!IMPORTANT]
 > **Always prefix terminal and shell commands with `rtk`** (Rust Token Killer) when running commands in this environment (e.g. `rtk git status`, `rtk make build`). This minimizes token overhead and context noise.
 
+> [!IMPORTANT]
+> **Never use the `gh` (GitHub CLI) command in this repo.** Use plain `git` commands only (e.g. `rtk git push`, `rtk git tag`). For anything `git` cannot do (opening PRs, checking Actions runs, releases), give the user the GitHub URL instead.
+
 ### Common Build & Test Commands
 ```bash
 # Build debug binary
@@ -127,6 +130,9 @@ rtk make build
 
 # Run test suite
 rtk make test
+
+# Run the test suite before every push (CI runs no tests; the release workflow only builds)
+rtk make hooks
 
 # Install to system (/usr/local/bin or ~/.local/bin)
 rtk make install

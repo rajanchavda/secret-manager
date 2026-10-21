@@ -1,0 +1,15 @@
+#!/bin/sh
+# Runs the test suite before anything is pushed, branches and release tags alike.
+# The release workflow does not run tests, so this is the check. Enable with `make hooks`;
+# skip once with `git push --no-verify`.
+
+log=$(mktemp -t sec-pre-push)
+echo "pre-push: running swift test..."
+if swift test >"$log" 2>&1; then
+    grep -m1 "Executed" "$log"
+    rm -f "$log"
+else
+    tail -40 "$log"
+    echo "pre-push: tests failed, push aborted (full log: $log)"
+    exit 1
+fi

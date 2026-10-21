@@ -31,14 +31,6 @@ jobs:
           echo "tag=$GITHUB_REF_NAME" >> "$GITHUB_OUTPUT"
           echo "Release version: $VERSION"
 
-      - name: Run Tests
-        timeout-minutes: 15
-        env:
-          # Stream XCTest output so a stuck test shows up live, not only when the process exits
-          NSUnbufferedIO: "YES"
-        run: |
-          swift test
-
       - name: Build Universal 2 Application & DMG
         run: |
           ./scripts/build-release-dmg.sh --version "${{ steps.version.outputs.version }}" --arch universal
