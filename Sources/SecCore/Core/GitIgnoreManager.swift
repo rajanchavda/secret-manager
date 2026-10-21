@@ -71,17 +71,31 @@ public final class GitIgnoreManager {
             probe = parent
         }
         guard insideRepo else { return false }
-        
+
+        guard let data = Self.runGit(["-C", directory.path, "log", "--all", "-1", "--format=%h", "--", fileURL.lastPathComponent]) else { return false }
+        return !(String(data: data, encoding: .utf8) ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    /// Runs `/usr/bin/git` and returns its stdout, or nil when git cannot start, exits non-zero, or has not
+    /// finished within `timeout` (it is then terminated). `sec lock` waits on this, so a git that stalls
+    /// (a hook, a lock, the Xcode shim waiting on something) must not hang the command.
+    /// Only for commands with short output: stdout is read after exit, so it has to fit in the pipe buffer.
+    static func runGit(_ arguments: [String], timeout: TimeInterval = 10) -> Data? {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
-        process.arguments = ["-C", directory.path, "log", "--all", "-1", "--format=%h", "--", fileURL.lastPathComponent]
+        process.arguments = arguments
+        process.standardInput = FileHandle.nullDevice
         let output = Pipe()
         process.standardOutput = output
-        process.standardError = Pipe()
-        guard (try? process.run()) != nil else { return false }
-        let data = output.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-        guard process.terminationStatus == 0 else { return false }
-        return !(String(data: data, encoding: .utf8) ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        process.standardError = FileHandle.nullDevice
+        let finished = DispatchSemaphore(value: 0)
+        process.terminationHandler = { _ in finished.signal() }
+        guard (try? process.run()) != nil else { return nil }
+        guard finished.wait(timeout: .now() + timeout) == .success else {
+            process.terminate()
+            return nil
+        }
+        guard process.terminationStatus == 0 else { return nil }
+        return output.fileHandleForReading.readDataToEndOfFile()
     }
 }

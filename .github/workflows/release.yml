@@ -32,6 +32,10 @@ jobs:
           echo "Release version: $VERSION"
 
       - name: Run Tests
+        timeout-minutes: 15
+        env:
+          # Stream XCTest output so a stuck test shows up live, not only when the process exits
+          NSUnbufferedIO: "YES"
         run: |
           swift test
 

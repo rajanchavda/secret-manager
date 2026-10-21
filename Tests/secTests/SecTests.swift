@@ -801,15 +801,9 @@ final class SecTests: XCTestCase {
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
         
-        func git(_ args: String...) throws -> Int32 {
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
-            process.arguments = ["-C", dir.path, "-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false"] + args
-            process.standardOutput = Pipe()
-            process.standardError = Pipe()
-            try process.run()
-            process.waitUntilExit()
-            return process.terminationStatus
+        // Same runner as the code under test, so a git that stalls skips the test instead of hanging the suite
+        func git(_ args: String...) -> Bool {
+            GitIgnoreManager.runGit(["-C", dir.path, "-c", "user.name=t", "-c", "user.email=t@example.com", "-c", "commit.gpgsign=false"] + args) != nil
         }
         
         let committed = dir.appendingPathComponent(".env")
@@ -820,15 +814,15 @@ final class SecTests: XCTestCase {
         // Not a repository yet: nothing to report
         XCTAssertFalse(GitIgnoreManager.shared.wasEverCommitted(committed))
         
-        guard try git("init", "-q") == 0, try git("add", ".env") == 0, try git("commit", "-q", "-m", "add env") == 0 else {
+        guard git("init", "-q"), git("add", ".env"), git("commit", "-q", "-m", "add env") else {
             throw XCTSkip("git is not usable in this environment")
         }
         XCTAssertTrue(GitIgnoreManager.shared.wasEverCommitted(committed))
         XCTAssertFalse(GitIgnoreManager.shared.wasEverCommitted(neverCommitted))
         
         // Still reported after the file is removed from the tree in a later commit
-        _ = try git("rm", "-q", "--cached", ".env")
-        _ = try git("commit", "-q", "-m", "untrack env")
+        _ = git("rm", "-q", "--cached", ".env")
+        _ = git("commit", "-q", "-m", "untrack env")
         XCTAssertTrue(GitIgnoreManager.shared.wasEverCommitted(committed))
     }
     
