@@ -4,7 +4,7 @@ import Foundation
 public enum SecVersion {
     /// Latest released version. Used when the CLI runs outside the app bundle (e.g. `make install`),
     /// so bump it together with the release tag.
-    public static let fallback = "1.1.0"
+    public static let fallback = "1.2.0"
 
     /// The version stamped into Secret Manager.app's Info.plist by the release build when the CLI runs
     /// from inside the bundle (Homebrew links `sec` to `Contents/MacOS/sec`), otherwise `fallback`.

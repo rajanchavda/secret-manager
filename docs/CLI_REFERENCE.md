@@ -329,4 +329,4 @@ sec install-finder
 
 ### Global Options
 - `--help, -h, help`: Print the CLI command overview.
-- `--version, -v, version`: Print the installed version number (`sec version 1.0.0`).
+- `--version, -v, version`: Print the installed version number (`sec version 1.2.0`).
