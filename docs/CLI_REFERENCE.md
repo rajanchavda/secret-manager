@@ -1,6 +1,6 @@
 # `sec` CLI Command Reference
 
-`sec` is an Apple Silicon Touch ID Secret Vault for macOS. It shields sensitive `.env` and credential files from AI coding agents (such as Cursor, Claude Desktop, Antigravity, GitHub Copilot, and local LLMs) by keeping real secrets hardware-encrypted in the Apple Secure Enclave and injecting them directly into child process RAM on Touch ID biometric authentication.
+`sec` is an Apple Silicon Touch ID Secret Vault for macOS. It shields sensitive `.env` and credential files from AI coding agents (such as Cursor, Claude Desktop, Antigravity, GitHub Copilot, and local LLMs) by keeping real secrets encrypted with a master key held in the Apple Secure Enclave and handing them to the child process you start on Touch ID biometric authentication, while the `.env` on disk keeps only decoys.
 
 ---
 
@@ -218,7 +218,9 @@ sec backup --list
 ---
 
 ### 10. `sec restore`
-Rolls back a project vault to a previous version snapshot. Restores both the active encrypted vault and the on-disk decoy placeholder.
+Rolls back the current project's vault to a previous version snapshot. Restores both the active encrypted vault and the on-disk decoy placeholder.
+
+Version numbers restart at 1 for every vault, so `-v 2` only matches snapshots of the vault in the current project (found the same way `sec run` finds it). A snapshot ID prefix from `sec backup --list` is unique and can name a vault in any project; the restore prints which project it is changing. If the vault file itself was deleted, run `sec restore` from the directory it was in to find its snapshots.
 
 ```bash
 # Roll back to the most recent snapshot in current project
@@ -288,13 +290,13 @@ The key is not accepted as a command-line argument: it would be visible to other
 ---
 
 ### 14. `sec session`
-Inspects or clears the biometric session cache. In strict Zero-Cache mode (the default), every command requires a fresh Touch ID tap to prevent background AI processes from hijacking credentials.
+Inspects or clears the biometric grace-period session. In strict Zero-Cache mode (the default) nothing is cached: every command requires a fresh Touch ID tap, and `clear` has nothing to flush.
 
 ```bash
 # Inspect session policy and status
 sec session status
 
-# Purge any cached session credentials
+# End an active grace period immediately
 sec session clear
 ```
 
@@ -327,4 +329,4 @@ sec install-finder
 
 ### Global Options
 - `--help, -h, help`: Print the CLI command overview.
-- `--version, -v, version`: Print the installed version number (`sec version 1.0.0`).
+- `--version, -v, version`: Print the installed version number (`sec version 1.2.0`).

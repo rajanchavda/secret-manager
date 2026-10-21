@@ -94,7 +94,7 @@ public struct SecCLI {
             printHelp()
             
         case "--version", "-v", "version":
-            print("sec version 1.0.0 (macOS Touch ID Secrets Vault)")
+            print("sec version \(SecVersion.current) (macOS Touch ID Secrets Vault)")
             
         default:
             // Treat unknown first command as shorthand for `sec run <command...>`
@@ -371,6 +371,16 @@ public struct SecCLI {
         print("📋 Global Vaults:       \(registry.records.count) registered across Mac (run 'sec list' to view)")
     }
     
+    /// One line of a fixed-width table. `String(format:)` ignores the width on `%@`, so pad in Swift;
+    /// a cell longer than its column is cut with "…" so the columns after it stay aligned.
+    static func tableRow(_ cells: [(String, Int)], last: String) -> String {
+        let padded = cells.map { text, width -> String in
+            let fitted = text.count <= width ? text : String(text.prefix(width - 1)) + "…"
+            return fitted.padding(toLength: width, withPad: " ", startingAt: 0)
+        }
+        return (padded + [last]).joined(separator: " ")
+    }
+    
     private static func formatBytes(_ bytes: Int64) -> String {
         let formatter = ByteCountFormatter()
         formatter.allowedUnits = [.useBytes, .useKB, .useMB, .useGB]
@@ -609,7 +619,7 @@ public struct SecCLI {
                 return
             }
             print("=== sec Backup Snapshots (\(snapshots.count)) ===")
-            print(String(format: "%-10@ %-16@ %-16@ %-12@ %-8@ %@", "ID", "PROJECT", "FILE", "VERSION", "KEYS", "DATE"))
+            print(tableRow([("ID", 10), ("PROJECT", 16), ("FILE", 16), ("VERSION", 12), ("KEYS", 8)], last: "DATE"))
             print(String(repeating: "-", count: 74))
             let df = DateFormatter()
             df.dateStyle = .short
@@ -617,7 +627,7 @@ public struct SecCLI {
             for s in snapshots {
                 let idPrefix = String(s.id.uuidString.prefix(8))
                 let dateStr = df.string(from: s.timestamp)
-                print(String(format: "%-10@ %-16@ %-16@ v%-11d %-8d %@", idPrefix, s.projectName, s.targetFileName, s.version, s.keyCount, dateStr))
+                print(tableRow([(idPrefix, 10), (s.projectName, 16), (s.targetFileName, 16), ("v\(s.version)", 12), (String(s.keyCount), 8)], last: dateStr))
             }
             return
         }
@@ -652,46 +662,44 @@ public struct SecCLI {
             exit(1)
         }
         
-        // Check for specific version ID or prefix
-        var snapshotIdMatch: SnapshotRecord? = nil
-        if let versionIdx = arguments.firstIndex(of: "--version") ?? arguments.firstIndex(of: "-v"),
-           versionIdx + 1 < arguments.count {
-            let query = arguments[versionIdx + 1]
-            snapshotIdMatch = snapshots.first {
-                $0.id.uuidString.lowercased().hasPrefix(query.lowercased()) ||
-                "v\($0.version)".lowercased() == query.lowercased() ||
-                String($0.version) == query
-            }
-        }
-        
-        let targetArg = arguments.first { !$0.hasPrefix("-") }
-        
-        let chosen: SnapshotRecord
-        if let m = snapshotIdMatch {
-            chosen = m
-        } else if let t = targetArg {
-            // Find most recent snapshot matching filename
-            let clean = t.replacingOccurrences(of: ".vault", with: "")
-            if let match = snapshots.first(where: { $0.targetFileName == clean || $0.targetFileName == t }) {
-                chosen = match
-            } else {
-                print("❌ No snapshot found matching '\(t)'. Run 'sec backup --list' to view available versions.")
+        var query: String? = nil
+        var valueIndex: Int? = nil
+        if let versionIdx = arguments.firstIndex(of: "--version") ?? arguments.firstIndex(of: "-v") {
+            guard versionIdx + 1 < arguments.count else {
+                print("❌ Missing version after '\(arguments[versionIdx])'. Example: sec restore .env --version 1")
                 exit(1)
             }
+            query = arguments[versionIdx + 1]
+            valueIndex = versionIdx + 1
+        }
+        let targetArg = arguments.indices.first { !arguments[$0].hasPrefix("-") && $0 != valueIndex }.map { arguments[$0] }
+
+        // Snapshots of other projects never match a version number: resolve this project's vault first.
+        // When the vault file itself is gone, fall back to where it would sit in the current directory.
+        let currentDir = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+        let vaultName = targetArg.map { $0.hasSuffix(".vault") ? $0 : "\($0).vault" }
+        let found: URL?
+        if let vaultName {
+            found = VaultEngine.shared.findNearestVault(startingAt: currentDir, targetName: vaultName)
         } else {
-            // Default: restore most recent snapshot in current project directory
-            let currentDir = URL(fileURLWithPath: FileManager.default.currentDirectoryPath).standardizedFileURL.resolvingSymlinksInPath().path
-            if let match = snapshots.first(where: { $0.projectPath == currentDir }) {
-                chosen = match
-            } else if let first = snapshots.first {
-                chosen = first
+            found = VaultEngine.shared.findNearestVault(startingAt: currentDir)
+        }
+        let vaultURL = found ?? currentDir.appendingPathComponent(vaultName ?? ".env.vault")
+        let vaultPath = vaultURL.standardizedFileURL.resolvingSymlinksInPath().path
+
+        guard let chosen = BackupEngine.selectSnapshot(from: snapshots, vaultPath: vaultPath, query: query) else {
+            let fileName = VaultEngine.shared.plainFileURL(for: vaultURL).lastPathComponent
+            if let query {
+                let isVersionNumber = query.lowercased().drop { $0 == "v" }.allSatisfy(\.isNumber)
+                print("❌ No snapshot '\(query)' for '\(fileName)' in this project\(isVersionNumber ? "" : ", or that ID prefix matches several snapshots").")
             } else {
-                print("❌ No snapshots available.")
-                exit(1)
+                print("❌ No snapshots of '\(fileName)' in this project.")
             }
+            print("   Run 'sec backup --list' to view available versions and IDs.")
+            exit(1)
         }
         
-        print("Restoring '\(chosen.targetFileName)' to snapshot v\(chosen.version) from \(chosen.relativeTime)...")
+        print("Restoring '\(chosen.targetFileName)' in \(chosen.projectPath) to snapshot v\(chosen.version) from \(chosen.relativeTime)...")
         do {
             try await BackupEngine.shared.restoreSnapshot(snapshotId: chosen.id)
             print("✅ Successfully rolled back '\(chosen.targetFileName)' to v\(chosen.version)!")
@@ -758,7 +766,7 @@ public struct SecCLI {
         }
         
         print("=== sec Vault Trash (\(trash.count)) ===")
-        print(String(format: "%-10@ %-16@ %-16@ %-8@ %@", "ID", "PROJECT", "FILE", "KEYS", "REMOVED"))
+        print(tableRow([("ID", 10), ("PROJECT", 16), ("FILE", 16), ("KEYS", 8)], last: "REMOVED"))
         print(String(repeating: "-", count: 68))
         let df = DateFormatter()
         df.dateStyle = .short
@@ -766,7 +774,7 @@ public struct SecCLI {
         for t in trash {
             let idPrefix = String(t.id.uuidString.prefix(8))
             let dateStr = df.string(from: t.removedAt)
-            print(String(format: "%-10@ %-16@ %-16@ %-8d %@", idPrefix, t.projectName, t.targetFileName, t.originalKeyCount, dateStr))
+            print(tableRow([(idPrefix, 10), (t.projectName, 16), (t.targetFileName, 16), (String(t.originalKeyCount), 8)], last: dateStr))
         }
         print("\nCommands:")
         print("   • Restore a vault:   sec trash --restore <id>")
@@ -782,13 +790,14 @@ public struct SecCLI {
 
         USAGE:
             sec [-f <file>] <cmd...>    Run command with secrets injected into memory (Single-Use)
+            sec run <cmd...>            Same as above, spelled out (use when the command clashes with a sec subcommand)
             sec --shell '<cmd line>'    Same, but run a shell command line (pipes, &&, $VAR expansion)
             sec lock [--force] [file]   Lock file & replace with dummy (skips if already locked)
             sec edit [file]             Safely edit secrets in temporary buffer and re-encrypt
             sec view [file]             Print decrypted secrets to terminal (prompts Touch ID; --force-stdout to pipe)
             sec unlock [--yes] [file]   Restore plaintext to disk and move vault to trash
             sec backup [--all] [--list] Create or list versioned snapshots of encrypted vaults
-            sec restore [file] [-v <#>] Rollback vault to a previous version snapshot
+            sec restore [file] [-v <#>] Rollback this project's vault to a previous snapshot (-v takes a version or ID)
             sec trash [--restore <id>]  View or restore soft-deleted and unlocked vaults
             sec list [--scan] [--prune] List all locked secret vaults across your Mac
             sec scan [dir]              Discover and register existing vaults across folders
@@ -796,6 +805,7 @@ public struct SecCLI {
             sec import-key              Import master recovery key on a new or wiped Mac (hidden prompt)
             sec status                  Show keychain, zero-cache policy, and project vault status
             sec session                 Inspect access policy (Zero-Cache by default)
+            sec logout                  End any grace-period session; next command needs Touch ID
             sec install-finder          Install macOS Finder right-click Quick Actions
             sec help                    Show this help message
 
@@ -823,7 +833,7 @@ public struct SecCLI {
             sec export-key
             sec import-key
 
-            # 6. Run your app with secrets injected in memory (never written to disk)
+            # 6. Run your app with the real secrets injected (your .env keeps its decoys)
             sec npm run dev
             sec -f .env.local npm run dev
             sec -f credentials.json python app.py

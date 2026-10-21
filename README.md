@@ -39,7 +39,7 @@ Imagine you have a wallet full of cash sitting on your office desk. If someone w
 
 1. **The Decoy File**: `sec` replaces your real `.env` file on your desk with a fake "decoy" file where all sensitive passwords look like `API_KEY=locked_by_sec`. If an AI agent looks around your folders, it only sees the fake decoy data.
 2. **The Hardware Biometric Safe**: Your real secrets are encrypted inside a digital safe (`.env.vault`) that can only be opened with your fingerprint (Touch ID) and Apple Silicon's hardware chip.
-3. **The Invisible Hand-off**: When you start your app (`sec npm run dev`), you tap Touch ID. `sec` briefly opens the safe, hands the real keys directly into your app's memory (RAM) behind closed doors, and immediately locks the safe. **The real passwords never touch your hard drive in plaintext.**
+3. **The Invisible Hand-off**: When you start your app (`sec npm run dev`), you tap Touch ID. `sec` briefly opens the safe, hands the real keys straight to your app's process, and locks the safe again. **Your `.env` on disk only ever holds the decoys.**
 
 ### 🗺️ Visual Architecture Diagram
 

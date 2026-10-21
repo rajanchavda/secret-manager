@@ -7,7 +7,7 @@
     <!-- Primary SEO Meta Tags -->
     <title>Secret Manager (sec) — Touch ID Secret Vault for macOS</title>
     <meta name="title" content="Secret Manager (sec) — Touch ID Secret Vault for macOS">
-    <meta name="description" content="Shield your .env from AI coding agents (Cursor, Claude, Copilot). Hardware-encrypted with Apple Silicon Touch ID, decoy placeholders on disk, and zero plaintext leaks.">
+    <meta name="description" content="Shield your .env from AI coding agents (Cursor, Claude, Copilot). Real keys encrypted with a Secure Enclave-held key, decoy placeholders on disk, and handed to your app on a Touch ID tap.">
     <meta name="keywords" content="secret manager, sec, Touch ID, Apple Silicon, Secure Enclave, env vault, AI coding agents, Cursor security, Claude Desktop, macOS developer tools, dotenv vault">
     <meta name="author" content="Rajan Chavda">
     <meta name="robots" content="index, follow">
@@ -29,7 +29,7 @@
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Secret Manager (sec)">
     <meta property="og:title" content="Secret Manager (sec) — Touch ID Secret Vault for macOS">
-    <meta property="og:description" content="Shield your .env from AI coding agents. Decoy on disk, real secrets hardware-encrypted in Apple Silicon Secure Enclave and injected into RAM on Touch ID tap.">
+    <meta property="og:description" content="Shield your .env from AI coding agents. Decoy on disk, real secrets encrypted with a key held in the Apple Silicon Secure Enclave and handed to your app on a Touch ID tap.">
     <meta property="og:image" content="assets/og-image.png?v=2">
     <meta property="og:image:secure_url" content="assets/og-image.png?v=2">
     <meta property="og:image:type" content="image/png">
@@ -41,7 +41,7 @@
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Secret Manager (sec) — Touch ID Secret Vault for macOS">
-    <meta name="twitter:description" content="Shield your .env from AI coding agents. Decoy on disk, real secrets hardware-encrypted in Apple Silicon Secure Enclave and injected into RAM on Touch ID tap.">
+    <meta name="twitter:description" content="Shield your .env from AI coding agents. Decoy on disk, real secrets encrypted with a key held in the Apple Silicon Secure Enclave and handed to your app on a Touch ID tap.">
     <meta name="twitter:image" content="assets/og-image.png?v=2">
     <meta name="twitter:image:alt" content="Secret Manager (sec) — AI coding agents are reading your .env. Shield secrets with Touch ID and Apple Silicon Secure Enclave.">
 
@@ -60,10 +60,10 @@
         "price": "0",
         "priceCurrency": "USD"
       },
-      "description": "Touch ID Secret Vault for macOS. Shields .env and credentials from AI coding agents with Apple Silicon Secure Enclave encryption and in-memory RAM injection.",
+      "description": "Touch ID Secret Vault for macOS. Shields .env and credentials from AI coding agents with Apple Silicon Secure Enclave encryption and Touch ID-gated injection into your app process.",
       "url": "https://github.com/rajanchavda/secret-manager",
       "image": "assets/og-image.png",
-      "softwareVersion": "1.0.0",
+      "softwareVersion": "1.2.0",
       "author": {
         "@type": "Person",
         "name": "Rajan Chavda",
@@ -172,7 +172,7 @@
                 <h1 class="reveal">AI coding agents are reading your .env.<br class="desktop-br">Stop them with Touch ID.</h1>
 
                 <p class="sub reveal">
-                    Shield live API keys and database credentials from Cursor, Claude, Copilot, and background tools. Real secrets stay encrypted in Apple's Secure Enclave — injected strictly into process RAM on Touch ID tap with real-time AI Agent Radar monitoring.
+                    Shield live API keys and database credentials from Cursor, Claude, Copilot, and background tools. Real secrets stay encrypted with a key held in your Mac's Secure Enclave and are handed to your app on a Touch ID tap. Your .env only ever holds decoys.
                 </p>
 
                 <!-- Hero CTA Actions & Install Pill -->
@@ -238,7 +238,7 @@
                     <div class="hero-meta">
                         <span class="meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> macOS 14 Sonoma &amp; Sequoia</span>
                         <span class="meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path></svg> Native Swift (CLI + App)</span>
-                        <span class="meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Zero Plaintext on Disk</span>
+                        <span class="meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> No Plaintext .env</span>
                         <span class="meta-item"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg> 100% Free &amp; Open Source</span>
                     </div>
                 </div>
@@ -273,7 +273,7 @@
                             <button class="term-tab" data-target="pane-runner">
                                 <span class="tab-label-full">⚡ Runner Studio (RAM Injection)</span>
                                 <span class="tab-label-mobile">⚡ Runner</span>
-                                <span class="tab-badge badge-success">Zero Disk</span>
+                                <span class="tab-badge badge-success">In-Process</span>
                             </button>
                         </div>
 
@@ -390,7 +390,7 @@
         <section id="how-it-works">
             <div class="container text-center">
                 <p class="eyebrow reveal">How It Works</p>
-                <h2 class="reveal">Three steps. Zero plaintext on disk.</h2>
+                <h2 class="reveal">Three steps. No plaintext .env.</h2>
                 <p class="section-sub reveal">
                     Keep linters, TypeScript, and static tools happy with decoy placeholders, while injecting real keys directly into process RAM on Touch ID tap.
                 </p>
@@ -411,7 +411,7 @@
                         <span class="step-number">Step 02</span>
                         <h3>Tap Sensor</h3>
                         <p>
-                            Prefix your command with <code>sec</code> (e.g. <code>sec npm run dev</code>). Touch ID prompts once for your physical fingerprint. Apple Silicon hardware decrypts secrets strictly behind closed doors.
+                            Prefix your command with <code>sec</code> (e.g. <code>sec npm run dev</code>). Touch ID prompts once for your physical fingerprint. Secrets are decrypted only after your tap and passed to the process you started, while your .env keeps its decoys.
                         </p>
                         <div class="step-snippet">
                             <code>👆 Physical Touch ID Tap</code>
@@ -619,7 +619,7 @@
                     <div class="cli-command-grid" id="cliCommandGrid">
 
                         <!-- Command 1: sec <command...> / sec run -->
-                        <div class="cli-cmd-card" data-category="core" data-search="sec run execute child process in-memory ram injection dev server file vault">
+                        <div class="cli-cmd-card" data-category="core" data-search="sec run execute child process in-memory ram injection dev server file vault shell pipes">
                             <div class="cli-card-header">
                                 <div class="cli-card-title-group">
                                     <span class="cli-cmd-badge badge-core">Core</span>
@@ -638,12 +638,16 @@
                                     <code class="cli-flag-tag">-f, --file, --vault &lt;path&gt;</code>
                                     <span class="cli-flag-hint">Inject a custom secret/vault file</span>
                                 </div>
+                                <div class="cli-flag-item">
+                                    <code class="cli-flag-tag">--shell '&lt;cmd line&gt;'</code>
+                                    <span class="cli-flag-hint">Run a shell command line (pipes, &amp;&amp;, $VAR)</span>
+                                </div>
                             </div>
                             <div class="cli-card-example" data-copy="sec npm run dev" title="Click to copy example">
                                 <div class="cli-example-code">
                                     <span class="t-prompt">$</span>
                                     <span class="t-cmd">sec npm run dev</span>
-                                    <span class="t-comment"># Prompts Touch ID once; credentials live strictly in RAM</span>
+                                    <span class="t-comment"># Prompts Touch ID once; real keys go to the process, not your .env</span>
                                 </div>
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                             </div>
@@ -693,20 +697,20 @@
                                 </button>
                             </div>
                             <p class="cli-cmd-desc">
-                                Decrypts vault secrets into an ephemeral buffer with strict <code>0600</code> permissions, opens your default <code>$EDITOR</code>, and automatically re-encrypts upon save. Wipes temporary memory immediately.
+                                Decrypts vault secrets into an ephemeral buffer with strict <code>0600</code> permissions, opens your <code>$EDITOR</code> (nano or vim in the terminal by default), re-encrypts on save and deletes the buffer. Unsaved edits are kept as an encrypted rescue copy, never plaintext.
                             </p>
                             <div class="cli-card-example" data-copy="sec edit .env" title="Click to copy example">
                                 <div class="cli-example-code">
                                     <span class="t-prompt">$</span>
                                     <span class="t-cmd">sec edit .env</span>
-                                    <span class="t-comment"># Opens in VS Code, Cursor, or Vim with auto re-encryption</span>
+                                    <span class="t-comment"># Opens nano/vim (or $EDITOR) and re-encrypts on save</span>
                                 </div>
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                             </div>
                         </div>
 
                         <!-- Command 4: sec view / show -->
-                        <div class="cli-cmd-card" data-category="core" data-search="sec view show inspect print stdout terminal json format decrypt">
+                        <div class="cli-cmd-card" data-category="core" data-search="sec view show inspect print stdout terminal json format decrypt force-stdout pipe">
                             <div class="cli-card-header">
                                 <div class="cli-card-title-group">
                                     <span class="cli-cmd-badge badge-core">Core</span>
@@ -718,8 +722,14 @@
                                 </button>
                             </div>
                             <p class="cli-cmd-desc">
-                                Prompts Touch ID and outputs decrypted secrets directly to terminal standard output. If the file is JSON, it formats and indents the output automatically.
+                                Prompts Touch ID and prints decrypted secrets to your terminal. If the file is JSON, it formats and indents the output automatically. Refuses when output is piped or captured (for example by an AI agent's shell tool) unless you pass <code>--force-stdout</code>.
                             </p>
+                            <div class="cli-flags-row">
+                                <div class="cli-flag-item">
+                                    <code class="cli-flag-tag">--force-stdout</code>
+                                    <span class="cli-flag-hint">Allow printing to a pipe or file</span>
+                                </div>
+                            </div>
                             <div class="cli-card-example" data-copy="sec view .env" title="Click to copy example">
                                 <div class="cli-example-code">
                                     <span class="t-prompt">$</span>
@@ -896,7 +906,7 @@
                                 </button>
                             </div>
                             <p class="cli-cmd-desc">
-                                Rolls back a project vault to a previous version snapshot. Synchronizes both the encrypted vault file and the on-disk masked decoy placeholder seamlessly.
+                                Rolls back the current project's vault to a previous version snapshot. Synchronizes both the encrypted vault file and the on-disk masked decoy placeholder. Version numbers only match this project's snapshots; a snapshot ID from <code>sec backup --list</code> can name any vault.
                             </p>
                             <div class="cli-flags-row">
                                 <div class="cli-flag-item">
@@ -939,7 +949,7 @@
                                     <span class="cli-flag-hint">Permanently delete single trashed vault</span>
                                 </div>
                                 <div class="cli-flag-item">
-                                    <code class="cli-flag-tag">--empty</code>
+                                    <code class="cli-flag-tag">--empty, --purge-all</code>
                                     <span class="cli-flag-hint">Purge all trashed vaults</span>
                                 </div>
                             </div>
@@ -1016,13 +1026,13 @@
                                 </button>
                             </div>
                             <p class="cli-cmd-desc">
-                                Inspects or clears the biometric session cache. In strict Zero-Cache mode (default), every command requires a fresh physical Touch ID tap so background AI processes can never hijack credentials.
+                                Inspects or clears the biometric grace-period session. In strict Zero-Cache mode (default) nothing is cached, so every command requires a fresh physical Touch ID tap and <code>clear</code> has nothing to flush.
                             </p>
                             <div class="cli-card-example" data-copy="sec session clear" title="Click to copy example">
                                 <div class="cli-example-code">
                                     <span class="t-prompt">$</span>
                                     <span class="t-cmd">sec session clear</span>
-                                    <span class="t-comment"># Flush session cache immediately</span>
+                                    <span class="t-comment"># Ends an active grace period immediately</span>
                                 </div>
                                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
                             </div>
