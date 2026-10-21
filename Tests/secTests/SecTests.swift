@@ -1188,6 +1188,75 @@ final class SecTests: XCTestCase {
         XCTAssertFalse(registry.records.contains(where: { $0.vaultPath.contains("/.sec/") }))
         XCTAssertFalse(registry.records.contains(where: { $0.vaultPath.hasSuffix(".vault.bak") }))
     }
+
+    func testRestoreSelectionStaysInsideTheProjectVault() {
+        func snapshot(_ project: String, version: Int, age: TimeInterval, id: UUID = UUID()) -> SnapshotRecord {
+            SnapshotRecord(
+                id: id, version: version,
+                vaultPath: "/work/\(project)/.env.vault", plainPath: "/work/\(project)/.env",
+                targetFileName: ".env", projectName: project, projectPath: "/work/\(project)", projectHash: project,
+                timestamp: Date(timeIntervalSinceNow: -age), snapshotFileName: "\(project)-v\(version).vault"
+            )
+        }
+        // Project B's snapshots are the newest overall, which is what used to win
+        let otherId = UUID()
+        let snapshots = [
+            snapshot("a", version: 1, age: 400), snapshot("a", version: 2, age: 300),
+            snapshot("b", version: 1, age: 200), snapshot("b", version: 2, age: 100, id: otherId),
+        ]
+        let vaultA = "/work/a/.env.vault"
+
+        // A version number only ever matches the current project's vault
+        XCTAssertEqual(BackupEngine.selectSnapshot(from: snapshots, vaultPath: vaultA, query: "1")?.projectName, "a")
+        XCTAssertEqual(BackupEngine.selectSnapshot(from: snapshots, vaultPath: vaultA, query: "v1")?.version, 1)
+        XCTAssertNil(BackupEngine.selectSnapshot(from: snapshots, vaultPath: vaultA, query: "3"))
+
+        // No query: newest snapshot of this project's vault, not the newest overall
+        let latest = BackupEngine.selectSnapshot(from: snapshots, vaultPath: vaultA, query: nil)
+        XCTAssertEqual(latest?.projectName, "a")
+        XCTAssertEqual(latest?.version, 2)
+        XCTAssertNil(BackupEngine.selectSnapshot(from: snapshots, vaultPath: "/work/c/.env.vault", query: nil))
+
+        // An explicit snapshot ID is unique, so it may name another project's vault
+        let byId = BackupEngine.selectSnapshot(from: snapshots, vaultPath: vaultA, query: String(otherId.uuidString.prefix(8)))
+        XCTAssertEqual(byId?.id, otherId)
+        
+        // An ID prefix made only of digits is still found once it is not a version of this vault
+        let digitId = UUID(uuidString: "12345678-0000-0000-0000-000000000000")!
+        let withDigitId = snapshots + [snapshot("c", version: 1, age: 50, id: digitId)]
+        XCTAssertEqual(BackupEngine.selectSnapshot(from: withDigitId, vaultPath: vaultA, query: "12345678")?.id, digitId)
+        // ...but a short number missing from this vault never falls through to another project's ID
+        XCTAssertNil(BackupEngine.selectSnapshot(from: withDigitId, vaultPath: vaultA, query: "1234"))
+        XCTAssertNil(BackupEngine.selectSnapshot(from: withDigitId, vaultPath: vaultA, query: "3"))
+    }
+
+    func testTableRowsKeepColumnsAligned() {
+        let header = SecCLI.tableRow([("ID", 10), ("PROJECT", 16)], last: "DATE")
+        let row = SecCLI.tableRow([("6312C380", 10), ("a-very-long-project-name", 16)], last: "today")
+        XCTAssertEqual(header, "ID         PROJECT          DATE")
+        XCTAssertEqual(row, "6312C380   a-very-long-pro… today")
+        // A value that exactly fills its column is kept whole
+        XCTAssertEqual(SecCLI.tableRow([("abcd", 4)], last: "x"), "abcd x")
+    }
+
+    func testVersionComesFromEnclosingAppBundle() throws {
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: tempDir) }
+
+        // Inside an app bundle: the bundle's Info.plist wins
+        let contents = tempDir.appendingPathComponent("Secret Manager.app/Contents")
+        let macOS = contents.appendingPathComponent("MacOS")
+        try FileManager.default.createDirectory(at: macOS, withIntermediateDirectories: true)
+        let info: NSDictionary = ["CFBundleShortVersionString": "9.8.7"]
+        XCTAssertTrue(info.write(to: contents.appendingPathComponent("Info.plist"), atomically: true))
+        XCTAssertEqual(SecVersion.bundleVersion(forExecutableAt: macOS.appendingPathComponent("sec")), "9.8.7")
+
+        // A standalone install (e.g. ~/.local/bin/sec) has no bundle, so the caller uses the fallback
+        let bin = tempDir.appendingPathComponent("bin")
+        try FileManager.default.createDirectory(at: bin, withIntermediateDirectories: true)
+        XCTAssertNil(SecVersion.bundleVersion(forExecutableAt: bin.appendingPathComponent("sec")))
+        XCTAssertFalse(SecVersion.current.isEmpty)
+    }
 }
 
 

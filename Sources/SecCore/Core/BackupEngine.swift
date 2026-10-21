@@ -368,6 +368,31 @@ public final class BackupEngine {
         return all.sorted { $0.timestamp > $1.timestamp }
     }
     
+    /// Picks the snapshot `sec restore` rolls back to. Version numbers restart at 1 for every vault, so a
+    /// number (`1`, `v1`) only matches snapshots of `vaultPath`; anything else is read as a snapshot ID prefix,
+    /// which is unique and may name any vault. Without a query, the newest snapshot of `vaultPath` is chosen. Returns nil when nothing
+    /// matches, or when an ID prefix matches more than one snapshot.
+    /// `sec backup --list` shows 8 characters; require most of them before treating a query as an ID.
+    static let minimumIdPrefixLength = 6
+    
+    public static func selectSnapshot(from snapshots: [SnapshotRecord], vaultPath: String?, query: String?) -> SnapshotRecord? {
+        let newestFirst = snapshots.sorted { $0.timestamp > $1.timestamp }
+        let forVault = newestFirst.filter { $0.vaultPath == vaultPath }
+        guard let query = query?.trimmingCharacters(in: .whitespaces).lowercased(), !query.isEmpty else {
+            return forVault.first
+        }
+        let number = query.hasPrefix("v") ? String(query.dropFirst()) : query
+        if !number.isEmpty, number.allSatisfy(\.isNumber),
+           let match = forVault.first(where: { String($0.version) == number }) {
+            return match
+        }
+        // Not a version of this vault: an ID prefix can be all digits too. Short queries never reach the ID
+        // lookup, so a missing version number cannot pick another project's snapshot by accident.
+        guard query.count >= minimumIdPrefixLength else { return nil }
+        let byId = newestFirst.filter { $0.id.uuidString.lowercased().hasPrefix(query) }
+        return byId.count == 1 ? byId.first : nil
+    }
+
     public func listSnapshots(for projectURL: URL) -> [SnapshotRecord] {
         return loadSnapshots(for: projectURL).sorted { $0.timestamp > $1.timestamp }
     }

@@ -50,7 +50,7 @@ public struct SecretTableView: View {
                             .font(.scaled(size: 19, weight: .bold, design: .rounded))
                             .foregroundColor(.primary)
                         
-                        Text("Authenticate once to unlock all vaults for \(store.selectedGraceOption.rawValue). Plaintext is never stored on disk.")
+                        Text("Authenticate once to unlock all vaults for \(store.selectedGraceOption.rawValue). Your .env on disk keeps only decoys.")
                             .font(.scaled(size: 13.5))
                             .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
