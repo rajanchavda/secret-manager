@@ -1,0 +1,29 @@
+name: Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: swift test
+    runs-on: macos-14
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Run Tests
+        timeout-minutes: 15
+        env:
+          # Stream XCTest output so a stuck test shows up live, not only when the process exits
+          NSUnbufferedIO: "YES"
+        run: |
+          swift test
